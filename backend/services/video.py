@@ -23,6 +23,8 @@ def run_ffmpeg(cmd):
     if result.stderr:
         logger.error(result.stderr)
 
+    logger.info(f"FFmpeg return code: {result.returncode}")
+
     if result.returncode != 0:
         raise RuntimeError(
             f"FFmpeg failed:\n{result.stderr}"
@@ -84,20 +86,58 @@ async def download_video(url: str, output_path: str) -> str:
 async def create_preview(input_path: str, preview_path: str) -> str:
     """Create a 480p low-res preview for Gemini analysis. Much faster upload & processing."""
     start = time.perf_counter()
-    cmd = [
-        "ffmpeg", "-y",
-        "-i", input_path,
-        "-vf", "scale=-2:480",
-        "-c:v", "libx264",
-        "-preset", "ultrafast",
-        "-crf", "28",
-        "-c:a", "aac",
-        "-b:a", "64k",
-        "-ac", "1",           # mono audio is enough for analysis
-        preview_path
-    ]
 
-    await asyncio.to_thread(run_ffmpeg, cmd)
+    def get_preview_cmd(inp: str, out: str) -> list:
+        return [
+            "ffmpeg", "-y",
+            "-fflags", "+genpts",
+            "-i", inp,
+            "-map", "0:v:0",
+            "-map", "0:a:0?",
+            "-dn",
+            "-vf", "scale=-2:480",
+            "-pix_fmt", "yuv420p",
+            "-c:v", "libx264",
+            "-preset", "ultrafast",
+            "-crf", "28",
+            "-c:a", "aac",
+            "-b:a", "64k",
+            "-ac", "1",
+            out
+        ]
+
+    cmd = get_preview_cmd(input_path, preview_path)
+
+    try:
+        await asyncio.to_thread(run_ffmpeg, cmd)
+    except RuntimeError as e:
+        logger.warning(f"Preview generation failed, attempting normalization: {e}")
+        normalized_path = input_path.replace(".mp4", "_normalized.mp4")
+        if normalized_path == input_path:
+            normalized_path += "_normalized.mp4"
+            
+        norm_cmd = [
+            "ffmpeg", "-y",
+            "-i", input_path,
+            "-map", "0:v:0",
+            "-map", "0:a:0?",
+            "-dn",
+            "-c:v", "libx264",
+            "-pix_fmt", "yuv420p",
+            "-c:a", "aac",
+            normalized_path
+        ]
+        await asyncio.to_thread(run_ffmpeg, norm_cmd)
+        
+        # Retry preview on normalized footage
+        retry_cmd = get_preview_cmd(normalized_path, preview_path)
+        await asyncio.to_thread(run_ffmpeg, retry_cmd)
+        
+        # Cleanup normalized intermediate file
+        try:
+            os.remove(normalized_path)
+        except OSError:
+            pass
 
     elapsed = time.perf_counter() - start
     orig_mb = os.path.getsize(input_path) / (1024 * 1024)
