@@ -5,19 +5,21 @@
 > **Compatibility:** FFmpeg is executed synchronously via `asyncio.to_thread` instead of `asyncio.create_subprocess_exec` to avoid `NotImplementedError` on Windows (Python 3.13). High-end Sony XAVC camera footage is explicitly normalized to `yuv420p` and stripped of proprietary metadata streams (`rtmd`) so that Gemini can process the resulting preview flawlessly.
 > **Routing Precedence:** Ensure `StaticFiles` is never mounted directly at the root `app.mount("/", ...)` before API routes, as this causes wildcard shadowing (yielding 404s for the API). Mount static assets cleanly under a subpath or define specific wildcard handlers.
 
-## Prompt 1: Video Analysis & Content Generation (Optimized — Single Call)
+## Prompt 1: Multi-Video Analysis & Content Generation
 
 ### The Prompt
 ```text
 Property: '{property_name}'
-Find the 2-3 most viral-worthy moments (15-60s each) for Instagram Reels / YouTube Shorts.
-Return JSON array. Each object: start_time (MM:SS), end_time (MM:SS), reason (1 sentence), script (caption/voiceover, 2-3 sentences max), title (catchy, short), hashtags (3-5 strings).
-Pick visually striking segments with good lighting, movement, or luxury features. Be concise.
+Analyze these property videos (in order: index 0 to N-1) and select the best scenes (scoring them 1-100) to build ONE highly engaging 20-30 second vertical reel.
+Prioritize drone shots, exterior reveals, luxury kitchens, pools, master bedrooms, unique architecture, and premium finishes.
+Avoid shaky footage, walking transitions, empty rooms, and repetitive clips.
+Return a strict JSON object with 'title', a high-retention 'hook' (e.g., 'Wait until you see the backyard.'), 'hashtags', and a 'timeline' array.
+Each timeline scene must specify the 'video_index' (0-indexed matching the order of uploaded videos), 'start' (MM:SS), 'end' (MM:SS), 'scene_type', and 'score' (1-100).
 ```
 
 ### Context & Reasoning
-- **Single Call**: Both analysis and script generation happen in one Gemini request. The previous version made two conceptual passes; this version combines them to cut latency in half.
-- **Concise Prompt**: Shortened from ~15 lines to ~5 lines. Verbose explanations slow down token generation. The structured `response_schema` enforces JSON format, so the prompt doesn't need to repeat the structure.
+- **Multi-Video Context**: The prompt receives a list of videos as Parts array before the prompt string. `video_index` maps decisions back to the original source videos.
+- **Hook Strategy**: Generating a hook explicitly increases viral retention rates.
 - **Flash Model**: Switched from `gemini-2.5-pro` to `gemini-2.5-flash` for 3-5x faster inference. Quality is comparable for structured extraction tasks.
 - **Lower Temperature (0.5)**: Reduces generation randomness, leading to faster convergence and more consistent outputs.
 - **Preview-Based Analysis**: A 480p preview is uploaded instead of the full-resolution video. This reduces upload time by 60-80% and Gemini processing time significantly, since the AI only needs to understand scene content (not pixel-perfect detail).

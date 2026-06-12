@@ -197,20 +197,55 @@ async def process_segment(input_path: str, output_path: str, start_time: str, en
     print(f"[PERF] Segment export: trim={trim_elapsed:.1f}s  crop={crop_elapsed:.1f}s  total={total_elapsed:.1f}s")
     return output_path
 
-async def process_segments_parallel(input_path: str, segments: list, output_dir: str) -> list:
-    """Process ALL segments concurrently using asyncio.gather. Never sequential."""
+async def build_reel(input_paths: list[str], timeline: list[dict], output_dir: str) -> str:
+    """Extract individual scenes from their respective videos and concat them into a single reel."""
     start = time.perf_counter()
+    clip_paths = []
+    
+    # 1. Extract and crop each scene sequentially (or we could use asyncio.gather)
+    async def process_one(i, scene):
+        v_idx = scene["video_index"]
+        if v_idx >= len(input_paths):
+            logger.warning(f"Scene {i} references invalid video_index {v_idx}. Skipping.")
+            return None
+            
+        inp = input_paths[v_idx]
+        clip_path = os.path.join(output_dir, f"clip_{i}.mp4")
+        await process_segment(inp, clip_path, scene["start"], scene["end"])
+        return clip_path
 
-    async def _process_one(i: int, segment: dict):
-        output_filename = f"output_{i}.mp4"
-        output_path = os.path.join(output_dir, output_filename)
-        await process_segment(input_path, output_path, segment["start_time"], segment["end_time"])
-        segment["video_url"] = f"/outputs/{output_filename}"
-        return segment
-
-    tasks = [_process_one(i, seg) for i, seg in enumerate(segments)]
+    # Parallelize extraction
+    tasks = [process_one(i, scene) for i, scene in enumerate(timeline)]
     results = await asyncio.gather(*tasks)
+    clip_paths = [r for r in results if r]
 
+    # 2. Concat all extracted clips
+    concat_txt = os.path.join(output_dir, "concat.txt")
+    with open(concat_txt, "w") as f:
+        for cp in clip_paths:
+            f.write(f"file '{os.path.basename(cp)}'\n")
+            
+    final_output = os.path.join(output_dir, "final_reel.mp4")
+    concat_cmd = [
+        "ffmpeg", "-y",
+        "-f", "concat",
+        "-safe", "0",
+        "-i", concat_txt,
+        "-c", "copy",
+        final_output
+    ]
+    
+    await asyncio.to_thread(run_ffmpeg, concat_cmd)
+    
+    # Cleanup intermediate clips and concat.txt
+    try:
+        os.remove(concat_txt)
+        for cp in clip_paths:
+            os.remove(cp)
+    except OSError:
+        pass
+        
     elapsed = time.perf_counter() - start
-    print(f"[PERF] All {len(segments)} segments parallel: {elapsed:.1f}s total")
-    return list(results)
+    logger.info(f"[PERF] Final Reel built from {len(clip_paths)} clips in {elapsed:.1f}s")
+    
+    return "/outputs/final_reel.mp4"

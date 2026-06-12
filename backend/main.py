@@ -3,7 +3,7 @@ import json
 import asyncio
 import sys
 import time
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from services.video import download_video, create_preview, process_segments_parallel
+from services.video import download_video, create_preview, build_reel
 from services.gemini import upload_and_wait, analyze_and_generate
 
 load_dotenv()
@@ -49,47 +49,63 @@ if os.path.exists("static"):
         return JSONResponse({"error": "Favicon not found"}, status_code=404)
 
 @app.get("/api/process")
-async def process_video(video_url: str, property_name: str, request: Request):
+async def process_video(property_name: str, request: Request, video_url: list[str] = Query(default=[])):
     q = asyncio.Queue()
 
     async def background_task():
         job_start = time.perf_counter()
         try:
-            await q.put({"status": "progress", "message": "Starting process..."})
-
-            # ── Step 1: Download video ──────────────────────────
-            await q.put({"status": "progress", "message": "Downloading video from Dropbox..."})
-            local_input_path = os.path.join("downloads", "input_video.mp4")
-            await download_video(video_url, local_input_path)
-
-            # ── Step 2: Create 480p preview for Gemini ──────────
-            await q.put({"status": "progress", "message": "Creating low-res preview for AI analysis..."})
-            preview_path = os.path.join("downloads", "preview_480p.mp4")
-            
-            if not os.path.exists(local_input_path):
-                raise RuntimeError("Video file missing before FFmpeg stage")
+            if not (5 <= len(video_url) <= 10):
+                raise ValueError(f"Must provide between 5 and 10 video URLs. You provided {len(video_url)}.")
                 
-            await create_preview(local_input_path, preview_path)
+            await q.put({"status": "progress", "message": f"Starting process for {len(video_url)} videos..."})
 
-            # ── Step 3: Upload preview to Gemini & wait ─────────
-            async def yield_message(msg: str):
-                await q.put({"status": "progress", "message": msg})
+            local_inputs = []
+            preview_paths = []
 
-            file_info = await upload_and_wait(preview_path, property_name, yield_callback=yield_message)
+            # ── Step 1: Download & Preview ──────────────────────────
+            for i, url in enumerate(video_url):
+                await q.put({"status": "progress", "message": f"Downloading & previewing video {i+1}/{len(video_url)}..."})
+                
+                local_input = os.path.join("downloads", f"input_video_{i}.mp4")
+                preview_path = os.path.join("downloads", f"preview_480p_{i}.mp4")
+                
+                await download_video(url, local_input)
+                
+                if not os.path.exists(local_input):
+                    raise RuntimeError(f"Video file missing before FFmpeg stage: {local_input}")
+                    
+                await create_preview(local_input, preview_path)
+                
+                local_inputs.append(local_input)
+                preview_paths.append(preview_path)
 
-            # ── Step 4: Single Gemini call — analysis + scripts ─
-            await q.put({"status": "progress", "message": "AI analyzing video & generating scripts..."})
-            segments = await analyze_and_generate(file_info.uri, property_name)
+            # ── Step 2: Upload previews to Gemini ────────────────
+            await q.put({"status": "progress", "message": "Uploading all previews to AI..."})
+            
+            upload_tasks = []
+            for i, p_path in enumerate(preview_paths):
+                upload_tasks.append(upload_and_wait(p_path, f"{property_name}_part{i}"))
+                
+            file_infos = await asyncio.gather(*upload_tasks)
+            file_uris = [info.uri for info in file_infos]
 
-            # ── Step 5: Parallel FFmpeg export ──────────────────
-            await q.put({"status": "progress", "message": f"Exporting {len(segments)} clips in parallel..."})
-            results = await process_segments_parallel(local_input_path, segments, "outputs")
+            # ── Step 3: Single Gemini call ───────────────────────
+            await q.put({"status": "progress", "message": "AI analyzing all videos to build the ultimate reel..."})
+            gemini_result = await analyze_and_generate(file_uris, property_name)
+            gemini_result["selected_scenes"] = gemini_result.get("timeline", [])
+
+            # ── Step 4: Build single reel ───────────────────────
+            await q.put({"status": "progress", "message": "Assembling the final reel..."})
+            
+            final_reel_url = await build_reel(local_inputs, gemini_result["timeline"], "outputs")
+            gemini_result["video_url"] = final_reel_url
 
             # ── Done ────────────────────────────────────────────
             total_elapsed = time.perf_counter() - job_start
             print(f"[PERF] ═══ TOTAL JOB: {total_elapsed:.1f}s ═══")
 
-            await q.put({"status": "completed", "results": results})
+            await q.put({"status": "completed", "results": [gemini_result]})
 
         except Exception as e:
             import traceback

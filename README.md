@@ -9,8 +9,8 @@ An AI-powered full-stack web application that transforms horizontal real estate 
 - **Video Processing**: FFMPEG
 
 ## Features
-- End-to-end automation without human intervention.
-- Server-Sent Events (SSE) for live progress streaming.
+- **Multi-Video Aggregation**: Upload 5-10 separate clips (drone, interior, exterior) and have the AI autonomously build one seamless 20-30s reel.
+- Server-Sent Events (SSE) for live progress streaming across multiple parallel workers.
 - Glassmorphism, dynamic animations, and premium dark-mode UI.
 - Direct downloads of fully prepared `.mp4` clips.
 

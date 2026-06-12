@@ -62,38 +62,51 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
 
     return file_info
 
-async def analyze_and_generate(file_uri: str, property_name: str) -> list:
-    """Single Gemini call: analysis + script generation combined. Tighter prompt for speed."""
+async def analyze_and_generate(file_uris: list[str], property_name: str) -> dict:
+    """Single Gemini call: analyze multiple videos and build one 20-30s reel."""
     client = get_client()
     start = time.perf_counter()
 
     prompt = f"""Property: '{property_name}'
-Find the 2-3 most viral-worthy moments (15-60s each) for Instagram Reels / YouTube Shorts.
-Return JSON array. Each object: start_time (MM:SS), end_time (MM:SS), reason (1 sentence), script (caption/voiceover, 2-3 sentences max), title (catchy, short), hashtags (3-5 strings).
-Pick visually striking segments with good lighting, movement, or luxury features. Be concise."""
+Analyze these property videos (in order: index 0 to {len(file_uris)-1}) and select the best scenes (scoring them 1-100) to build ONE highly engaging 20-30 second vertical reel.
+Prioritize drone shots, exterior reveals, luxury kitchens, pools, master bedrooms, unique architecture, and premium finishes.
+Avoid shaky footage, walking transitions, empty rooms, and repetitive clips.
+Return a strict JSON object with 'title', a high-retention 'hook' (e.g., 'Wait until you see the backyard.'), 'hashtags', and a 'timeline' array.
+Each timeline scene must specify the 'video_index' (0-indexed matching the order of uploaded videos), 'start' (MM:SS), 'end' (MM:SS), 'scene_type', and 'score' (1-100)."""
 
     schema = types.Schema(
-        type=types.Type.ARRAY,
-        items=types.Schema(
-            type=types.Type.OBJECT,
-            properties={
-                "start_time": types.Schema(type=types.Type.STRING),
-                "end_time": types.Schema(type=types.Type.STRING),
-                "reason": types.Schema(type=types.Type.STRING),
-                "script": types.Schema(type=types.Type.STRING),
-                "title": types.Schema(type=types.Type.STRING),
-                "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
-            },
-            required=["start_time", "end_time", "reason", "script", "title", "hashtags"]
-        )
+        type=types.Type.OBJECT,
+        properties={
+            "title": types.Schema(type=types.Type.STRING),
+            "hook": types.Schema(type=types.Type.STRING),
+            "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
+            "timeline": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(
+                    type=types.Type.OBJECT,
+                    properties={
+                        "video_index": types.Schema(type=types.Type.INTEGER),
+                        "start": types.Schema(type=types.Type.STRING),
+                        "end": types.Schema(type=types.Type.STRING),
+                        "scene_type": types.Schema(type=types.Type.STRING),
+                        "score": types.Schema(type=types.Type.INTEGER),
+                    },
+                    required=["video_index", "start", "end", "scene_type", "score"]
+                )
+            )
+        },
+        required=["title", "hook", "hashtags", "timeline"]
     )
 
     loop = asyncio.get_event_loop()
 
     def _generate():
+        contents = [types.Part.from_uri(file_uri=uri, mime_type="video/mp4") for uri in file_uris]
+        contents.append(prompt)
+        
         return client.models.generate_content(
             model='gemini-2.5-flash',
-            contents=[types.Part.from_uri(file_uri=file_uri, mime_type="video/mp4"), prompt],
+            contents=contents,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",
                 response_schema=schema,

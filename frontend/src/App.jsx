@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 function App() {
-  const [videoUrl, setVideoUrl] = useState('');
+  const [videoUrls, setVideoUrls] = useState('');
   const [propertyName, setPropertyName] = useState('');
   
   const [status, setStatus] = useState('idle'); // idle | processing | completed | error
@@ -10,7 +10,13 @@ function App() {
   
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!videoUrl || !propertyName) return;
+    const urls = videoUrls.split('\n').map(u => u.trim()).filter(u => u.length > 0);
+    if (urls.length < 5 || urls.length > 10) {
+      setMessage(`Please provide between 5 and 10 URLs. You provided ${urls.length}.`);
+      setStatus('error');
+      return;
+    }
+    if (!propertyName) return;
     
     setStatus('processing');
     setMessage('Connecting to AI Engine...');
@@ -18,7 +24,8 @@ function App() {
     
     // Use relative URL in production since we serve static from FastAPI
     const baseUrl = import.meta.env.DEV ? "http://localhost:8000" : "";
-    const url = `${baseUrl}/api/process?video_url=${encodeURIComponent(videoUrl)}&property_name=${encodeURIComponent(propertyName)}`;
+    const urlParams = urls.map(u => `video_url=${encodeURIComponent(u)}`).join('&');
+    const url = `${baseUrl}/api/process?${urlParams}&property_name=${encodeURIComponent(propertyName)}`;
     const eventSource = new EventSource(url);
     
     eventSource.onmessage = (event) => {
@@ -57,12 +64,12 @@ function App() {
         <div className="glass-card">
           <form onSubmit={handleSubmit} className="input-group">
             <div className="input-field">
-              <label>Dropbox Video URL</label>
-              <input 
-                type="url" 
-                placeholder="https://www.dropbox.com/..." 
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
+              <label>Dropbox Video URLs (5-10 links, one per line)</label>
+              <textarea 
+                placeholder="https://www.dropbox.com/...&#10;https://www.dropbox.com/..." 
+                value={videoUrls}
+                onChange={(e) => setVideoUrls(e.target.value)}
+                rows={6}
                 required
               />
             </div>
@@ -103,7 +110,7 @@ function App() {
           <h2 style={{ textAlign: 'center', marginBottom: '2rem' }}>Ready to Publish 🎉</h2>
           <div className="results-grid">
             {results.map((item, index) => (
-              <div key={index} className="glass-card result-card">
+              <div key={index} className="glass-card result-card" style={{ maxWidth: '600px', margin: '0 auto' }}>
                 <div className="video-container">
                   <video src={`${import.meta.env.DEV ? "http://localhost:8000" : ""}${item.video_url}`} controls autoPlay muted loop playsInline />
                 </div>
@@ -111,25 +118,27 @@ function App() {
                 <div className="result-meta">
                   <h3 className="result-title">{item.title}</h3>
                   <div className="result-script">
-                    <strong>Suggested Caption:</strong><br/>
-                    {item.script}
+                    <strong>Hook:</strong> {item.hook}<br/><br/>
+                    <strong>Total Duration:</strong> {item.total_duration || "20-30s"}<br/>
+                    <strong>Scenes Used:</strong> {item.selected_scenes?.length || 0}
                   </div>
-                  <div className="result-hashtags">
-                    {item.hashtags && item.hashtags.join(' ')}
+                  <div className="result-hashtags" style={{ marginTop: '1rem', color: '#3b82f6', fontWeight: '500' }}>
+                    {item.hashtags && item.hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ')}
                   </div>
                   <a 
                     href={`${import.meta.env.DEV ? "http://localhost:8000" : ""}${item.video_url}`} 
-                    download={`short_${index + 1}.mp4`} 
+                    download={`final_reel.mp4`} 
                     className="btn-download"
                     target="_blank"
                     rel="noreferrer"
+                    style={{ marginTop: '1.5rem' }}
                   >
                     <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                       <polyline points="7 10 12 15 17 10"></polyline>
                       <line x1="12" y1="15" x2="12" y2="3"></line>
                     </svg>
-                    Download Clip
+                    Download Reel
                   </a>
                 </div>
               </div>
