@@ -35,11 +35,18 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 # Serve frontend build if it exists
 if os.path.exists("static"):
-    app.mount("/static", StaticFiles(directory="static"), name="static")
+    if os.path.exists("static/assets"):
+        app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
 
     @app.get("/")
     async def root():
         return FileResponse("static/index.html")
+
+    @app.get("/favicon.svg")
+    async def favicon():
+        if os.path.exists("static/favicon.svg"):
+            return FileResponse("static/favicon.svg")
+        return JSONResponse({"error": "Favicon not found"}, status_code=404)
 
 @app.get("/api/process")
 async def process_video(video_url: str, property_name: str, request: Request):
