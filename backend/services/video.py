@@ -32,6 +32,24 @@ def run_ffmpeg(cmd):
 
     return result
 
+def get_total_duration(paths: list[str]) -> float:
+    """Calculate the total raw duration (in seconds) of multiple video files."""
+    total = 0.0
+    for path in paths:
+        try:
+            cmd = [
+                "ffprobe", "-v", "error", 
+                "-show_entries", "format=duration", 
+                "-of", "default=noprint_wrappers=1:nokey=1", 
+                path
+            ]
+            res = subprocess.run(cmd, capture_output=True, text=True)
+            if res.returncode == 0 and res.stdout.strip():
+                total += float(res.stdout.strip())
+        except Exception as e:
+            logger.error(f"Failed to get duration for {path}: {e}")
+    return total
+
 def get_direct_url(url: str) -> str:
     """Ensure the dropbox url is a direct download link."""
     if "dropbox.com" in url:

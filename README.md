@@ -9,9 +9,11 @@ An AI-powered full-stack web application that transforms horizontal real estate 
 - **Video Processing**: FFMPEG
 
 ## Features
-- **Multi-Video Aggregation**: Upload 5-10 separate clips (drone, interior, exterior) and have the AI autonomously build one seamless 20-30s reel.
-- Server-Sent Events (SSE) for live progress streaming across multiple parallel workers.
-- Glassmorphism, dynamic animations, and premium dark-mode UI.
+- **Smart Reel Sequencer**: Upload 10-30 separate raw clips. The AI will detect if the property is a House or Apartment and dynamically sequence the footage (e.g., Exterior -> Living Room -> Kitchen -> Pool) according to real estate storytelling best practices.
+- **AI Clip Filtering**: Automatically scores clips from 0-100, rejecting blurry, shaky, or poor-lighting footage to build the perfect 20, 30, or 45-second reel.
+- **Production Reliability Layer**: Intelligent exponential backoff with jitter and automatic model failover (`gemini-2.5-pro` -> `gemini-2.5-flash`) ensures maximum uptime during AI server congestion.
+- **Premium Dashboard**: Customize reel duration and style, and view detailed metrics including total raw clip duration processed and property descriptions.
+- Server-Sent Events (SSE) for granular progress tracking across 8 AI milestones and real-time retry alerts.
 - Direct downloads of fully prepared `.mp4` clips.
 
 ## Troubleshooting

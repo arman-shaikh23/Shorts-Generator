@@ -2,6 +2,18 @@
 
 All notable changes to this project will be documented in this file.
 
+## [4.0.0] - 2026-06-12
+### Added
+- **Production Reliability Layer**: Implemented robust failure handling for the Gemini API. The system now features exponential backoff (5s to 60s) with random jitter to gracefully handle HTTP 503, 429, and Model Overloaded errors.
+- **Model Fallback**: The primary reasoning engine is now `gemini-2.5-pro`. If it fails 3 times consecutively due to server load, the system dynamically fails over to `gemini-2.5-flash` for remaining attempts, ensuring maximum uptime.
+- **Concurrency Management**: Added strict `asyncio.Semaphore(2)` locking to prevent overwhelming the AI servers during parallel clip processing.
+- **Real-Time Retry UI**: The frontend SSE stream now actively notifies users during AI congestion (e.g., "AI servers busy, retrying... (Retry 1 of 5)").
+
+## [3.0.0] - 2026-06-12
+### Added
+- **AI Real Estate Reel Generator**: Upgraded the pipeline to accept 10-30 Dropbox clips. FFMPEG and Gemini now detect property types (Apartment vs House) and enforce smart storytelling sequences. Quality-based filtering automatically rejects blurry/shaky footage and selects the top 8-12 clips.
+- **Premium Dashboard**: The UI now supports Reel Duration & Style selection, and renders a fully detailed preview dashboard mapping out the property description, property type, processing metrics, and the final hook.
+
 ## [2.0.0] - 2026-06-12
 ### Added
 - **Multi-Video Property Reels**: Completely overhauled the architecture to accept between 5 and 10 separate property videos (e.g., exterior, drone, living room). The application processes them in parallel, uploads previews for all assets, and runs a unified Gemini analysis to stitch together a single optimal 20-30 second viral reel.

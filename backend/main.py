@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from services.video import download_video, create_preview, build_reel
+from services.video import download_video, create_preview, build_reel, get_total_duration
 from services.gemini import upload_and_wait, analyze_and_generate
 
 load_dotenv()
@@ -49,16 +49,22 @@ if os.path.exists("static"):
         return JSONResponse({"error": "Favicon not found"}, status_code=404)
 
 @app.get("/api/process")
-async def process_video(property_name: str, request: Request, video_url: list[str] = Query(default=[])):
+async def process_video(
+    property_name: str, 
+    request: Request, 
+    video_url: list[str] = Query(default=[]),
+    duration: str = Query(default="30 sec"),
+    style: str = Query(default="Modern")
+):
     q = asyncio.Queue()
 
     async def background_task():
         job_start = time.perf_counter()
         try:
-            if not (5 <= len(video_url) <= 10):
-                raise ValueError(f"Must provide between 5 and 10 video URLs. You provided {len(video_url)}.")
+            if not (10 <= len(video_url) <= 30):
+                raise ValueError(f"Must provide between 10 and 30 video URLs. You provided {len(video_url)}.")
                 
-            await q.put({"status": "progress", "message": f"Starting process for {len(video_url)} videos..."})
+            await q.put({"status": "progress", "message": "Uploading Clips..."})
 
             local_inputs = []
             preview_paths = []
@@ -80,8 +86,12 @@ async def process_video(property_name: str, request: Request, video_url: list[st
                 local_inputs.append(local_input)
                 preview_paths.append(preview_path)
 
+            # ── Calculate Total Raw Duration ─────────────────────
+            total_duration_sec = get_total_duration(local_inputs)
+            print(f"[METRICS] Total Clips: {len(local_inputs)}, Total Raw Duration: {total_duration_sec:.1f}s")
+
             # ── Step 2: Upload previews to Gemini ────────────────
-            await q.put({"status": "progress", "message": "Uploading all previews to AI..."})
+            await q.put({"status": "progress", "message": "Uploading Clips (AI Previews)..."})
             
             upload_tasks = []
             for i, p_path in enumerate(preview_paths):
@@ -91,15 +101,44 @@ async def process_video(property_name: str, request: Request, video_url: list[st
             file_uris = [info.uri for info in file_infos]
 
             # ── Step 3: Single Gemini call ───────────────────────
-            await q.put({"status": "progress", "message": "AI analyzing all videos to build the ultimate reel..."})
-            gemini_result = await analyze_and_generate(file_uris, property_name)
-            gemini_result["selected_scenes"] = gemini_result.get("timeline", [])
+            await q.put({"status": "progress", "message": "Detecting Scenes..."})
+            await asyncio.sleep(0.5)
+            await q.put({"status": "progress", "message": "Classifying Property Type..."})
+            await asyncio.sleep(0.5)
+            await q.put({"status": "progress", "message": "Ranking Clips..."})
+            await asyncio.sleep(0.5)
+            await q.put({"status": "progress", "message": "Building Storyline..."})
+            
+            async def yield_message(msg: str):
+                await q.put({"status": "progress", "message": msg})
+            
+            gemini_result = await analyze_and_generate(file_uris, property_name, duration, style, yield_callback=yield_message)
 
             # ── Step 4: Build single reel ───────────────────────
-            await q.put({"status": "progress", "message": "Assembling the final reel..."})
+            await q.put({"status": "progress", "message": "Generating Reel..."})
             
-            final_reel_url = await build_reel(local_inputs, gemini_result["timeline"], "outputs")
+            # Map selected_clips into final_order if timeline isn't pre-sorted
+            # Actually, the AI might return timeline/selected_clips in the right order.
+            timeline = []
+            # We will use the 'final_order' array to construct the timeline
+            if "final_order" in gemini_result and "selected_clips" in gemini_result:
+                clips_map = {c["video_index"]: c for c in gemini_result["selected_clips"]}
+                for idx in gemini_result["final_order"]:
+                    if idx in clips_map:
+                        timeline.append(clips_map[idx])
+            else:
+                timeline = gemini_result.get("selected_clips", [])
+                
+            gemini_result["selected_scenes"] = timeline
+            
+            await q.put({"status": "progress", "message": "Exporting Reel..."})
+            final_reel_url = await build_reel(local_inputs, timeline, "outputs")
+            
             gemini_result["video_url"] = final_reel_url
+            gemini_result["total_raw_clips"] = len(local_inputs)
+            gemini_result["total_raw_duration"] = total_duration_sec
+            gemini_result["reel_duration"] = duration
+            gemini_result["reel_style"] = style
 
             # ── Done ────────────────────────────────────────────
             total_elapsed = time.perf_counter() - job_start

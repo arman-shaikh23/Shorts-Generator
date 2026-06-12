@@ -2,8 +2,11 @@ import os
 import asyncio
 import json
 import time
+import random
 from google import genai
 from google.genai import types
+
+gemini_semaphore = asyncio.Semaphore(2)
 
 def get_client():
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -62,64 +65,120 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
 
     return file_info
 
-async def analyze_and_generate(file_uris: list[str], property_name: str) -> dict:
+async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, yield_callback=None) -> dict:
     """Single Gemini call: analyze multiple videos and build one 20-30s reel."""
     client = get_client()
-    start = time.perf_counter()
 
     prompt = f"""Property: '{property_name}'
-Analyze these property videos (in order: index 0 to {len(file_uris)-1}) and select the best scenes (scoring them 1-100) to build ONE highly engaging 20-30 second vertical reel.
-Prioritize drone shots, exterior reveals, luxury kitchens, pools, master bedrooms, unique architecture, and premium finishes.
-Avoid shaky footage, walking transitions, empty rooms, and repetitive clips.
-Return a strict JSON object with 'title', a high-retention 'hook' (e.g., 'Wait until you see the backyard.'), 'hashtags', and a 'timeline' array.
-Each timeline scene must specify the 'video_index' (0-indexed matching the order of uploaded videos), 'start' (MM:SS), 'end' (MM:SS), 'scene_type', and 'score' (1-100)."""
+Goal: Build ONE {style} style vertical reel targeting exactly {duration} duration.
+You have been provided {len(file_uris)} video clips (indices 0 to {len(file_uris)-1}).
+
+TASKS:
+1. Detect Property Type (apartment, house, villa, penthouse).
+2. Classify every clip (e.g. exterior, entrance, living_room, kitchen, bedroom, pool, drone_view, etc) and score its quality (0-100). Reject blurry, bad lighting, or duplicate footage.
+3. Select ONLY the strongest 8-12 clips.
+4. Smart Reel Ordering:
+   - If House/Villa: Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Backyard -> Pool -> Closing.
+   - If Apartment/Penthouse: Building Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> View -> Closing.
+   NEVER use upload order. Always sequence based on the property type logic above.
+5. Provide a highly engaging social media hook, a 4-5 line description of the property, and hashtags.
+
+Return strict JSON:
+- 'property_type': string
+- 'title': string
+- 'hook': string
+- 'description': string (4-5 lines of text)
+- 'hashtags': array of strings
+- 'selected_clips': array of objects {{'video_index': int, 'scene_type': str, 'score': int, 'reason': str, 'start': 'MM:SS', 'end': 'MM:SS'}}
+- 'final_order': array of integers (these MUST match the 'video_index' values from selected_clips, defining the exact storyline sequence)."""
 
     schema = types.Schema(
         type=types.Type.OBJECT,
         properties={
+            "property_type": types.Schema(type=types.Type.STRING),
             "title": types.Schema(type=types.Type.STRING),
             "hook": types.Schema(type=types.Type.STRING),
+            "description": types.Schema(type=types.Type.STRING),
             "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
-            "timeline": types.Schema(
+            "selected_clips": types.Schema(
                 type=types.Type.ARRAY,
                 items=types.Schema(
                     type=types.Type.OBJECT,
                     properties={
                         "video_index": types.Schema(type=types.Type.INTEGER),
-                        "start": types.Schema(type=types.Type.STRING),
-                        "end": types.Schema(type=types.Type.STRING),
                         "scene_type": types.Schema(type=types.Type.STRING),
                         "score": types.Schema(type=types.Type.INTEGER),
+                        "reason": types.Schema(type=types.Type.STRING),
+                        "start": types.Schema(type=types.Type.STRING),
+                        "end": types.Schema(type=types.Type.STRING),
                     },
-                    required=["video_index", "start", "end", "scene_type", "score"]
+                    required=["video_index", "scene_type", "score", "reason", "start", "end"]
                 )
-            )
+            ),
+            "final_order": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.INTEGER))
         },
-        required=["title", "hook", "hashtags", "timeline"]
+        required=["property_type", "title", "hook", "description", "hashtags", "selected_clips", "final_order"]
     )
 
     loop = asyncio.get_event_loop()
+    max_retries = 5
+    backoff_schedule = [5, 10, 20, 40, 60]
 
-    def _generate():
-        contents = [types.Part.from_uri(file_uri=uri, mime_type="video/mp4") for uri in file_uris]
-        contents.append(prompt)
-        
-        return client.models.generate_content(
-            model='gemini-2.5-flash',
-            contents=contents,
-            config=types.GenerateContentConfig(
-                response_mime_type="application/json",
-                response_schema=schema,
-                temperature=0.5,
-            ),
-        )
+    async with gemini_semaphore:
+        for attempt in range(max_retries + 1):
+            # Fallback model strategy: Pro for first 3 attempts, Flash for the rest
+            model_name = 'gemini-2.5-pro' if attempt < 3 else 'gemini-2.5-flash'
+            start_attempt = time.perf_counter()
 
-    response = await loop.run_in_executor(None, _generate)
+            try:
+                def _generate():
+                    contents = [types.Part.from_uri(file_uri=uri, mime_type="video/mp4") for uri in file_uris]
+                    contents.append(prompt)
+                    
+                    return client.models.generate_content(
+                        model=model_name,
+                        contents=contents,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            response_schema=schema,
+                            temperature=0.5,
+                        ),
+                    )
 
-    elapsed = time.perf_counter() - start
-    print(f"[PERF] Gemini analysis+generation: {elapsed:.1f}s")
+                # Timeout Protection
+                future = loop.run_in_executor(None, _generate)
+                response = await asyncio.wait_for(future, timeout=90.0)
 
-    try:
-        return json.loads(response.text)
-    except json.JSONDecodeError:
-        raise Exception(f"Failed to decode Gemini response as JSON: {response.text}")
+                elapsed = time.perf_counter() - start_attempt
+                print(f"[PERF] Gemini {model_name} success on attempt {attempt+1}: {elapsed:.1f}s")
+
+                try:
+                    return json.loads(response.text)
+                except json.JSONDecodeError:
+                    raise Exception(f"Failed to decode Gemini response as JSON: {response.text}")
+
+            except Exception as e:
+                error_str = str(e)
+                is_timeout = isinstance(e, asyncio.TimeoutError)
+                is_retryable = is_timeout or any(code in error_str for code in ["429", "500", "502", "503", "504", "UNAVAILABLE", "Model overloaded"])
+                
+                elapsed = time.perf_counter() - start_attempt
+
+                if attempt == max_retries or not is_retryable:
+                    if attempt == max_retries:
+                        print(f"[ERROR] Gemini exhausted all {max_retries} retries. Final error: {error_str}")
+                        raise Exception("Gemini service temporarily unavailable after multiple retries.")
+                    else:
+                        print(f"[ERROR] Non-retryable Gemini error: {error_str}")
+                        raise
+
+                base_delay = backoff_schedule[attempt]
+                jitter = random.uniform(0, 3)
+                delay = base_delay + jitter
+
+                print(f"[RETRY] Attempt {attempt+1} failed ({elapsed:.1f}s). Model: {model_name}. Code: {error_str[:60]}... Delaying {delay:.1f}s")
+
+                if yield_callback:
+                    await yield_callback(f"AI servers busy, retrying... (Retry {attempt+1} of 5)")
+
+                await asyncio.sleep(delay)

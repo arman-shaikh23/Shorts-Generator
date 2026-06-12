@@ -3,6 +3,8 @@ import { useState } from 'react';
 function App() {
   const [videoUrls, setVideoUrls] = useState('');
   const [propertyName, setPropertyName] = useState('');
+  const [reelDuration, setReelDuration] = useState('30 sec');
+  const [reelStyle, setReelStyle] = useState('Luxury');
   
   const [status, setStatus] = useState('idle'); // idle | processing | completed | error
   const [message, setMessage] = useState('');
@@ -11,8 +13,8 @@ function App() {
   const handleSubmit = (e) => {
     e.preventDefault();
     const urls = videoUrls.split('\n').map(u => u.trim()).filter(u => u.length > 0);
-    if (urls.length < 5 || urls.length > 10) {
-      setMessage(`Please provide between 5 and 10 URLs. You provided ${urls.length}.`);
+    if (urls.length < 10 || urls.length > 30) {
+      setMessage(`Please provide between 10 and 30 URLs. You provided ${urls.length}.`);
       setStatus('error');
       return;
     }
@@ -25,7 +27,7 @@ function App() {
     // Use relative URL in production since we serve static from FastAPI
     const baseUrl = import.meta.env.DEV ? "http://localhost:8000" : "";
     const urlParams = urls.map(u => `video_url=${encodeURIComponent(u)}`).join('&');
-    const url = `${baseUrl}/api/process?${urlParams}&property_name=${encodeURIComponent(propertyName)}`;
+    const url = `${baseUrl}/api/process?${urlParams}&property_name=${encodeURIComponent(propertyName)}&duration=${encodeURIComponent(reelDuration)}&style=${encodeURIComponent(reelStyle)}`;
     const eventSource = new EventSource(url);
     
     eventSource.onmessage = (event) => {
@@ -64,7 +66,7 @@ function App() {
         <div className="glass-card">
           <form onSubmit={handleSubmit} className="input-group">
             <div className="input-field">
-              <label>Dropbox Video URLs (5-10 links, one per line)</label>
+              <label>Dropbox Video URLs (10-30 links, one per line)</label>
               <textarea 
                 placeholder="https://www.dropbox.com/...&#10;https://www.dropbox.com/..." 
                 value={videoUrls}
@@ -83,6 +85,27 @@ function App() {
                 onChange={(e) => setPropertyName(e.target.value)}
                 required
               />
+            </div>
+
+            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', marginBottom: '1rem' }}>
+              <div className="input-field" style={{ flex: 1 }}>
+                <label>Reel Duration</label>
+                <select value={reelDuration} onChange={(e) => setReelDuration(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="20 sec">20 sec</option>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="30 sec">30 sec</option>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="45 sec">45 sec</option>
+                </select>
+              </div>
+
+              <div className="input-field" style={{ flex: 1 }}>
+                <label>Reel Style</label>
+                <select value={reelStyle} onChange={(e) => setReelStyle(e.target.value)} style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid rgba(255,255,255,0.1)' }}>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="Luxury">Luxury</option>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="Cinematic">Cinematic</option>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="Modern">Modern</option>
+                  <option style={{ background: '#1f2937', color: 'white' }} value="Viral">Viral</option>
+                </select>
+              </div>
             </div>
             
             {status === 'error' && (
@@ -117,10 +140,16 @@ function App() {
                 
                 <div className="result-meta">
                   <h3 className="result-title">{item.title}</h3>
-                  <div className="result-script">
+                  <div className="result-script" style={{ lineHeight: '1.6' }}>
+                    <div style={{ display: 'inline-block', background: 'rgba(59, 130, 246, 0.2)', color: '#60a5fa', padding: '0.25rem 0.75rem', borderRadius: '9999px', fontSize: '0.875rem', marginBottom: '1rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      {item.property_type || 'Property'}
+                    </div><br/>
                     <strong>Hook:</strong> {item.hook}<br/><br/>
-                    <strong>Total Duration:</strong> {item.total_duration || "20-30s"}<br/>
-                    <strong>Scenes Used:</strong> {item.selected_scenes?.length || 0}
+                    <strong>Description:</strong><br/>
+                    <span style={{ fontStyle: 'italic', color: '#ccc' }}>{item.description}</span><br/><br/>
+                    <strong>Reel Settings:</strong> {item.reel_style} | {item.reel_duration}<br/>
+                    <strong>Metrics:</strong> Analyzed {item.total_raw_clips} raw clips ({item.total_raw_duration ? Math.round(item.total_raw_duration) : 0}s total footage)<br/>
+                    <strong>Final Sequence:</strong> {item.selected_scenes?.length || 0} clips used
                   </div>
                   <div className="result-hashtags" style={{ marginTop: '1rem', color: '#3b82f6', fontWeight: '500' }}>
                     {item.hashtags && item.hashtags.map(tag => tag.startsWith('#') ? tag : `#${tag}`).join(' ')}

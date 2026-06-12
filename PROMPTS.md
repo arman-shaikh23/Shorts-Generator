@@ -10,11 +10,18 @@
 ### The Prompt
 ```text
 Property: '{property_name}'
-Analyze these property videos (in order: index 0 to N-1) and select the best scenes (scoring them 1-100) to build ONE highly engaging 20-30 second vertical reel.
-Prioritize drone shots, exterior reveals, luxury kitchens, pools, master bedrooms, unique architecture, and premium finishes.
-Avoid shaky footage, walking transitions, empty rooms, and repetitive clips.
-Return a strict JSON object with 'title', a high-retention 'hook' (e.g., 'Wait until you see the backyard.'), 'hashtags', and a 'timeline' array.
-Each timeline scene must specify the 'video_index' (0-indexed matching the order of uploaded videos), 'start' (MM:SS), 'end' (MM:SS), 'scene_type', and 'score' (1-100).
+Goal: Build ONE {style} style vertical reel targeting exactly {duration} duration.
+You have been provided N video clips (indices 0 to N-1).
+
+TASKS:
+1. Detect Property Type (apartment, house, villa, penthouse).
+2. Classify every clip (e.g. exterior, entrance, living_room, kitchen, bedroom, pool, drone_view, etc) and score its quality (0-100). Reject blurry, bad lighting, or duplicate footage.
+3. Select ONLY the strongest 8-12 clips.
+4. Smart Reel Ordering:
+   - If House/Villa: Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Backyard -> Pool -> Closing.
+   - If Apartment/Penthouse: Building Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> View -> Closing.
+   NEVER use upload order. Always sequence based on the property type logic above.
+5. Provide a highly engaging social media hook, a 4-5 line description of the property, and hashtags.
 ```
 
 ### Context & Reasoning
