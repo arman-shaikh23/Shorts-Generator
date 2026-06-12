@@ -2,6 +2,7 @@
 
 > **Note:** If you experience issues with video upload to Gemini due to missing files, check the backend server logs. Deep debugging has been added to verify Dropbox video downloads (e.g. tracking URL redirects, HTTP status codes, and `Content-Type`).
 > **Compatibility:** FFmpeg is executed synchronously via `asyncio.to_thread` instead of `asyncio.create_subprocess_exec` to avoid `NotImplementedError` on Windows (Python 3.13).
+> **Routing Precedence:** Ensure `StaticFiles` is never mounted directly at the root `app.mount("/", ...)` before API routes, as this causes wildcard shadowing (yielding 404s for the API). Mount static assets cleanly under a subpath or define specific wildcard handlers.
 
 ## Prompt 1: Video Analysis & Content Generation (Optimized — Single Call)
 

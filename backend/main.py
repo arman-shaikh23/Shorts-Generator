@@ -4,7 +4,7 @@ import asyncio
 import sys
 import time
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from sse_starlette.sse import EventSourceResponse
@@ -35,7 +35,11 @@ app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
 
 # Serve frontend build if it exists
 if os.path.exists("static"):
-    app.mount("/", StaticFiles(directory="static", html=True), name="static")
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+
+    @app.get("/")
+    async def root():
+        return FileResponse("static/index.html")
 
 @app.get("/api/process")
 async def process_video(video_url: str, property_name: str, request: Request):
