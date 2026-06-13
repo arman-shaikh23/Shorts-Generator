@@ -50,5 +50,6 @@ Thumbs.db
 
 # Project specific folders
 backend/downloads/
+backend/data/
 backend/outputs/
 outputs/

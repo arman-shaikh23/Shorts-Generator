@@ -182,3 +182,72 @@ Return strict JSON:
                     await yield_callback(f"AI servers busy, retrying... (Retry {attempt+1} of 5)")
 
                 await asyncio.sleep(delay)
+
+async def generate_variations(property_name: str, timeline: list) -> dict:
+    """Phase 2: Generate 3 distinct text variations (Luxury, Viral, Realtor) based on the timeline."""
+    client = get_client()
+
+    # Summarize timeline for context
+    scenes = [f"- {c.get('scene_type', 'scene')} ({c.get('reason', 'selected')})" for c in timeline]
+    timeline_context = "\n".join(scenes)
+
+    prompt = f"""Property: '{property_name}'
+Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) based on the user-approved Story Timeline.
+For each variation, adjust the hook, description, and hashtags to perfectly match the stylistic vibe.
+
+Timeline Scenes:
+{timeline_context}
+
+Return strict JSON:
+- 'variations': array of exactly 3 objects.
+  Each object MUST have:
+  - 'style': string (either 'Luxury', 'Instagram Viral', or 'Realtor Style')
+  - 'hook': string (highly engaging hook matching the style)
+  - 'description': string (3-4 lines of engaging property description)
+  - 'hashtags': array of strings"""
+
+    schema = types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "variations": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(
+                    type=types.Type.OBJECT,
+                    properties={
+                        "style": types.Schema(type=types.Type.STRING),
+                        "hook": types.Schema(type=types.Type.STRING),
+                        "description": types.Schema(type=types.Type.STRING),
+                        "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
+                    },
+                    required=["style", "hook", "description", "hashtags"]
+                )
+            )
+        },
+        required=["variations"]
+    )
+
+    loop = asyncio.get_event_loop()
+    
+    def _generate():
+        return client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=schema,
+                temperature=0.5,
+            )
+        )
+
+    await gemini_semaphore.acquire()
+    try:
+        response = await loop.run_in_executor(None, _generate)
+        text = response.text
+        if text.startswith("```json"):
+            text = text[7:-3]
+        return json.loads(text)
+    except Exception as e:
+        print(f"[ERROR] Gemini variations generation failed: {e}")
+        raise
+    finally:
+        gemini_semaphore.release()

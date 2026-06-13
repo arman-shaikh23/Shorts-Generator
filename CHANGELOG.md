@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [5.0.0] - 2026-06-12
+### Added
+- **Premium SaaS Re-architecture**: Upgraded the prototype into a fully-featured, Canva-tier Real Estate Shorts Generator.
+- **MongoDB Integration**: Replaced stateless architecture with persistent MongoDB collections for Users, Projects, Uploads, Generated Shorts, and History tracking.
+- **JWT RSA-256 Authentication**: Added enterprise-grade secure login, refresh token rotation, and explicit revocation.
+- **Interactive Visual Timeline**: Separated the AI Analysis phase from the FFmpeg Render phase. Users can now visually drag-and-drop the "Property Story Builder" blocks (e.g., Exterior -> Living Room -> Kitchen) to perfect the sequence before generating.
+- **3 Reel Variations**: The rendering engine now outputs 3 distinct stylistic variations (Luxury, Instagram Viral, Realtor Style) per generation.
+- **Premium Upload Hub**: Replaced the basic textarea with a dynamic upload interface supporting Dropbox Folder parsing, URL Cards, and local multi-file drag-and-drop.
+- **SaaS Dashboard Workspace**: Rebuilt the frontend with React Router, Tailwind CSS, and Framer Motion, introducing a professional dashboard with analytics, recent projects, and cinematic video previews.
+
 ## [4.0.0] - 2026-06-12
 ### Added
 - **Production Reliability Layer**: Implemented robust failure handling for the Gemini API. The system now features exponential backoff (5s to 60s) with random jitter to gracefully handle HTTP 503, 429, and Model Overloaded errors.

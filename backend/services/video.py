@@ -56,13 +56,22 @@ def get_direct_url(url: str) -> str:
         return url.replace("?dl=0", "").replace("&dl=0", "") + ("&dl=1" if "?" in url else "?dl=1")
     return url
 
-async def download_video(url: str, output_path: str) -> str:
-    """Stream-download video directly to disk with large chunks. Avoids loading entire file into memory."""
+async def download_video(url: str, filename: str, project_id: str, on_progress: Optional[Callable] = None) -> str:
+    """Download a video file via HTTP, updating progress."""
+    os.makedirs(f"data/{project_id}/downloads", exist_ok=True)
+    filepath = os.path.join(f"data/{project_id}/downloads", filename)
+    
+    # If the URL is a local file (for testing)
+    if not url.startswith("http"):
+        if os.path.exists(url):
+            if on_progress:
+                await on_progress(100)
+            return url
+        else:
+            raise FileNotFoundError(f"Local file not found: {url}")
+
     direct_url = get_direct_url(url)
     start = time.perf_counter()
-    
-    print(f"[DEBUG] Original URL: {url}")
-    print(f"[DEBUG] Direct URL: {direct_url}")
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=300.0) as client:
         async with client.stream("GET", direct_url) as response:
@@ -70,39 +79,37 @@ async def download_video(url: str, output_path: str) -> str:
             print(f"[DEBUG] HTTP Status: {response.status_code}")
             
             content_type = response.headers.get("Content-Type", "")
-            content_length = response.headers.get("Content-Length", "unknown")
-            print(f"[DEBUG] Content-Type: {content_type}")
-            print(f"[DEBUG] Content-Length: {content_length}")
-
+            
             if response.status_code != 200:
                 raise RuntimeError(f"Download failed: {response.status_code}")
 
             if "text/html" in content_type.lower():
                 raise RuntimeError(f"Dropbox returned HTML instead of video. Content-Type={content_type}")
 
-            with open(output_path, "wb") as f:
-                # 256KB chunks for faster throughput vs the old 8KB
+            with open(filepath, "wb") as f:
                 async for chunk in response.aiter_bytes(chunk_size=262144):
                     f.write(chunk)
 
-    if not os.path.exists(output_path):
-        raise RuntimeError(f"File not created: {output_path}")
+    if not os.path.exists(filepath):
+        raise RuntimeError(f"File not created: {filepath}")
 
-    size = os.path.getsize(output_path)
+    size = os.path.getsize(filepath)
 
     if size == 0:
         raise RuntimeError("Downloaded file is empty")
 
-    print(f"[DEBUG] Exact file path: {os.path.abspath(output_path)}")
-    print(f"[DEBUG] Final file size: {size} bytes")
-
     elapsed = time.perf_counter() - start
     size_mb = size / (1024 * 1024)
     print(f"[PERF] Download: {elapsed:.1f}s  |  {size_mb:.1f} MB  |  {size_mb/elapsed:.1f} MB/s")
-    return output_path
+    return filepath
 
-async def create_preview(input_path: str, preview_path: str) -> str:
-    """Create a 480p low-res preview for Gemini analysis. Much faster upload & processing."""
+async def create_preview(video_path: str, project_id: str) -> str:
+    """Create a low-res preview of a video for Gemini analysis."""
+    basename = os.path.basename(video_path)
+    preview_filename = f"preview_{basename}"
+    os.makedirs(f"data/{project_id}/previews", exist_ok=True)
+    preview_path = os.path.join(f"data/{project_id}/previews", preview_filename)
+    
     start = time.perf_counter()
 
     def get_preview_cmd(inp: str, out: str) -> list:
@@ -124,19 +131,19 @@ async def create_preview(input_path: str, preview_path: str) -> str:
             out
         ]
 
-    cmd = get_preview_cmd(input_path, preview_path)
+    cmd = get_preview_cmd(video_path, preview_path)
 
     try:
         await asyncio.to_thread(run_ffmpeg, cmd)
     except RuntimeError as e:
         logger.warning(f"Preview generation failed, attempting normalization: {e}")
-        normalized_path = input_path.replace(".mp4", "_normalized.mp4")
-        if normalized_path == input_path:
+        normalized_path = video_path.replace(".mp4", "_normalized.mp4")
+        if normalized_path == video_path:
             normalized_path += "_normalized.mp4"
             
         norm_cmd = [
             "ffmpeg", "-y",
-            "-i", input_path,
+            "-i", video_path,
             "-map", "0:v:0",
             "-map", "0:a:0?",
             "-dn",
@@ -158,7 +165,7 @@ async def create_preview(input_path: str, preview_path: str) -> str:
             pass
 
     elapsed = time.perf_counter() - start
-    orig_mb = os.path.getsize(input_path) / (1024 * 1024)
+    orig_mb = os.path.getsize(video_path) / (1024 * 1024)
     prev_mb = os.path.getsize(preview_path) / (1024 * 1024)
     print(f"[PERF] Preview: {elapsed:.1f}s  |  {orig_mb:.1f} MB -> {prev_mb:.1f} MB  ({(1 - prev_mb/orig_mb)*100:.0f}% smaller)")
     return preview_path
@@ -215,12 +222,29 @@ async def process_segment(input_path: str, output_path: str, start_time: str, en
     print(f"[PERF] Segment export: trim={trim_elapsed:.1f}s  crop={crop_elapsed:.1f}s  total={total_elapsed:.1f}s")
     return output_path
 
-async def build_reel(input_paths: list[str], timeline: list[dict], output_dir: str) -> str:
-    """Extract individual scenes from their respective videos and concat them into a single reel."""
+async def build_reel(
+    timeline_blocks: list[dict],
+    input_paths: list[str],
+    property_name: str,
+    target_duration_sec: int,
+    style: str,
+    project_id: str,
+    on_progress: Optional[Callable] = None
+) -> str:
+    """
+    Given an ordered list of timeline blocks (from Gemini), build a single Reel.
+    """
+    if not timeline_blocks:
+        raise ValueError("Timeline is empty")
+
+    os.makedirs(f"data/{project_id}/outputs", exist_ok=True)
+    output_filename = f"{property_name.replace(' ', '_')}_{style}_{int(time.time())}.mp4"
+    output_path = os.path.join(f"data/{project_id}/outputs", output_filename)
+    
     start = time.perf_counter()
     clip_paths = []
     
-    # 1. Extract and crop each scene sequentially (or we could use asyncio.gather)
+    # 1. Extract and crop each scene sequentially
     async def process_one(i, scene):
         v_idx = scene["video_index"]
         if v_idx >= len(input_paths):

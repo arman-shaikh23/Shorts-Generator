@@ -7,24 +7,28 @@
 
 ## Prompt 1: Multi-Video Analysis & Content Generation
 
-### The Prompt
+### The Prompt (Phase 1: Analysis)
 ```text
 Property: '{property_name}'
-Goal: Build ONE {style} style vertical reel targeting exactly {duration} duration.
-You have been provided N video clips (indices 0 to N-1).
+Goal: Analyze these {N} video clips to propose a logical Property Story Timeline.
 
 TASKS:
 1. Detect Property Type (apartment, house, villa, penthouse).
 2. Classify every clip (e.g. exterior, entrance, living_room, kitchen, bedroom, pool, drone_view, etc) and score its quality (0-100). Reject blurry, bad lighting, or duplicate footage.
 3. Select ONLY the strongest 8-12 clips.
-4. Smart Reel Ordering:
+4. Smart Reel Ordering (Default Proposal):
    - If House/Villa: Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Backyard -> Pool -> Closing.
    - If Apartment/Penthouse: Building Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> View -> Closing.
-   NEVER use upload order. Always sequence based on the property type logic above.
-5. Provide a highly engaging social media hook, a 4-5 line description of the property, and hashtags.
+```
+
+### The Prompt (Phase 2: Generation / Variations)
+```text
+Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) based on the user-approved Story Timeline.
+For each variation, adjust the pacing, hook, description, and hashtags to perfectly match the stylistic vibe.
 ```
 
 ### Context & Reasoning
+- **Phase Split**: The AI pipeline is now split. Phase 1 merely analyzes the clips and returns a proposed array of Room Blocks. This allows the user to drag-and-drop the timeline in the UI. Phase 2 takes the *confirmed* timeline and generates the 3 script/hook variations before triggering FFmpeg.
 - **Multi-Video Context**: The prompt receives a list of videos as Parts array before the prompt string. `video_index` maps decisions back to the original source videos.
 - **Hook Strategy**: Generating a hook explicitly increases viral retention rates.
 - **Flash Model**: Switched from `gemini-2.5-pro` to `gemini-2.5-flash` for 3-5x faster inference. Quality is comparable for structured extraction tasks.

@@ -6,3 +6,8 @@ python-dotenv
 aiofiles
 sse-starlette
 python-multipart
+motor
+passlib[bcrypt]
+pyjwt
+pydantic-settings
+email-validator

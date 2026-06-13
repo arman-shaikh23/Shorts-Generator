@@ -1,19 +1,21 @@
-# Property Video to Shorts Generator
+# Real Estate AI Shorts Generator (Premium SaaS)
 
-An AI-powered full-stack web application that transforms horizontal real estate videos into vertical (9:16) short clips optimized for social media (Instagram Reels, YouTube Shorts, TikTok). It automatically identifies the best moments, crops the video, and generates a script, title, and hashtags.
+An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Builders, and Marketing Agencies to effortlessly transform raw property footage into high-converting, viral social media shorts. The product bridges the gap between raw assets and published marketing material by replacing tedious manual video editing with intelligent, context-aware AI storytelling and an interactive visual timeline.
 
 ## Tech Stack
-- **Backend**: FastAPI (Python)
-- **Frontend**: React (Vite) + Vanilla CSS
-- **AI Processing**: Google Gemini Pro (via Files API)
-- **Video Processing**: FFMPEG
+- **Frontend**: React, Vite, Tailwind CSS, Framer Motion, Shadcn UI
+- **Backend**: FastAPI (Python), Motor (Async MongoDB)
+- **Database**: MongoDB (Atlas)
+- **Auth**: RSA-256 JWT with Refresh Token Rotation
+- **AI Engine**: Google Gemini Pro (via Files API)
+- **Render Engine**: FFmpeg
 
 ## Features
-- **Smart Reel Sequencer**: Upload 10-30 separate raw clips. The AI will detect if the property is a House or Apartment and dynamically sequence the footage (e.g., Exterior -> Living Room -> Kitchen -> Pool) according to real estate storytelling best practices.
-- **AI Clip Filtering**: Automatically scores clips from 0-100, rejecting blurry, shaky, or poor-lighting footage to build the perfect 20, 30, or 45-second reel.
-- **Production Reliability Layer**: Intelligent exponential backoff with jitter and automatic model failover (`gemini-2.5-pro` -> `gemini-2.5-flash`) ensures maximum uptime during AI server congestion.
-- **Premium Dashboard**: Customize reel duration and style, and view detailed metrics including total raw clip duration processed and property descriptions.
-- Server-Sent Events (SSE) for granular progress tracking across 8 AI milestones and real-time retry alerts.
+- **Interactive Story Builder**: The AI detects room types (Exterior, Living Room, Kitchen) and proposes a logical walkthrough sequence. Users can drag-and-drop these timeline blocks to perfect the story before rendering.
+- **3 Reel Variations**: Instead of a single output, the AI automatically generates 3 unique stylistic variations (Luxury, Viral, Realtor) allowing the user to select the perfect vibe.
+- **Premium Workspace Dashboard**: A Notion-inspired workspace to manage Projects, view Uploads, access Generation History, and track Analytics.
+- **Advanced Upload Hub**: Seamlessly import 10-40 videos via dynamic URL cards, Dropbox Folder links, or a massive drag-and-drop local file zone.
+- **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
 - Direct downloads of fully prepared `.mp4` clips.
 
 ## Troubleshooting
