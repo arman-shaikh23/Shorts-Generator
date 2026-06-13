@@ -16,10 +16,10 @@ import SettingsPage from './pages/SettingsPage';
 function DashboardLayout() {
   return (
     <ProtectedRoute>
-      <div className="min-h-screen flex bg-[#050505] text-white selection:bg-blue-500/30">
+      <div className="h-screen flex bg-transparent text-white overflow-hidden selection:bg-brand-primary/30">
         <Sidebar />
-        <main className="flex-1 overflow-y-auto">
-          <div className="max-w-[1200px] mx-auto px-8 py-10">
+        <main className="flex-1 overflow-hidden relative flex flex-col">
+          <div className="flex-1 overflow-y-auto px-6 py-6 pb-20">
             <Outlet />
           </div>
         </main>

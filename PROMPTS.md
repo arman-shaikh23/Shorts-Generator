@@ -21,10 +21,15 @@ TASKS:
    - If Apartment/Penthouse: Building Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> View -> Closing.
 ```
 
-### The Prompt (Phase 2: Generation / Variations)
+### The Prompt (Phase 2: Generation / Variations / Re-sequencing)
 ```text
-Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) based on the user-approved Story Timeline.
-For each variation, adjust the pacing, hook, description, and hashtags to perfectly match the stylistic vibe.
+Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) using the provided Pool of Scenes.
+For each variation:
+1. Write a hook, description, and hashtags that match the style.
+2. Create a custom sequence of video clips by selecting and ordering from the pool of scenes. You can reuse clips, drop clips, or completely change the order to fit the vibe!
+   - Luxury: Slower paced, focus on beautiful wide shots, pools, and main rooms.
+   - Instagram Viral: Fast-paced, start with the most dramatic/unique shot as the hook, quick cuts.
+   - Realtor Style: Traditional logical walkthrough (Exterior -> Entrance -> Living -> Kitchen).
 ```
 
 ### Context & Reasoning

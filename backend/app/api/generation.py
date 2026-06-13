@@ -6,6 +6,7 @@ import asyncio
 import time
 from sse_starlette.sse import EventSourceResponse
 import logging
+import json
 
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
@@ -127,7 +128,7 @@ async def analyze_project(
                     break
                 try:
                     data = await asyncio.wait_for(q.get(), timeout=1.0)
-                    yield {"data": data}
+                    yield {"data": json.dumps(data)}
                     if data["status"] in ["completed", "error"]:
                         break
                 except asyncio.TimeoutError:
@@ -202,9 +203,22 @@ async def generate_project(
                 var_style = var.get("style", style)
                 await q.put({"status": "progress", "message": f"Rendering {var_style} variation ({i+1}/{len(variations)})..."})
                 
+                # Build custom timeline for this variation
+                custom_seq = var.get("custom_sequence", [])
+                var_timeline = []
+                timeline_map = {block.get("video_index"): block for block in timeline}
+                
+                for idx in custom_seq:
+                    if idx in timeline_map:
+                        var_timeline.append(timeline_map[idx])
+                
+                # Fallback to original timeline if custom_sequence failed
+                if not var_timeline:
+                    var_timeline = timeline
+
                 # Render video for this variation
                 output_path = await build_reel(
-                    timeline_blocks=timeline,
+                    timeline_blocks=var_timeline,
                     input_paths=input_paths,
                     property_name=project["title"],
                     target_duration_sec=target_duration,
@@ -258,7 +272,7 @@ async def generate_project(
                     break
                 try:
                     data = await asyncio.wait_for(q.get(), timeout=1.0)
-                    yield {"data": data}
+                    yield {"data": json.dumps(data)}
                     if data["status"] in ["completed", "error"]:
                         break
                 except asyncio.TimeoutError:

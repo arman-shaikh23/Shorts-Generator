@@ -54,8 +54,10 @@ app.add_middleware(
 
 os.makedirs("downloads", exist_ok=True)
 os.makedirs("outputs", exist_ok=True)
+os.makedirs("data", exist_ok=True)
 
 app.mount("/outputs", StaticFiles(directory="outputs"), name="outputs")
+app.mount("/data", StaticFiles(directory="data"), name="data")
 
 # Serve frontend build if it exists
 if os.path.exists("static"):

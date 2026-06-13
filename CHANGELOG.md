@@ -2,8 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
-## [5.0.0] - 2026-06-12
+## [6.0.0] - 2026-06-13
 ### Added
+- **Premium Studio Redesign**: Completely transformed the ReelForge dashboard from an admin panel into a high-end AI creative studio. Implemented a 3-pane layout featuring a fixed sidebar, central main workspace, and sticky right-side preview panel.
+- **Cinematic Theme**: Upgraded global styling to use a deep gradient `#0A0A0B` background, `#111827` glassmorphism cards, and `#8B5CF6` purple accents.
+- **Horizontal Story Builder**: Replaced the infinitely scrolling vertical list with a compact, snap-scrolling horizontal storyboard showcasing video thumbnails and AI detection metrics.
+- **Dynamic Timelines**: The AI generation prompt now forces Gemini to return a `custom_sequence` array, physically reordering clips uniquely for each of the 3 output variations (Luxury, Viral, Realtor).
+- **Sticky AI Preview**: The right side of the dashboard is now a dedicated persistent preview engine featuring a 16:9 video player, AI script previews, and alternative variation access.
+
+## [5.0.0] - 2026-06-12
 - **Premium SaaS Re-architecture**: Upgraded the prototype into a fully-featured, Canva-tier Real Estate Shorts Generator.
 - **MongoDB Integration**: Replaced stateless architecture with persistent MongoDB collections for Users, Projects, Uploads, Generated Shorts, and History tracking.
 - **JWT RSA-256 Authentication**: Added enterprise-grade secure login, refresh token rotation, and explicit revocation.

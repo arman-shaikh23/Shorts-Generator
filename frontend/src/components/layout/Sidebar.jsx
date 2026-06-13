@@ -19,13 +19,13 @@ function SidebarLink({ to, icon: Icon, label }) {
     <Link
       to={to}
       className={cn(
-        'flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200',
+        'flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all duration-200',
         isActive
-          ? 'bg-blue-600/15 text-blue-400 font-medium'
-          : 'text-gray-500 hover:bg-white/5 hover:text-gray-300'
+          ? 'bg-[#8B5CF6]/15 text-[#8B5CF6] font-medium border border-[#8B5CF6]/20'
+          : 'text-gray-400 hover:bg-white/[0.04] hover:text-gray-200 border border-transparent'
       )}
     >
-      <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+      <Icon size={18} strokeWidth={isActive ? 2.2 : 1.8} />
       <span className="text-sm">{label}</span>
     </Link>
   );
@@ -35,13 +35,13 @@ export function Sidebar() {
   const { user, logout } = useAuth();
 
   return (
-    <aside className="w-[260px] h-screen sticky top-0 border-r border-white/5 bg-[#0c0c0c] flex flex-col p-5 shrink-0">
+    <aside className="w-[280px] h-screen sticky top-0 border-r border-[#22252A] bg-transparent flex flex-col p-6 shrink-0 z-50">
       {/* Logo */}
-      <Link to="/dashboard" className="flex items-center gap-3 px-3 mb-10">
-        <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-          <Play size={16} fill="white" className="ml-0.5" />
+      <Link to="/dashboard" className="flex items-center gap-3 px-2 mb-10">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#6366F1] to-[#8B5CF6] flex items-center justify-center shadow-lg shadow-[#6366F1]/20">
+          <Play size={14} fill="white" className="ml-0.5" />
         </div>
-        <span className="text-xl font-bold tracking-tight text-white">ReelForge</span>
+        <span className="text-xl font-bold tracking-tight text-white">ReelForge<span className="text-[#8B5CF6]">.ai</span></span>
       </Link>
 
       {/* Main Nav */}

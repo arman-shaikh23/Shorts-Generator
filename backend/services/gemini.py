@@ -188,23 +188,29 @@ async def generate_variations(property_name: str, timeline: list) -> dict:
     client = get_client()
 
     # Summarize timeline for context
-    scenes = [f"- {c.get('scene_type', 'scene')} ({c.get('reason', 'selected')})" for c in timeline]
+    scenes = [f"Index {c.get('video_index', i)}: {c.get('scene_type', 'scene')} ({c.get('start', '0')}-{c.get('end', '5')}s) - {c.get('reason', '')}" for i, c in enumerate(timeline)]
     timeline_context = "\n".join(scenes)
 
     prompt = f"""Property: '{property_name}'
-Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) based on the user-approved Story Timeline.
-For each variation, adjust the hook, description, and hashtags to perfectly match the stylistic vibe.
+Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style) using the provided Pool of Scenes.
+For each variation:
+1. Write a hook, description, and hashtags that match the style.
+2. Create a custom sequence of video clips by selecting and ordering from the pool of scenes. You can reuse clips, drop clips, or completely change the order to fit the vibe!
+   - Luxury: Slower paced, focus on beautiful wide shots, pools, and main rooms.
+   - Instagram Viral: Fast-paced, start with the most dramatic/unique shot as the hook, quick cuts.
+   - Realtor Style: Traditional logical walkthrough (Exterior -> Entrance -> Living -> Kitchen).
 
-Timeline Scenes:
+Pool of Scenes:
 {timeline_context}
 
 Return strict JSON:
 - 'variations': array of exactly 3 objects.
   Each object MUST have:
   - 'style': string (either 'Luxury', 'Instagram Viral', or 'Realtor Style')
-  - 'hook': string (highly engaging hook matching the style)
-  - 'description': string (3-4 lines of engaging property description)
-  - 'hashtags': array of strings"""
+  - 'hook': string
+  - 'description': string
+  - 'hashtags': array of strings
+  - 'custom_sequence': array of integers (referencing the 'Index' values from the pool to define the exact sequence of this cut)"""
 
     schema = types.Schema(
         type=types.Type.OBJECT,
@@ -218,8 +224,9 @@ Return strict JSON:
                         "hook": types.Schema(type=types.Type.STRING),
                         "description": types.Schema(type=types.Type.STRING),
                         "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
+                        "custom_sequence": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.INTEGER)),
                     },
-                    required=["style", "hook", "description", "hashtags"]
+                    required=["style", "hook", "description", "hashtags", "custom_sequence"]
                 )
             )
         },

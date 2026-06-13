@@ -237,44 +237,50 @@ async def build_reel(
     if not timeline_blocks:
         raise ValueError("Timeline is empty")
 
-    os.makedirs(f"data/{project_id}/outputs", exist_ok=True)
+    output_dir = f"data/{project_id}/outputs"
+    os.makedirs(output_dir, exist_ok=True)
     output_filename = f"{property_name.replace(' ', '_')}_{style}_{int(time.time())}.mp4"
-    output_path = os.path.join(f"data/{project_id}/outputs", output_filename)
+    output_path = os.path.join(output_dir, output_filename)
     
     start = time.perf_counter()
     clip_paths = []
     
     # 1. Extract and crop each scene sequentially
     async def process_one(i, scene):
-        v_idx = scene["video_index"]
+        v_idx = scene.get("video_index", 0)
         if v_idx >= len(input_paths):
             logger.warning(f"Scene {i} references invalid video_index {v_idx}. Skipping.")
             return None
             
         inp = input_paths[v_idx]
-        clip_path = os.path.join(output_dir, f"clip_{i}.mp4")
-        await process_segment(inp, clip_path, scene["start"], scene["end"])
+        clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
+        # Ensure we have start and end strings, defaulting if missing
+        start_t = str(scene.get("start", "0"))
+        end_t = str(scene.get("end", "5"))
+        await process_segment(inp, clip_path, start_t, end_t)
         return clip_path
 
     # Parallelize extraction
-    tasks = [process_one(i, scene) for i, scene in enumerate(timeline)]
+    tasks = [process_one(i, scene) for i, scene in enumerate(timeline_blocks)]
     results = await asyncio.gather(*tasks)
     clip_paths = [r for r in results if r]
 
     # 2. Concat all extracted clips
-    concat_txt = os.path.join(output_dir, "concat.txt")
+    concat_txt = os.path.join(output_dir, f"concat_{int(time.time())}.txt")
     with open(concat_txt, "w") as f:
         for cp in clip_paths:
-            f.write(f"file '{os.path.basename(cp)}'\n")
+            # We must use relative paths in concat if they are in same dir, or absolute paths.
+            # Using absolute paths is safest for ffmpeg concat.
+            abs_path = os.path.abspath(cp).replace('\\', '/')
+            f.write(f"file '{abs_path}'\n")
             
-    final_output = os.path.join(output_dir, "final_reel.mp4")
     concat_cmd = [
         "ffmpeg", "-y",
         "-f", "concat",
         "-safe", "0",
         "-i", concat_txt,
         "-c", "copy",
-        final_output
+        output_path
     ]
     
     await asyncio.to_thread(run_ffmpeg, concat_cmd)
@@ -290,4 +296,4 @@ async def build_reel(
     elapsed = time.perf_counter() - start
     logger.info(f"[PERF] Final Reel built from {len(clip_paths)} clips in {elapsed:.1f}s")
     
-    return "/outputs/final_reel.mp4"
+    return output_path
