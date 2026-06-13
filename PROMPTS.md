@@ -39,6 +39,15 @@ For each variation:
 - **Flash Model**: Switched from `gemini-2.5-pro` to `gemini-2.5-flash` for 3-5x faster inference. Quality is comparable for structured extraction tasks.
 - **Lower Temperature (0.5)**: Reduces generation randomness, leading to faster convergence and more consistent outputs.
 - **Preview-Based Analysis**: A 480p preview is uploaded instead of the full-resolution video. This reduces upload time by 60-80% and Gemini processing time significantly, since the AI only needs to understand scene content (not pixel-perfect detail).
+- **Multi-Format Architecture**: Instead of hardcoding 9:16 vertical outputs, the pipeline now supports dynamic Aspect Ratios (16:9, 1:1, 9:16) passed from the frontend to the FFmpeg rendering layer, ensuring clips fit specific platforms (YouTube, Reels, Instagram Square).
+
+### Future Roadmap: AI Director Chat (V9.0)
+Currently, the V9.0 frontend features a sliding **AI Director Chat Panel** where users can type natural language instructions (e.g. "Focus more on the luxury amenities" or "Make the pacing faster"). In future iterations, this chat history should be passed dynamically into the Phase 2 Generation Prompt array to adjust the final script and pacing overrides on the fly.
+
+### V9.1 Updates: Semantic Selection Engine
+- **Full Video Analysis**: Gemini is strictly instructed to analyze entire video durations to pull out multiple distinct clips from long footage, rather than just taking a random 5-second chunk.
+- **Semantic Deduplication**: Instead of a separate Python vector-embedding pipeline, we leverage Gemini-2.5-Pro's 2M token context window to actively find and eliminate visually similar clips within the prompt itself, returning only the version with the highest `visual_quality_score`.
+- **Advanced Grading Schema**: Every selected clip now receives AI-graded scores for `confidence` (>85% enforced), `lighting`, `stability`, `luxury_appeal`, and `engagement`.
 
 ### Changes from v1
 | Aspect | v1 (Original) | v2 (Optimized) |

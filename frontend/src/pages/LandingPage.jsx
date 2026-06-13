@@ -1,8 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Play, Sparkles, Layers, Zap, ArrowRight } from 'lucide-react';
-import { Button } from '../components/ui/Button';
+import { Play, Sparkles, Layers, Zap, ArrowRight, Video } from 'lucide-react';
 
 const features = [
   {
@@ -13,7 +12,7 @@ const features = [
   {
     icon: Layers,
     title: 'Smart Story Builder',
-    desc: 'AI arranges clips into a professional property walkthrough — Exterior → Living Room → Kitchen → Balcony.',
+    desc: 'AI arranges clips into a professional property walkthrough — Exterior → Living Room → Kitchen.',
   },
   {
     icon: Zap,
@@ -24,111 +23,107 @@ const features = [
 
 export default function LandingPage() {
   return (
-    <div className="min-h-screen bg-[#050505] text-white overflow-hidden">
-      {/* Nav */}
-      <nav className="relative z-20 flex items-center justify-between max-w-6xl mx-auto px-6 py-6">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#0F172A] overflow-hidden selection:bg-[#0EA5E9]/20">
+      
+      {/* Top Nav */}
+      <nav className="relative z-20 flex items-center justify-between max-w-7xl mx-auto px-6 py-6 lg:px-8">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg">
-            <Play size={16} fill="white" className="ml-0.5" />
+          <div className="w-10 h-10 rounded-xl bg-gradient-aurora flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20">
+            <Play size={18} fill="white" className="ml-0.5 text-white" />
           </div>
-          <span className="text-xl font-bold tracking-tight">ReelForge</span>
+          <span className="text-2xl font-extrabold tracking-tight">ReelForge</span>
         </div>
-        <div className="flex items-center gap-4">
-          <Link to="/login" className="text-gray-400 hover:text-white transition text-sm font-medium">Sign In</Link>
+        <div className="flex items-center gap-6">
+          <Link to="/login" className="text-[#64748B] hover:text-[#0F172A] transition text-sm font-bold">Sign In</Link>
           <Link to="/signup">
-            <Button size="sm" variant="secondary">Get Started</Button>
+            <button className="bg-[#0F172A] text-white px-6 py-2.5 rounded-xl text-sm font-bold shadow-lg hover:bg-[#1e293b] transition-all hover:scale-105 active:scale-95">
+              Get Started
+            </button>
           </Link>
         </div>
       </nav>
 
-      {/* Hero */}
+      {/* Hero Section */}
       <section className="relative flex flex-col items-center justify-center min-h-[85vh] px-6">
-        {/* Ambient Glows */}
-        <div className="absolute top-[-20%] left-[10%] w-[40%] h-[40%] bg-blue-600/15 blur-[140px] rounded-full pointer-events-none" />
-        <div className="absolute bottom-[-10%] right-[5%] w-[35%] h-[35%] bg-indigo-600/15 blur-[140px] rounded-full pointer-events-none" />
-        <div className="absolute top-[30%] right-[20%] w-[20%] h-[20%] bg-purple-600/10 blur-[100px] rounded-full pointer-events-none" />
+        
+        {/* Abstract Aurora Background */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-10%] left-[15%] w-[40%] h-[50%] bg-[#0EA5E9]/10 blur-[120px] rounded-full mix-blend-multiply" />
+          <div className="absolute top-[20%] right-[10%] w-[35%] h-[45%] bg-[#14B8A6]/10 blur-[120px] rounded-full mix-blend-multiply" />
+          <div className="absolute bottom-[-20%] left-[30%] w-[50%] h-[50%] bg-[#06B6D4]/10 blur-[140px] rounded-full mix-blend-multiply" />
+        </div>
 
-        <div className="relative z-10 text-center max-w-4xl">
+        <div className="relative z-10 text-center max-w-5xl mx-auto">
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm text-gray-400 mb-8 backdrop-blur-sm">
-              <Sparkles size={14} className="text-blue-400" />
-              AI-Powered Real Estate Video Engine
+            <div className="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-[#E2E8F0] shadow-sm text-sm font-bold text-[#64748B] mb-8">
+              <Sparkles size={16} className="text-[#0EA5E9]" />
+              The AI-Powered Real Estate Studio
             </div>
           </motion.div>
 
           <motion.h1
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-            className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold tracking-tight leading-[1.05] mb-8"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6, delay: 0.1 }}
+            className="text-6xl sm:text-7xl md:text-8xl lg:text-[100px] font-black tracking-tighter leading-[1.05] mb-8"
           >
-            Property Videos.{' '}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-purple-500">
-              Viral Reels.
-            </span>
-            <br />
-            <span className="text-gray-500">Zero Effort.</span>
+            Property Reels.<br />
+            <span className="text-gradient drop-shadow-sm">Zero Editing.</span>
           </motion.h1>
 
           <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-lg sm:text-xl text-gray-400 mb-12 font-light max-w-2xl mx-auto leading-relaxed"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }}
+            className="text-lg sm:text-2xl text-[#64748B] mb-12 font-medium max-w-3xl mx-auto leading-relaxed"
           >
-            Upload raw property clips. Our AI detects rooms, builds a professional walkthrough,
-            and renders cinematic social reels — ready for Instagram, TikTok, and YouTube.
+            Upload raw clips from your phone. Our AI Director detects rooms, builds the perfect story, and renders cinematic social videos automatically.
           </motion.p>
 
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.5 }}
-            className="flex flex-col sm:flex-row gap-4 justify-center items-center"
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.5 }}
+            className="flex flex-col sm:flex-row gap-5 justify-center items-center"
           >
             <Link to="/signup">
-              <Button size="xl" variant="primary">
-                Start Creating Free
-                <ArrowRight size={18} />
-              </Button>
+              <button className="bg-gradient-aurora text-white px-10 py-4 rounded-2xl text-lg font-bold shadow-[0_20px_50px_rgba(14,165,233,0.3)] hover:scale-105 transition-all active:scale-95 flex items-center gap-2">
+                Start Creating Free <ArrowRight size={20} />
+              </button>
             </Link>
             <Link to="/login">
-              <Button size="xl" variant="secondary">Sign In</Button>
+              <button className="bg-white border-2 border-[#E2E8F0] text-[#0F172A] px-10 py-4 rounded-2xl text-lg font-bold shadow-sm hover:border-[#0EA5E9] transition-all flex items-center gap-2">
+                <Video size={20} className="text-[#64748B]" /> View Demo
+              </button>
             </Link>
           </motion.div>
         </div>
       </section>
 
-      {/* Features */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 py-24">
-        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-16">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-4">Built for Real Estate Professionals</h2>
-          <p className="text-gray-500 text-lg max-w-xl mx-auto">From raw footage to polished reels in under 2 minutes. No editing skills required.</p>
+      {/* Features Section */}
+      <section className="relative z-10 max-w-7xl mx-auto px-6 py-32">
+        <motion.div initial={{ opacity: 0, y: 30 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} className="text-center mb-20">
+          <h2 className="text-4xl sm:text-5xl font-black tracking-tight mb-6">Built for Luxury Marketing</h2>
+          <p className="text-[#64748B] text-xl font-medium max-w-2xl mx-auto">Skip the complicated timelines. ReelForge generates premium assets in minutes.</p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {features.map((f, i) => (
             <motion.div
               key={f.title}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className="p-8 rounded-3xl bg-white/[0.03] border border-white/[0.06] hover:border-white/10 transition-all duration-300 group"
+              className="p-10 rounded-[2rem] bg-white border border-[#E2E8F0] hover:border-[#0EA5E9]/50 shadow-[0_20px_50px_rgba(0,0,0,0.03)] hover:shadow-[0_30px_60px_rgba(14,165,233,0.08)] transition-all duration-300 group hover:-translate-y-2"
             >
-              <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-6 group-hover:bg-blue-500/20 transition">
-                <f.icon size={22} className="text-blue-400" />
+              <div className="w-16 h-16 rounded-2xl bg-[#F8FAFC] border border-[#E2E8F0] flex items-center justify-center mb-8 group-hover:bg-[#0EA5E9]/10 group-hover:border-[#0EA5E9]/20 transition-all">
+                <f.icon size={28} className="text-[#64748B] group-hover:text-[#0EA5E9] transition-colors" />
               </div>
-              <h3 className="text-lg font-semibold mb-3">{f.title}</h3>
-              <p className="text-gray-500 text-sm leading-relaxed">{f.desc}</p>
+              <h3 className="text-2xl font-bold text-[#0F172A] mb-4">{f.title}</h3>
+              <p className="text-[#64748B] font-medium leading-relaxed">{f.desc}</p>
             </motion.div>
           ))}
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-white/5 py-8 text-center text-gray-600 text-sm">
-        <p>ReelForge AI — Transforming real estate marketing.</p>
+      <footer className="border-t border-[#E2E8F0] py-12 text-center text-[#64748B] text-sm font-medium">
+        <p>ReelForge AI — Premium real estate marketing automation.</p>
       </footer>
     </div>
   );

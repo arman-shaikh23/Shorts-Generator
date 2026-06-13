@@ -2,8 +2,43 @@
 
 All notable changes to this project will be documented in this file.
 
-## [6.0.0] - 2026-06-13
+## [9.0.0] - Guided AI SaaS Workflow (Wizard)
 ### Added
+- **6-Step Guided Wizard**: Completely dismantled the massive one-page dashboard into a focused, step-by-step workflow (Upload -> Analyze -> Storyboard -> Style -> Generate -> Export).
+- **Horizontal Progress Navigation**: Added a top bar showing current step progress and property name.
+- **Upload Success Summary Card**: Replaced the sprawling horizontal gallery in Step 1 with a premium Canva/Descript style success card that dynamically appears once clips are uploaded.
+- **Drag-and-Drop Enhancements**: Added Framer Motion hover states, glowing borders, and scaling upload icons to the drag-and-drop zone.
+- **Smart Crossfade Engine**: Replaced basic FFmpeg concatenation with a massive `-filter_complex` pipeline utilizing `xfade` and `acrossfade` for smooth, professional transitions.
+- **Production-Grade AI Selection Engine**: Overhauled the Gemini prompt to perform "Full Video Analysis" (extracting multiple chunks per video), apply strict >85% confidence thresholds, and leverage Gemini's context window for active semantic deduplication.
+- **Real Estate Storytelling Structure**: Forced the AI output to structure reels identically to professional editors (Impressive Hook -> Walkthrough -> Amenities -> CTA).
+- **Transparency Panel UI**: Added a "Transparency Panel" to the frontend (Steps 2 and 3) displaying the total seconds analyzed, duplicates purged, and detailed AI ranking scores (`visual_quality_score`, `luxury_appeal`) for every chosen clip.
+- **Dynamic Style-Based Transitions**: Auto-assigns transition types based on style (Luxury = 0.5s fade, Viral = fast wipeleft, Realtor = slideleft).
+- **Scene Grouping Engine**: A pre-render sorting algorithm groups identical room types together to prevent jarring random jumps.
+- **Step Isolation**: Isolated the `/analyze` and `/generate` SSE endpoints into distinct views to reduce cognitive load during processing.
+
+### Changed
+- **High-Quality Render Pipeline**: Massively upgraded FFmpeg render presets from `fast crf 23` to `slow crf 18`, utilizing auto color-normalization (`eq` filter) and forced 30fps matching to guarantee crisp, professional video exports without frame drops.
+- **Removed Hardcoded Mock Data**: Purged all fake metrics from the UI (e.g., random AI Confidence percentages, fake rejected clip reasons, and placeholder Viral/Retention scores) so the dashboard strictly reflects genuine backend API data.
+- **Global Responsive Layout**: Fixed deeply nested `flex-1 min-h-0` constraints, allowing the application to scroll naturally (`overflow-y-auto`) and stack appropriately on mobile/tablet devices.
+- **URL Import Panel**: Updated text to explicitly list supported external sources (Google Drive, Dropbox, OneDrive, Direct MP4 URLs).
+
+## [8.0.0] - AI Creative Studio Redesign
+### Added
+- **Completely Redesigned Studio Interface**: Transformed the dashboard into a 3-section AI workspace (Uploaded Footage, AI Director, AI Storyboard).
+- **Multi-Format Generation**: Added support for 9:16 (Reels/Shorts), 16:9 (YouTube), and 1:1 (Square) aspect ratios with dynamic FFmpeg cropping and scaling.
+- **AI Scene Detection & Insights**: Visualized AI analysis showing detected rooms, property type, and confidence scores.
+- **Two-Row Story View**: Visually compare raw uploaded clips against the AI-selected final sequence.
+- **AI Rejection Panel**: Displays clips rejected by the AI with mock reasoning (e.g. Blurry, Shaky).
+- **Dynamic Sticky Preview Panel**: Auto-adjusts preview player aspect ratio and provides easy access to style presets and generated hooks.
+
+## [7.0.0] - 2026-06-13
+### Changed
+- **Luxury Ocean Aurora Redesign**: Radically transformed the ReelForge UI from a dark admin dashboard into a premium, Stripe-inspired light-themed SaaS product.
+- **Top Navigation Architecture**: Completely removed the legacy left sidebar. Replaced it with a modern, floating 80px high glassmorphism Top Navigation Bar.
+- **Micro-Interactions**: Heavily integrated `framer-motion` to provide smooth, premium animations (hover scaling, layout transitions, animated stat counters) across the dashboard and storyboard.
+- **Intelligent Story Builder**: Rebuilt the drag-and-drop horizontal storyboard using light mode aesthetics, soft shadows, and real-time AI confidence metrics.
+
+## [6.0.0] - 2026-06-13
 - **Premium Studio Redesign**: Completely transformed the ReelForge dashboard from an admin panel into a high-end AI creative studio. Implemented a 3-pane layout featuring a fixed sidebar, central main workspace, and sticky right-side preview panel.
 - **Cinematic Theme**: Upgraded global styling to use a deep gradient `#0A0A0B` background, `#111827` glassmorphism cards, and `#8B5CF6` purple accents.
 - **Horizontal Story Builder**: Replaced the infinitely scrolling vertical list with a compact, snap-scrolling horizontal storyboard showcasing video thumbnails and AI detection metrics.

@@ -58,6 +58,23 @@ async def list_projects(user=Depends(get_current_user), skip: int = 0, limit: in
     return {"projects": projects, "total": total}
 
 
+@router.get("/dashboard/stats")
+async def get_dashboard_stats(user=Depends(get_current_user)):
+    db = get_db()
+    
+    projects_count = await db.projects.count_documents({"userId": user["_id"]})
+    videos_count = await db.uploads.count_documents({"userId": user["_id"]})
+    scenes_count = await db.uploads.count_documents({"userId": user["_id"], "status": "PROCESSED"})
+    exported_count = await db.generated_shorts.count_documents({"userId": user["_id"]})
+    
+    return {
+        "projects": projects_count,
+        "videos": videos_count,
+        "scenes": scenes_count,
+        "exported": exported_count
+    }
+
+
 @router.get("/{project_id}")
 async def get_project(project_id: str, user=Depends(get_current_user)):
     db = get_db()

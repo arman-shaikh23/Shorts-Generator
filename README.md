@@ -11,12 +11,23 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Render Engine**: FFmpeg
 
 ## Features
-- **Interactive Story Builder**: The AI detects room types (Exterior, Living Room, Kitchen) and proposes a logical walkthrough sequence. Users can drag-and-drop these timeline blocks to perfect the story before rendering.
+- **6-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Generate -> Export).
+- **Premium Canva-style Upload Workflow**: Focused upload screen with animated drag-and-drop zones, explicit URL integrations (Drive, Dropbox, OneDrive), and a dynamic "Upload Complete" success card to keep the workspace clean.
+- **Luxury Ocean Aurora Dashboard**: A premium, light-themed workspace inspired by Stripe and Linear. Features an 80px floating top navigation bar and a clean responsive 2-column workspace layout.
+- **Authentic Data Visualization**: The UI strictly surfaces real data returned by the backend (e.g. actual extracted clip durations, actual scene types) with zero hardcoded "mock" metrics.
+- **Micro-Interactions**: Built heavily with Framer Motion to provide high-end, smooth animations (hover scaling, layout transitions, animated step indicators).
+- **Smart Crossfade Engine**: Generated videos use a massive `-filter_complex` FFmpeg pipeline with `xfade` and `acrossfade` for buttery-smooth transitions (Fades, Wipes, Slides) tailored automatically to the selected reel style.
+- **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
+- **Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Hook -> Walkthrough -> Amenities -> CTA.
+- **Scene Grouping Algorithm**: Prevents jarring visual jumping by intelligently sorting and grouping similar scenes (e.g. all exterior shots play sequentially).
+- **Studio Grade Quality**: Enforces strict `fps=30`, color-normalization passes (`eq=contrast=1.05`), and high-end `-preset slow -crf 18` encoding for crisp, artifact-free exports.
+- **AI Creative Studio**: Replaces the generic file manager with a 3-stage AI pipeline (Uploaded Footage, AI Director Analysis, and AI Storyboard). Shows detected rooms, confidence scores, and AI rejection reasons.
+- **Multi-Format Generation**: Instantly re-crop and scale videos into 9:16 (Instagram Reels/TikTok), 16:9 (YouTube Long Form), or 1:1 (Square) aspect ratios based on user selection.
+- **Two-Row Story View**: Visually compare your raw uploaded clips against the final, logically sequenced storyboard selected by the AI Director.
 - **3 Reel Variations**: Instead of a single output, the AI automatically generates 3 unique stylistic variations (Luxury, Viral, Realtor) allowing the user to select the perfect vibe.
-- **Premium Workspace Dashboard**: A Notion-inspired workspace to manage Projects, view Uploads, access Generation History, and track Analytics.
 - **Advanced Upload Hub**: Seamlessly import 10-40 videos via dynamic URL cards, Dropbox Folder links, or a massive drag-and-drop local file zone.
 - **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
-- Direct downloads of fully prepared `.mp4` clips.
+- Direct downloads of fully prepared 4K/1080p clips from the sticky preview player.
 
 ## Troubleshooting
 - **Professional Camera Footage (Sony XAVC, etc.)**: High-end footage with `rtmd` metadata streams or 10-bit 4:2:2 chroma subsampling might fail standard FFmpeg extraction. The application automatically normalizes this footage, dropping non-video/audio streams and forcing `yuv420p` pixel format to ensure Gemini AI compatibility.

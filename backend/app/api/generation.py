@@ -107,10 +107,19 @@ async def analyze_project(
 
             gemini_result["timeline"] = timeline
 
-            # Save the timeline to the project
+            # Save the timeline and AI metadata to the project
+            ai_metadata = {
+                "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),
+                "selected_sec": gemini_result.get("total_selected_duration_sec", 0),
+                "duplicates_removed": gemini_result.get("duplicates_removed_count", 0)
+            }
             await db.projects.update_one(
                 {"_id": ObjectId(project_id)},
-                {"$set": {"draftTimeline": timeline, "status": "ANALYZED"}}
+                {"$set": {
+                    "draftTimeline": timeline, 
+                    "status": "ANALYZED",
+                    "aiMetadata": ai_metadata
+                }}
             )
 
             await q.put({"status": "completed", "results": [gemini_result]})
@@ -145,6 +154,7 @@ async def generate_project(
     request: Request,
     duration: str = "30 sec",
     style: str = "Luxury",
+    aspect_ratio: str = "9:16",
     user = Depends(get_current_user)
 ):
     """Phase 2: Render the final reel using the approved timeline."""
@@ -223,7 +233,8 @@ async def generate_project(
                     property_name=project["title"],
                     target_duration_sec=target_duration,
                     style=var_style,
-                    project_id=project_id
+                    project_id=project_id,
+                    aspect_ratio=aspect_ratio
                 )
 
                 web_url = "/" + output_path.replace("\\", "/")
@@ -235,6 +246,7 @@ async def generate_project(
                     "videoUrl": web_url,
                     "duration": duration,
                     "style": var_style,
+                    "format": aspect_ratio,
                     "hook": var.get("hook", ""),
                     "description": var.get("description", ""),
                     "hashtags": var.get("hashtags", []),

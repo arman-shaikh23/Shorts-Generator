@@ -2,18 +2,24 @@
 
 @theme {
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  --color-brand-bg: #0A0A0B;
-  --color-brand-card: #111827;
-  --color-brand-border: #22252A;
-  --color-brand-primary: #6366F1;
-  --color-brand-accent: #8B5CF6;
+  
+  --color-brand-bg: #F8FAFC;
+  --color-brand-surface: #FFFFFF;
+  --color-brand-card: #FFFFFF;
+  
+  --color-brand-primary: #0EA5E9;
+  --color-brand-secondary: #06B6D4;
+  --color-brand-accent: #14B8A6;
   --color-brand-success: #10B981;
+  
+  --color-brand-text: #0F172A;
+  --color-brand-text-muted: #64748B;
+  --color-brand-border: #E2E8F0;
 }
 
 body {
-  background: linear-gradient(135deg, var(--color-brand-bg) 0%, #0d111a 100%);
-  background-attachment: fixed;
-  color: #e5e5e5;
+  background-color: var(--color-brand-bg);
+  color: var(--color-brand-text);
   font-family: var(--font-sans);
   margin: 0;
   padding: 0;
@@ -31,23 +37,37 @@ body {
   background: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(15, 23, 42, 0.1);
   border-radius: 10px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(15, 23, 42, 0.2);
 }
 
 /* Fix for select dropdowns */
 select option {
-  background-color: #111827;
-  color: #e5e5e5;
+  background-color: #FFFFFF;
+  color: #0F172A;
 }
 
+/* Premium Glass Cards */
 .glass-card {
-  background: rgba(17, 24, 39, 0.6);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--color-brand-border);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.03);
+}
+
+/* Text Gradients */
+.text-gradient {
+  background: linear-gradient(135deg, #0EA5E9, #06B6D4, #14B8A6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Background Gradients */
+.bg-gradient-aurora {
+  background: linear-gradient(135deg, #0EA5E9, #06B6D4, #14B8A6);
 }

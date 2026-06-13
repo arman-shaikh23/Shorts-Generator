@@ -13,7 +13,7 @@ from dotenv import load_dotenv
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from services.video import download_video, create_preview, build_reel, get_total_duration
+from services.video import download_video, create_preview, build_reel
 from services.gemini import upload_and_wait, analyze_and_generate
 
 from app.core.database import connect_to_mongo, close_mongo_connection
@@ -64,6 +64,7 @@ if os.path.exists("static"):
     if os.path.exists("static/assets"):
         app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
 
+if os.path.exists("static/index.html"):
     @app.get("/")
     async def root():
         return FileResponse("static/index.html")

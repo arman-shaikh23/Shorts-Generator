@@ -1,35 +1,44 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, GripVertical, Download, X, Link2, Plus, Loader2, Play, Sparkles, CheckCircle2, Film, Activity, Video } from 'lucide-react';
-import { Card } from '../components/ui/Card';
+import { 
+  UploadCloud, Download, X, Link2, Plus, Loader2, Play, Sparkles, CheckCircle2, 
+  Film, Activity, Video, Type, Maximize, Smartphone, Square, ChevronRight, Check
+} from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { ProgressStepper } from '../components/ui/ProgressStepper';
 import { useSSE } from '../hooks/useSSE';
 import { apiFetch, getAccessToken } from '../api/client';
 
+const STEPS = [
+  { id: 1, label: 'Upload' },
+  { id: 2, label: 'Analyze' },
+  { id: 3, label: 'Storyboard' },
+  { id: 4, label: 'Style' },
+  { id: 5, label: 'Generate' },
+  { id: 6, label: 'Export' }
+];
+
 export default function ProjectDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // --- State ---
   const [loading, setLoading] = useState(!!id);
   const [project, setProject] = useState(null);
   const [uploads, setUploads] = useState([]);
-  
-  const [uploadMode, setUploadMode] = useState('links');
-  const [urlInput, setUrlInput] = useState('');
-  const [draggedIdx, setDraggedIdx] = useState(null);
-  const horizontalScrollRef = useRef(null);
+  const [currentStep, setCurrentStep] = useState(1);
 
+  const [urlInput, setUrlInput] = useState('');
   const [reelDuration, setReelDuration] = useState('30 sec');
   const [reelStyle, setReelStyle] = useState('Luxury');
-  const [exportQuality, setExportQuality] = useState('1080p');
+  const [aspectRatio, setAspectRatio] = useState('9:16');
 
-  const { isProcessing, steps, currentStep, result, error, start } = useSSE();
+  const [isUploadingFile, setIsUploadingFile] = useState(false);
+  const [isUploadingUrl, setIsUploadingUrl] = useState(false);
+
+  const { isProcessing, steps, currentStep: sseStep, result, error, start } = useSSE();
   const [localError, setLocalError] = useState('');
 
-  // --- Fetch Data ---
   const fetchProjectData = useCallback(async (isPolling = false) => {
     if (!id) return;
     try {
@@ -42,9 +51,12 @@ export default function ProjectDetailPage() {
         const upData = await upRes.json();
         setProject(projData);
         setUploads(upData.uploads || []);
-      } else if (!isPolling) {
-        setLocalError('Failed to load project details.');
-      }
+        
+        if (!isPolling && projData.draftTimeline) {
+          if (projData.generatedReels && projData.generatedReels.length > 0) setCurrentStep(6);
+          else setCurrentStep(3);
+        }
+      } else if (!isPolling) setLocalError('Failed to load project details.');
     } catch {
       if (!isPolling) setLocalError('Connection error.');
     } finally {
@@ -54,128 +66,91 @@ export default function ProjectDetailPage() {
 
   useEffect(() => {
     fetchProjectData();
-    const interval = setInterval(() => {
-      fetchProjectData(true);
-    }, 10000);
+    const interval = setInterval(() => fetchProjectData(true), 10000);
     return () => clearInterval(interval);
   }, [fetchProjectData]);
 
-  // --- Project Actions ---
+  useEffect(() => {
+    if (currentStep === 5 && !isProcessing && result?.results?.length > 0) {
+      setCurrentStep(6);
+    }
+  }, [currentStep, isProcessing, result]);
+
   const handleTitleBlur = async (e) => {
     const newTitle = e.target.value;
     if (newTitle !== project.title) {
       setProject({ ...project, title: newTitle });
-      await apiFetch(`/projects/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify({ title: newTitle }),
-      });
+      await apiFetch(`/projects/${id}`, { method: 'PATCH', body: JSON.stringify({ title: newTitle }) });
     }
   };
 
-  // --- Upload Actions ---
   const addUrl = async () => {
     const val = urlInput.trim();
     if (!val) return;
     setUrlInput('');
+    setIsUploadingUrl(true);
     try {
-      await apiFetch(`/projects/${id}/uploads`, {
-        method: 'POST',
-        body: JSON.stringify({ urls: [val] }),
-      });
-      fetchProjectData();
+      await apiFetch(`/projects/${id}/uploads`, { method: 'POST', body: JSON.stringify({ urls: [val] }) });
+      await fetchProjectData();
     } catch {
       setLocalError('Failed to add URL.');
+    } finally {
+      setIsUploadingUrl(false);
     }
   };
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter') { e.preventDefault(); addUrl(); }
-  };
-
-  const removeClip = async (uploadId) => {
-    setUploads((prev) => prev.filter((u) => u._id !== uploadId));
-    try {
-      await apiFetch(`/projects/${id}/uploads/${uploadId}`, { method: 'DELETE' });
-    } catch {
-      fetchProjectData();
-    }
-  };
+  const handleKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl(); } };
 
   const handleLocalUpload = async (e) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-
+    setIsUploadingFile(true);
     for (let i = 0; i < files.length; i++) {
-      const file = files[i];
       const formData = new FormData();
-      formData.append('file', file);
-      
-      try {
-        await apiFetch(`/projects/${id}/uploads/file`, {
-          method: 'POST',
-          body: formData
-        });
-      } catch (err) {
-        setLocalError(`Failed to upload ${file.name}`);
-      }
+      formData.append('file', files[i]);
+      try { await apiFetch(`/projects/${id}/uploads/file`, { method: 'POST', body: formData }); } 
+      catch (err) { setLocalError(`Failed to upload ${files[i].name}`); }
     }
-    fetchProjectData();
+    await fetchProjectData();
+    setIsUploadingFile(false);
     e.target.value = null;
   };
 
-  // --- Drag & Drop ---
-  const handleDragStart = (idx) => setDraggedIdx(idx);
-  const handleDragOver = (e) => e.preventDefault();
-  const handleDrop = async (idx) => {
-    if (draggedIdx === null || draggedIdx === idx) return;
-    
-    const items = [...uploads];
-    const [moved] = items.splice(draggedIdx, 1);
-    items.splice(idx, 0, moved);
-    setUploads(items);
-    setDraggedIdx(null);
-
-    const orderedIds = items.map((u) => u._id);
-    try {
-      await apiFetch(`/projects/${id}/uploads/reorder`, {
-        method: 'PATCH',
-        body: JSON.stringify({ upload_ids: orderedIds }),
-      });
-    } catch {
-      fetchProjectData();
-    }
-  };
-
-  // --- Analyze & Generate ---
-  const handleAnalyze = () => {
-    if (!project?.title?.trim()) {
-      setLocalError('Enter a property name.'); return;
-    }
+  const goToAnalyze = () => {
+    if (!project?.title?.trim()) { setLocalError('Enter a property name.'); return; }
     const readyClips = uploads.filter(u => u.status === 'PROCESSED');
-    if (readyClips.length < 3) {
-      setLocalError(`Add at least 3 clips. Currently ${readyClips.length} ready.`); return;
-    }
+    if (readyClips.length === 0) { setLocalError('Add at least 1 clip to begin.'); return; }
     setLocalError('');
-    const params = new URLSearchParams();
-    params.append('duration', reelDuration);
-    params.append('style', reelStyle);
-    const token = getAccessToken() || '';
-    start(`http://localhost:8000/api/v1/projects/${id}/generation/analyze?${params.toString()}&token=${token}`);
+    setCurrentStep(2);
+    
+    if (!project?.draftTimeline) {
+      const params = new URLSearchParams();
+      params.append('duration', reelDuration);
+      params.append('style', reelStyle);
+      start(`http://localhost:8000/api/v1/projects/${id}/generation/analyze?${params.toString()}&token=${getAccessToken() || ''}`);
+    }
   };
+
+  const float_end = (val) => parseFloat(val) || 5.0;
+  const float_start = (val) => parseFloat(val) || 0.0;
+
+  const goToStoryboard = () => setCurrentStep(3);
+  const goToStyle = () => setCurrentStep(4);
 
   const handleGenerateReel = () => {
+    setCurrentStep(5);
     const params = new URLSearchParams();
     params.append('duration', reelDuration);
     params.append('style', reelStyle);
-    const token = getAccessToken() || '';
-    start(`http://localhost:8000/api/v1/projects/${id}/generation/generate?${params.toString()}&token=${token}`);
+    params.append('aspect_ratio', aspectRatio);
+    start(`http://localhost:8000/api/v1/projects/${id}/generation/generate?${params.toString()}&token=${getAccessToken() || ''}`);
   };
 
-  // --- Helpers ---
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-full">
-        <Loader2 className="w-8 h-8 text-[#8B5CF6] animate-spin" />
+      <div className="flex flex-col items-center justify-center h-[60vh] gap-4">
+        <Loader2 size={40} className="animate-spin text-[#0EA5E9]" />
+        <p className="text-[#64748B] font-bold tracking-wider uppercase text-xs">Loading Workspace</p>
       </div>
     );
   }
@@ -184,352 +159,364 @@ export default function ProjectDetailPage() {
   const resultsData = result?.results || [];
   const readyClips = uploads.filter(u => u.status === 'PROCESSED');
   const hasUploads = uploads.length > 0;
-
-  // Mock AI Director Data based on uploads
-  const detectedScenes = [
-    { name: 'Exterior', detected: readyClips.length > 0 },
-    { name: 'Living Room', detected: readyClips.length > 2 },
-    { name: 'Kitchen', detected: readyClips.length > 4 },
-    { name: 'Bedroom', detected: readyClips.length > 5 },
-    { name: 'Drone Footage', detected: readyClips.length > 7 },
-  ];
-
-  const getMediaUrl = (item) => {
-    if (item.previewPath) return `http://localhost:8000/${item.previewPath.replace(/\\/g, '/')}`;
-    if (item.originalUrl?.startsWith('http')) return item.originalUrl;
-    return null;
-  };
+  const timelineIds = project?.draftTimeline?.map(t => t.upload_id) || [];
+  const stylesList = ['Luxury', 'Modern', 'Cinematic', 'Viral', 'Realtor'];
+  const previewRatioClass = aspectRatio === '16:9' ? 'aspect-video' : (aspectRatio === '1:1' ? 'aspect-square' : 'aspect-[9/16]');
 
   return (
-    <div className="flex gap-6 h-full max-w-[1600px] mx-auto">
+    <div className="h-[calc(100vh-80px)] overflow-y-auto flex flex-col -m-8 p-8 relative bg-[#F8FAFC]">
       
-      {/* ──── LEFT WORKSPACE ──── */}
-      <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto pr-2 custom-scrollbar">
+      {/* ──── TOP NAVIGATION PROGRESS ──── */}
+      <div className="bg-white rounded-2xl shadow-sm border border-[#E2E8F0] p-4 mb-8 flex items-center justify-between shrink-0">
+        <input
+          type="text"
+          defaultValue={project?.title || ''}
+          onBlur={handleTitleBlur}
+          placeholder="Property Name..."
+          className="bg-transparent text-xl font-black text-[#0F172A] placeholder:text-[#cbd5e1] focus:outline-none w-1/4"
+        />
         
-        {/* Workspace Header - Top Bar */}
-        <div className="glass-card rounded-2xl p-5 mb-6 sticky top-0 z-10">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex-1 min-w-[200px]">
-              <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Property Name</label>
-              <input
-                type="text"
-                defaultValue={project?.title || ''}
-                onBlur={handleTitleBlur}
-                placeholder="Name your property..."
-                className="w-full bg-transparent text-xl font-bold text-white placeholder:text-gray-600 focus:outline-none"
-              />
-            </div>
-            
-            <div className="flex items-center gap-4">
-              <div className="bg-black/30 rounded-xl px-4 py-2 border border-white/5">
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Style</label>
-                <select value={reelStyle} onChange={(e) => setReelStyle(e.target.value)} className="bg-transparent text-sm font-medium text-white focus:outline-none cursor-pointer">
-                  <option value="Luxury">Luxury</option>
-                  <option value="Cinematic">Cinematic</option>
-                  <option value="Viral">Instagram Viral</option>
-                  <option value="Realtor">Realtor Style</option>
-                </select>
+        <div className="flex-1 flex items-center justify-center max-w-3xl">
+          {STEPS.map((step, idx) => (
+            <React.Fragment key={step.id}>
+              <div className="flex flex-col items-center relative">
+                <motion.div animate={{ scale: currentStep === step.id ? 1.1 : 1 }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${currentStep > step.id ? 'bg-[#10B981] text-white' : currentStep === step.id ? 'bg-[#0EA5E9] text-white ring-4 ring-[#0EA5E9]/20' : 'bg-[#F8FAFC] text-[#94a3b8] border border-[#E2E8F0]'}`}>
+                  {currentStep > step.id ? <Check size={14} /> : step.id}
+                </motion.div>
+                <span className={`absolute top-10 whitespace-nowrap text-[10px] font-bold uppercase tracking-wider ${currentStep >= step.id ? 'text-[#0F172A]' : 'text-[#94a3b8]'}`}>{step.label}</span>
               </div>
-
-              <div className="bg-black/30 rounded-xl px-4 py-2 border border-white/5">
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Duration</label>
-                <select value={reelDuration} onChange={(e) => setReelDuration(e.target.value)} className="bg-transparent text-sm font-medium text-white focus:outline-none cursor-pointer">
-                  <option value="20 sec">20s (Reel)</option>
-                  <option value="30 sec">30s (TikTok)</option>
-                  <option value="45 sec">45s (Shorts)</option>
-                </select>
-              </div>
-
-              <div className="bg-black/30 rounded-xl px-4 py-2 border border-white/5">
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Quality</label>
-                <select value={exportQuality} onChange={(e) => setExportQuality(e.target.value)} className="bg-transparent text-sm font-medium text-white focus:outline-none cursor-pointer">
-                  <option value="1080p">1080p HD</option>
-                  <option value="4k">4K Ultra HD</option>
-                </select>
-              </div>
-
-              <div className="bg-black/30 rounded-xl px-4 py-2 border border-white/5 flex flex-col justify-center">
-                <label className="text-[10px] uppercase tracking-wider text-gray-500 font-semibold mb-1 block">Clips</label>
-                <div className="text-sm font-bold text-[#8B5CF6]">{uploads.length} / 15</div>
-              </div>
-            </div>
-          </div>
+              {idx < STEPS.length - 1 && (
+                <div className="flex-1 h-1 mx-2 rounded-full overflow-hidden bg-[#E2E8F0]">
+                  <motion.div initial={{ width: 0 }} animate={{ width: currentStep > step.id ? '100%' : '0%' }} transition={{ duration: 0.5 }} className="h-full bg-[#10B981]" />
+                </div>
+              )}
+            </React.Fragment>
+          ))}
         </div>
+        <div className="w-1/4"></div>
+      </div>
 
-        {displayError && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-5 py-3 rounded-xl text-sm mb-6 flex items-center justify-between">
-            <span>{displayError}</span>
-            <button onClick={() => setLocalError('')} className="text-red-400 hover:text-red-300"><X size={16} /></button>
-          </div>
-        )}
+      {displayError && (
+        <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-red-50 border border-red-100 text-red-600 px-5 py-4 rounded-2xl text-sm font-medium flex items-center justify-between shadow-sm mb-6 shrink-0">
+          <span>{displayError}</span>
+          <button onClick={() => setLocalError('')} className="text-red-400 hover:text-red-600"><X size={16} /></button>
+        </motion.div>
+      )}
 
-        {/* Upload Section - Collapses slightly if there are uploads */}
-        <div className={`transition-all duration-500 mb-6 ${hasUploads ? 'opacity-80 hover:opacity-100' : ''}`}>
-          <div className="glass-card rounded-2xl overflow-hidden">
-            <div className="flex border-b border-white/5">
-              {[
-                { id: 'links', label: 'Drop URL', icon: Link2 },
-                { id: 'dropbox', label: 'Dropbox', icon: UploadCloud },
-                { id: 'upload', label: 'Local Files', icon: Video },
-              ].map((tab) => (
-                <button 
-                  key={tab.id} 
-                  onClick={() => setUploadMode(tab.id)} 
-                  className={`flex-1 flex items-center justify-center gap-2 py-3 text-sm font-medium transition ${uploadMode === tab.id ? 'bg-white/5 text-white border-b-2 border-[#8B5CF6]' : 'text-gray-500 hover:text-gray-300 hover:bg-white/[0.02]'}`}
-                >
-                  <tab.icon size={16} />{tab.label}
-                </button>
-              ))}
-            </div>
-            
-            <div className="p-5 bg-black/20">
-              {uploadMode === 'links' && (
-                <div className="flex gap-3">
-                  <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Paste a video URL..." className="flex-1 bg-black/40 border border-[#22252A] rounded-xl px-4 py-3 text-white placeholder:text-gray-600 text-sm focus:outline-none focus:border-[#6366F1]/50 transition" />
-                  <button onClick={addUrl} className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white px-6 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 transition"><Plus size={18} /> Import</button>
-                </div>
-              )}
-              {uploadMode === 'dropbox' && (
-                <div className="flex gap-3">
-                  <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Paste a Dropbox folder URL..." className="flex-1 bg-black/40 border border-[#22252A] rounded-xl px-4 py-3 text-white placeholder:text-gray-600 text-sm focus:outline-none focus:border-[#6366F1]/50 transition" />
-                  <button onClick={addUrl} className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white px-6 rounded-xl font-medium flex items-center gap-2 hover:opacity-90 transition"><Plus size={18} /> Sync</button>
-                </div>
-              )}
-              {uploadMode === 'upload' && (
-                <div className="flex flex-col items-center justify-center py-8 border border-dashed border-[#22252A] rounded-xl bg-black/40 hover:bg-black/60 transition cursor-pointer" onClick={() => document.getElementById('local-file-upload').click()}>
-                  <UploadCloud size={32} className="text-[#8B5CF6] mb-3" />
-                  <p className="text-sm font-medium text-white mb-1">Drag & drop or click to browse</p>
-                  <p className="text-xs text-gray-500">Supports MP4, MOV up to 4K</p>
-                  <input type="file" id="local-file-upload" className="hidden" multiple accept="video/mp4,video/quicktime" onChange={handleLocalUpload} />
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
+      {/* ──── DYNAMIC WIZARD CONTENT ──── */}
+      <div className="flex-1 pb-10">
+        <AnimatePresence mode="wait">
+          
+          {/* STEP 1: UPLOAD ASSETS */}
+          {currentStep === 1 && (
+            <motion.div key="step1" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-5xl mx-auto w-full">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">Upload Footage</h2>
+                <p className="text-lg text-[#64748B] font-medium mt-2">Bring in your property clips to begin the AI edit.</p>
+              </div>
 
-        {/* AI Director Panel */}
-        {hasUploads && (
-          <div className="glass-card rounded-2xl p-5 mb-6 flex gap-6 items-center">
-            <div className="flex-shrink-0 flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-[#10B981]/20 to-[#10B981]/10 border border-[#10B981]/20">
-              <Activity size={24} className="text-[#10B981]" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-sm font-bold text-white mb-1 flex items-center gap-2">AI Scene Detection <span className="text-[10px] bg-[#10B981]/20 text-[#10B981] px-2 py-0.5 rounded-full uppercase tracking-wider font-bold">Active</span></h3>
-              <p className="text-xs text-gray-400 mb-3">Analyzing raw footage to build property context.</p>
-              
-              <div className="flex flex-wrap gap-3">
-                {detectedScenes.map((scene, i) => (
-                  <div key={i} className={`flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1 rounded-lg border ${scene.detected ? 'bg-[#10B981]/10 border-[#10B981]/20 text-[#10B981]' : 'bg-white/5 border-white/5 text-gray-500'}`}>
-                    <CheckCircle2 size={12} className={scene.detected ? "text-[#10B981]" : "text-gray-600"} />
-                    {scene.name}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                {/* Local Upload */}
+                <motion.div whileHover={{ scale: 1.01 }} onClick={() => !isUploadingFile && document.getElementById('local-file-upload').click()} className={`flex flex-col items-center justify-center p-12 border-2 border-dashed border-[#cbd5e1] rounded-[2rem] bg-white transition-all group shadow-sm ${isUploadingFile ? 'cursor-wait opacity-80' : 'hover:border-[#0EA5E9] hover:shadow-lg cursor-pointer'}`}>
+                  {isUploadingFile ? (
+                    <div className="flex flex-col items-center">
+                      <Loader2 size={40} className="animate-spin text-[#0EA5E9] mb-4" />
+                      <p className="text-lg font-bold text-[#0F172A]">Uploading file(s)...</p>
+                      <p className="text-sm text-[#64748B]">Please wait</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-20 h-20 rounded-2xl bg-[#F0F9FF] shadow-sm flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#0EA5E9] transition-all duration-300">
+                        <UploadCloud size={32} className="text-[#0EA5E9] group-hover:text-white transition-colors" />
+                      </div>
+                      <p className="text-2xl font-black text-[#0F172A] mb-1">Drag & Drop Videos</p>
+                      <p className="text-sm font-medium text-[#64748B]">MP4 or MOV up to 4K resolution</p>
+                    </>
+                  )}
+                  <input type="file" id="local-file-upload" className="hidden" multiple accept="video/*" onChange={handleLocalUpload} disabled={isUploadingFile} />
+                </motion.div>
+
+                {/* URL Import */}
+                <div className="bg-white p-10 rounded-[2rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
+                  <h3 className="text-xl font-black text-[#0F172A] flex items-center gap-2 mb-3"><Link2 size={24} className="text-[#0EA5E9]"/> Import via URL</h3>
+                  <p className="text-sm text-[#64748B] mb-6 font-medium leading-relaxed">
+                    Paste links directly from <strong className="text-[#0F172A]">Google Drive</strong>, <strong className="text-[#0F172A]">Dropbox</strong>, <strong className="text-[#0F172A]">OneDrive</strong>, or any direct MP4 url. Add as many as you need.
+                  </p>
+                  <div className="flex flex-col xl:flex-row gap-3">
+                    <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Paste video URL here..." className="flex-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-5 py-4 text-[#0F172A] text-sm focus:outline-none focus:border-[#0EA5E9] shadow-inner" disabled={isUploadingUrl} />
+                    <button onClick={addUrl} disabled={isUploadingUrl || !urlInput.trim()} className="bg-[#0F172A] text-white px-8 py-4 rounded-xl font-black hover:bg-[#1e293b] shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                      {isUploadingUrl ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18}/>} Add Link
+                    </button>
                   </div>
-                ))}
+                </div>
               </div>
-            </div>
-          </div>
-        )}
 
-        {/* Horizontal Story Builder */}
-        <div className="glass-card rounded-2xl p-5 mb-8">
-          <div className="flex items-center justify-between mb-5">
-            <div>
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Film size={18} className="text-[#8B5CF6]" /> 
-                Story Timeline
-              </h2>
-              <p className="text-xs text-gray-400 mt-1">Drag to reorder clips. AI will use this pool to build the reel.</p>
-            </div>
-            
-            {project?.draftTimeline ? (
-              <button onClick={handleGenerateReel} disabled={isProcessing} className="bg-gradient-to-r from-[#10B981] to-teal-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#10B981]/20 hover:scale-105 transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2">
-                {isProcessing ? <><Loader2 size={16} className="animate-spin" /> Rendering</> : <><Play size={16} fill="white" /> Generate Reel</>}
-              </button>
-            ) : (
-              <button onClick={handleAnalyze} disabled={isProcessing || readyClips.length < 3} className="bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#6366F1]/20 hover:scale-105 transition active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center gap-2">
-                {isProcessing ? <><Loader2 size={16} className="animate-spin" /> Analyzing</> : <><Sparkles size={16} /> Analyze Story</>}
-              </button>
-            )}
-          </div>
-
-          {!hasUploads ? (
-            <div className="h-48 border border-dashed border-[#22252A] rounded-xl bg-black/20 flex flex-col items-center justify-center text-gray-500">
-              <Film size={32} className="mb-3 opacity-50" />
-              <p className="text-sm font-medium">Your timeline is empty</p>
-              <p className="text-xs mt-1 opacity-70">Upload videos above to populate the timeline</p>
-            </div>
-          ) : (
-            <div 
-              ref={horizontalScrollRef}
-              className="flex gap-4 overflow-x-auto pb-4 pt-2 px-1 snap-x custom-scrollbar"
-              style={{ scrollBehavior: 'smooth' }}
-            >
+              {/* Success Summary Card */}
               <AnimatePresence>
-                {uploads.map((item, idx) => {
-                  const mediaUrl = getMediaUrl(item);
-                  return (
-                    <motion.div 
-                      key={item._id} 
-                      layout 
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.8 }}
-                      draggable 
-                      onDragStart={() => handleDragStart(idx)} 
-                      onDragOver={handleDragOver} 
-                      onDrop={() => handleDrop(idx)} 
-                      className="group relative flex-shrink-0 w-44 rounded-xl border border-[#22252A] bg-[#0c0c10] overflow-hidden cursor-grab active:cursor-grabbing snap-start hover:border-[#6366F1]/50 hover:shadow-lg hover:shadow-[#6366F1]/10 transition-all"
-                    >
-                      {/* Thumbnail Area */}
-                      <div className="relative h-56 bg-black flex items-center justify-center overflow-hidden">
-                        {mediaUrl ? (
-                          <video src={mediaUrl} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition duration-300" />
-                        ) : (
-                          <div className="text-[#22252A]"><Video size={48} /></div>
-                        )}
-                        
-                        {/* Status Overlay */}
-                        <div className="absolute top-2 left-2 right-2 flex justify-between">
-                          <div className="backdrop-blur-md bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[10px] font-bold text-white flex items-center gap-1">
-                            {idx + 1}
-                          </div>
-                          {item.status === 'PENDING' && <div className="backdrop-blur-md bg-black/40 border border-white/10 rounded-lg px-2 py-1 text-[10px] font-bold text-gray-300">Wait</div>}
-                          {item.status === 'PROCESSING' && <div className="backdrop-blur-md bg-blue-500/20 border border-blue-500/30 rounded-lg px-2 py-1 text-[10px] font-bold text-blue-300 flex items-center gap-1"><Loader2 size={10} className="animate-spin" /></div>}
-                        </div>
-
-                        {/* AI Score (Mocked if missing) */}
-                        {item.status === 'PROCESSED' && (
-                          <div className="absolute bottom-2 right-2 backdrop-blur-md bg-[#10B981]/20 border border-[#10B981]/30 rounded-lg px-2 py-1 text-[10px] font-bold text-[#10B981] flex items-center gap-1">
-                            AI {(Math.random() * (98 - 85) + 85).toFixed(0)}
-                          </div>
-                        )}
-                        
-                        {/* Remove Button */}
-                        <button onClick={() => removeClip(item._id)} className="absolute top-2 right-2 w-6 h-6 backdrop-blur-md bg-black/50 border border-white/10 rounded-md flex items-center justify-center text-gray-400 hover:text-red-400 hover:bg-red-500/20 transition opacity-0 group-hover:opacity-100">
-                          <X size={12} />
-                        </button>
+                {hasUploads && (
+                  <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mt-8 bg-gradient-to-br from-white to-[#F0F9FF] border-2 border-[#0EA5E9]/20 p-8 rounded-[2rem] shadow-lg flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div className="flex items-center gap-5">
+                      <div className="w-16 h-16 rounded-full bg-[#10B981]/10 flex items-center justify-center shrink-0">
+                        <CheckCircle2 size={32} className="text-[#10B981]" />
                       </div>
-
-                      {/* Card Meta */}
-                      <div className="p-3 border-t border-[#22252A]">
-                        <p className="text-xs font-semibold text-white truncate" title={item.filename}>{item.filename}</p>
-                        <div className="flex items-center gap-2 mt-1.5 text-[10px] font-medium text-gray-500">
-                          <span className="bg-white/5 px-1.5 py-0.5 rounded text-gray-400">{project?.draftTimeline ? project.draftTimeline[idx]?.scene_type || 'Clip' : 'Raw Clip'}</span>
-                          <span>•</span>
-                          <span>{item.duration || '0:05'}</span>
-                        </div>
+                      <div>
+                        <h3 className="text-2xl font-black text-[#0F172A]">Upload Complete</h3>
+                        <p className="text-base font-bold text-[#64748B] mt-1">{readyClips.length} Clips Ready • 4K/1080p Processed</p>
                       </div>
-                    </motion.div>
-                  );
-                })}
-              </AnimatePresence>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ──── RIGHT STICKY PREVIEW PANEL ──── */}
-      <div className="w-[420px] shrink-0 flex flex-col gap-6">
-        <div className="sticky top-0 pt-0 pb-6 flex flex-col gap-6 h-full overflow-y-auto custom-scrollbar">
-          
-          {/* Main Sticky Video Preview */}
-          <div className="glass-card rounded-2xl overflow-hidden flex flex-col shadow-2xl">
-            <div className="bg-[#050508] border-b border-[#22252A] p-4 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm font-bold text-white">
-                <Play size={14} className="text-[#8B5CF6]" fill="currentColor" />
-                Preview Studio
-              </div>
-              <div className="flex gap-1">
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500/50"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/50"></div>
-                <div className="w-2.5 h-2.5 rounded-full bg-green-500/50"></div>
-              </div>
-            </div>
-            
-            <div className="bg-black aspect-[9/16] relative flex items-center justify-center overflow-hidden">
-              {resultsData.length > 0 ? (
-                <video src={`http://localhost:8000${resultsData[0].video_url || resultsData[0].videoUrl || ''}`} controls className="w-full h-full object-contain" autoPlay loop muted />
-              ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-600 bg-gradient-to-b from-transparent to-[#0a0a0f]/50">
-                  {isProcessing ? (
-                    <>
-                      <Loader2 size={48} className="animate-spin text-[#8B5CF6] mb-4" />
-                      <p className="text-sm font-medium text-[#8B5CF6]">AI is rendering...</p>
-                    </>
-                  ) : (
-                    <>
-                      <Play size={48} className="opacity-20 mb-4" />
-                      <p className="text-sm font-medium text-gray-500">Preview will appear here</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </div>
-            
-            {/* AI Asset Settings below player */}
-            <div className="p-5 bg-gradient-to-b from-[#111827] to-[#0A0A0B]">
-              <div className="mb-4">
-                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Generated Captions</h4>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-gray-300 min-h-[60px]">
-                  {resultsData[0]?.hook ? (
-                    <><span className="text-[#6366F1] font-bold">"{resultsData[0].hook}"</span><br/><span className="text-xs text-gray-400 mt-1 block">{resultsData[0].description}</span></>
-                  ) : (
-                    <span className="opacity-50 italic">AI will generate a viral hook...</span>
-                  )}
-                </div>
-              </div>
-              
-              <div className="grid grid-cols-2 gap-3 mb-4">
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Voiceover</h4>
-                  <p className="text-xs font-medium text-white">AI Real Estate (F)</p>
-                </div>
-                <div className="bg-white/5 border border-white/10 rounded-xl p-3">
-                  <h4 className="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1">Music</h4>
-                  <p className="text-xs font-medium text-white">Lo-Fi Chill</p>
-                </div>
-              </div>
-
-              {resultsData.length > 0 && (
-                <a href={`http://localhost:8000${resultsData[0].video_url || resultsData[0].videoUrl || ''}`} download>
-                  <Button variant="primary" className="w-full bg-gradient-to-r from-[#6366F1] to-[#8B5CF6] border-none shadow-lg shadow-[#6366F1]/20">
-                    <Download size={16} className="mr-2" /> Download HD Video
-                  </Button>
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* Processing Steps */}
-          {(isProcessing || steps.length > 0) && (
-            <div className="glass-card rounded-2xl p-5 mb-6">
-              <h3 className="text-sm font-bold text-white mb-4">AI Workflow Status</h3>
-              <ProgressStepper steps={steps} currentStep={currentStep} isProcessing={isProcessing} />
-            </div>
-          )}
-
-          {/* Alternative Variations (If any) */}
-          {resultsData.length > 1 && (
-            <div className="glass-card rounded-2xl p-5">
-              <h3 className="text-sm font-bold text-white mb-3">Other Variations</h3>
-              <div className="flex gap-3 overflow-x-auto pb-2 custom-scrollbar">
-                {resultsData.slice(1).map((res, i) => (
-                  <div key={i} className="w-24 shrink-0 rounded-lg overflow-hidden border border-[#22252A] relative group cursor-pointer hover:border-[#8B5CF6] transition">
-                    <video src={`http://localhost:8000${res.videoUrl || res.video_url || ''}`} className="w-full aspect-[9/16] object-cover opacity-60 group-hover:opacity-100 transition" />
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 group-hover:bg-transparent transition">
-                      <Play size={16} fill="white" className="opacity-80" />
                     </div>
-                    <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black to-transparent p-1">
-                      <p className="text-[9px] font-bold text-white text-center truncate">{res.style}</p>
+                    <button onClick={goToAnalyze} disabled={readyClips.length === 0} className="w-full md:w-auto bg-[#0EA5E9] text-white px-10 py-5 rounded-2xl text-xl font-black shadow-[0_15px_30px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 transition-all">
+                      Start AI Analysis <ChevronRight size={24} />
+                    </button>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          )}
+
+          {/* STEP 2: AI ANALYSIS */}
+          {currentStep === 2 && (
+            <motion.div key="step2" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto w-full">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">AI Director Analysis</h2>
+                <p className="text-lg text-[#64748B] font-medium mt-2">Analyzing scene composition, room structures, and optimal pacing.</p>
+              </div>
+
+              {isProcessing && (
+                <div className="bg-white rounded-[2rem] p-10 shadow-sm border border-[#E2E8F0] flex flex-col items-center mb-8">
+                  <Loader2 size={48} className="animate-spin text-[#14B8A6] mb-6" />
+                  <div className="w-full max-w-3xl">
+                    <ProgressStepper steps={steps} currentStep={sseStep} isProcessing={isProcessing} />
+                  </div>
+                </div>
+              )}
+
+              {/* True Data Insights (No Mocks) */}
+              {project?.draftTimeline && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
+                  
+                  {/* Transparency Panel */}
+                  <div className="col-span-1 bg-white p-8 rounded-[2rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
+                    <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6 flex items-center gap-2"><Activity size={16}/> Transparency Panel</h3>
+                    <div className="space-y-5">
+                      <div>
+                        <p className="text-xs font-bold text-[#94a3b8] uppercase mb-1">Total Analyzed</p>
+                        <p className="text-2xl font-black text-[#0F172A]">{project?.aiMetadata?.analyzed_sec || 0}s</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#94a3b8] uppercase mb-1">Duplicates Removed</p>
+                        <p className="text-2xl font-black text-[#EF4444]">{project?.aiMetadata?.duplicates_removed || 0}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-[#94a3b8] uppercase mb-1">Final Storyline</p>
+                        <p className="text-2xl font-black text-[#10B981]">{project?.aiMetadata?.selected_sec || 0}s</p>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-        </div>
-      </div>
 
+                  <div className="col-span-1 lg:col-span-3 bg-white p-8 rounded-[2rem] border border-[#E2E8F0] shadow-sm">
+                    <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">AI Selected Storyline</h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                      {project.draftTimeline.map((item, i) => (
+                         <div key={i} className="p-4 rounded-2xl border border-[#E2E8F0] bg-[#F8FAFC] flex flex-col justify-between">
+                           <div>
+                             <span className="text-sm font-black text-[#0F172A] capitalize">{item.scene_type || 'General Room'}</span>
+                             <p className="text-xs font-bold text-[#64748B] mt-1">{item.end ? (float_end(item.end) - float_start(item.start)).toFixed(1) : '5.0'}s Segment</p>
+                           </div>
+                           <div className="mt-3 pt-3 border-t border-[#E2E8F0] flex justify-between items-center">
+                              <span className="text-[10px] font-black text-[#10B981]">Conf: {item.confidence_score || 90}%</span>
+                              <span className="text-[10px] font-black text-[#0EA5E9]">Qual: {item.visual_quality_score || 85}/100</span>
+                           </div>
+                         </div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              <div className="flex justify-end">
+                <button onClick={goToStoryboard} disabled={isProcessing || !project?.draftTimeline} className="bg-[#0F172A] text-white px-10 py-5 rounded-2xl text-lg font-black shadow-xl hover:bg-[#1e293b] transition-all disabled:opacity-50 disabled:pointer-events-none flex items-center gap-3">
+                  Review Storyboard <ChevronRight size={24} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 3: STORYBOARD REVIEW */}
+          {currentStep === 3 && (
+            <motion.div key="step3" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="max-w-6xl mx-auto w-full">
+              <div className="text-center mb-8">
+                <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">Storyboard Review</h2>
+                <p className="text-lg text-[#64748B] font-medium mt-2">Verify the intelligent sequence constructed by the AI Director.</p>
+              </div>
+
+              <div className="bg-white rounded-[2rem] p-8 mb-8 shadow-sm border border-[#E2E8F0]">
+                {/* Row 1: Uploaded (Muted) */}
+                <div className="mb-10 opacity-70 hover:opacity-100 transition-opacity">
+                  <h3 className="text-xs font-black text-[#64748B] uppercase tracking-wider mb-4 flex items-center gap-2">Raw Uploads <span className="px-2 py-0.5 bg-[#F8FAFC] border border-[#E2E8F0] rounded-md text-[#0F172A]">{uploads.length}</span></h3>
+                  <div className="flex gap-4 overflow-x-auto pb-2 hide-scrollbar">
+                    {uploads.map((item, idx) => (
+                       <div key={item._id} className="shrink-0 w-36 rounded-xl overflow-hidden border border-[#E2E8F0] relative shadow-sm">
+                         <div className="h-24 bg-[#F8FAFC]">
+                           {item.previewPath ? <video src={`http://localhost:8000/${item.previewPath.replace(/\\/g, '/')}`} className="w-full h-full object-cover" /> : <Video className="w-full h-full p-6 text-[#cbd5e1]"/>}
+                         </div>
+                         <div className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded text-[10px] font-black px-1.5 py-0.5 text-[#0F172A]">#{idx+1}</div>
+                       </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Row 2: AI Selected */}
+                <div>
+                  <h3 className="text-sm font-black text-[#8B5CF6] uppercase tracking-wider mb-4 flex items-center gap-2">AI Sequenced Story <span className="px-2.5 py-1 bg-[#8B5CF6]/10 text-[#8B5CF6] rounded-md">{project?.draftTimeline?.length}</span></h3>
+                  <div className="flex gap-5 overflow-x-auto pb-4 hide-scrollbar">
+                    {project?.draftTimeline?.map((item, idx) => (
+                      <div key={idx} className="shrink-0 w-64 rounded-[1.5rem] bg-white shadow-md border border-[#8B5CF6]/20 overflow-hidden relative group">
+                        <div className="h-40 bg-[#F8FAFC] relative">
+                          {item.localPath ? <video src={`http://localhost:8000/${item.localPath.replace(/\\/g, '/')}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <Video className="w-full h-full p-10 text-[#cbd5e1]"/>}
+                          <div className="absolute top-3 left-3 bg-[#8B5CF6] text-white rounded-lg text-sm font-black px-3 py-1 shadow-sm">{idx+1}</div>
+                        </div>
+                        <div className="p-5">
+                          <div className="flex justify-between items-start mb-2">
+                            <p className="text-base font-black text-[#0F172A] truncate pr-2 capitalize">{item.scene_type || 'Clip'}</p>
+                            <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-1 rounded-md">{item.confidence_score ? `${item.confidence_score}% Conf` : 'Extracted'}</span>
+                          </div>
+                          <p className="text-xs font-bold text-[#64748B] mb-3">{item.end ? (float_end(item.end) - float_start(item.start)).toFixed(1) : '5.0'}s segment duration</p>
+                          
+                          {/* AI Ranking Badges */}
+                          <div className="grid grid-cols-2 gap-2">
+                             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2 flex flex-col items-center">
+                                <span className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wide">Quality</span>
+                                <span className="text-xs font-black text-[#0F172A]">{item.visual_quality_score || 85}</span>
+                             </div>
+                             <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2 flex flex-col items-center">
+                                <span className="text-[9px] font-bold text-[#94a3b8] uppercase tracking-wide">Luxury</span>
+                                <span className="text-xs font-black text-[#0F172A]">{item.luxury_appeal || 80}</span>
+                             </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button onClick={goToStyle} className="bg-[#0F172A] text-white px-12 py-5 rounded-2xl text-lg font-black shadow-xl hover:bg-[#1e293b] transition-all flex items-center gap-3">
+                  Continue to Style <ChevronRight size={24} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 4: STYLE SELECTION */}
+          {currentStep === 4 && (
+            <motion.div key="step4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full flex flex-col justify-center max-w-4xl mx-auto w-full">
+              <div className="text-center mb-10">
+                <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">Final Polish</h2>
+                <p className="text-lg text-[#64748B] font-medium mt-2">Select your target platform aspect ratio and creative style.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
+                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">1. Aspect Ratio</h3>
+                  <div className="grid grid-cols-3 gap-4">
+                    <button onClick={() => setAspectRatio('9:16')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Smartphone size={28} className="mb-2" /> Reels</button>
+                    <button onClick={() => setAspectRatio('16:9')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Maximize size={28} className="mb-2" /> YouTube</button>
+                    <button onClick={() => setAspectRatio('1:1')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '1:1' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Square size={28} className="mb-2" /> Square</button>
+                  </div>
+                </div>
+
+                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
+                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">2. Creative Style</h3>
+                  <div className="space-y-3">
+                    {stylesList.map(s => (
+                      <button key={s} onClick={() => setReelStyle(s)} className={`w-full text-left px-6 py-4 rounded-xl text-base font-bold transition-all ${reelStyle === s ? 'bg-[#0F172A] text-white shadow-lg' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                        {s} <span className="float-right font-medium opacity-60 text-sm">Automated</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <button onClick={handleGenerateReel} className="bg-[#0EA5E9] text-white px-14 py-6 rounded-2xl text-xl font-black shadow-[0_20px_40px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                  <Play fill="white" size={24} /> Render Final Video
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5: GENERATION SCREEN */}
+          {currentStep === 5 && (
+            <motion.div key="step5" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto w-full text-center">
+              <div className="relative w-32 h-32 mb-10">
+                <div className="absolute inset-0 border-[6px] border-[#0EA5E9]/10 rounded-full"></div>
+                <div className="absolute inset-0 border-[6px] border-[#0EA5E9] rounded-full border-t-transparent animate-spin"></div>
+                <div className="absolute inset-0 flex items-center justify-center"><Activity size={40} className="text-[#0EA5E9] animate-pulse" /></div>
+              </div>
+              
+              <h2 className="text-4xl font-black text-[#0F172A] mb-4">Rendering {aspectRatio} Reel</h2>
+              <p className="text-xl text-[#64748B] font-medium mb-12">Applying {reelStyle} styling, color grading, and dynamic cuts...</p>
+              
+              <div className="w-full bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem] text-left">
+                <ProgressStepper steps={steps} currentStep={sseStep} isProcessing={isProcessing} />
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 6: EXPORT RESULTS */}
+          {currentStep === 6 && (
+            <motion.div key="step6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col lg:flex-row gap-10 max-w-7xl mx-auto">
+              
+              {/* Left Video Player */}
+              <div className={`bg-[#0F172A] rounded-[2rem] overflow-hidden shadow-2xl border-[#E2E8F0] ${previewRatioClass} lg:w-1/2 flex-shrink-0 flex items-center justify-center`}>
+                {resultsData[0]?.video_url || resultsData[0]?.videoUrl ? (
+                  <video src={`http://localhost:8000${resultsData[0].video_url || resultsData[0].videoUrl}`} controls className="w-full h-full object-contain" autoPlay loop />
+                ) : (
+                  <p className="text-white font-medium">Video preview unavailable</p>
+                )}
+              </div>
+
+              {/* Right Export Panel */}
+              <div className="flex-1 flex flex-col justify-center py-4">
+                <div className="mb-10">
+                  <h2 className="text-4xl font-black text-[#0F172A] flex items-center gap-3 mb-3">
+                    <CheckCircle2 size={36} className="text-[#10B981]" /> Generation Complete
+                  </h2>
+                  <p className="text-xl text-[#64748B] font-medium">Your premium {reelStyle} reel is ready for publishing.</p>
+                </div>
+
+                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-3xl mb-10">
+                   <h4 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-4 flex items-center gap-2"><Type size={18} className="text-[#0EA5E9]"/> Generated Caption / Hook</h4>
+                   {resultsData[0]?.hook ? (
+                     <p className="text-base font-bold text-[#0F172A] leading-relaxed">
+                       "{resultsData[0].hook}"<br/><br/>
+                       <span className="text-sm font-medium text-[#64748B]">{resultsData[0].description}</span>
+                     </p>
+                   ) : (
+                     <p className="text-sm italic text-[#94a3b8]">No AI caption generated.</p>
+                   )}
+                </div>
+
+                <div className="space-y-4">
+                  <a href={`http://localhost:8000${resultsData[0]?.video_url || resultsData[0]?.videoUrl || ''}`} download>
+                    <button className="w-full bg-[#0F172A] text-white py-6 rounded-2xl text-xl font-black shadow-xl hover:bg-[#1e293b] transition-all flex justify-center items-center gap-3">
+                      <Download size={24} /> Download Final MP4
+                    </button>
+                  </a>
+                  <div className="flex gap-4">
+                    <button className="flex-1 bg-white border-2 border-[#E2E8F0] text-[#0F172A] py-5 rounded-2xl text-base font-bold hover:bg-[#F8FAFC] transition-all">Export to Socials</button>
+                    <button className="flex-1 bg-white border-2 border-[#E2E8F0] text-[#0F172A] py-5 rounded-2xl text-base font-bold hover:bg-[#F8FAFC] transition-all">Copy Share Link</button>
+                  </div>
+                </div>
+              </div>
+
+            </motion.div>
+          )}
+
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

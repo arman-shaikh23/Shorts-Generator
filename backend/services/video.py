@@ -4,222 +4,121 @@ import asyncio
 import time
 import subprocess
 import logging
+import math
 from typing import Optional, Callable
 
 logger = logging.getLogger(__name__)
 
-# Check ffmpeg installation before anything else
+# Check ffmpeg installation
 subprocess.run(["ffmpeg", "-version"], check=True)
 
 def run_ffmpeg(cmd):
     logger.info(f"Running FFmpeg: {' '.join(cmd)}")
-    result = subprocess.run(
-        cmd,
-        capture_output=True,
-        text=True
-    )
-
-    logger.info(result.stdout)
-    if result.stderr:
-        logger.error(result.stderr)
-
-    logger.info(f"FFmpeg return code: {result.returncode}")
-
+    result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
-        raise RuntimeError(
-            f"FFmpeg failed:\n{result.stderr}"
-        )
-
+        logger.error(f"FFmpeg failed:\n{result.stderr}")
+        raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")
     return result
 
-def get_total_duration(paths: list[str]) -> float:
-    """Calculate the total raw duration (in seconds) of multiple video files."""
+def get_exact_duration(path: str) -> float:
+    cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        return float(res.stdout.strip())
+    except ValueError:
+        return 5.0
+
+def parse_time_to_seconds(time_str: str) -> float:
+    try:
+        return float(time_str)
+    except ValueError:
+        pass
+    parts = str(time_str).split(':')
     total = 0.0
-    for path in paths:
-        try:
-            cmd = [
-                "ffprobe", "-v", "error", 
-                "-show_entries", "format=duration", 
-                "-of", "default=noprint_wrappers=1:nokey=1", 
-                path
-            ]
-            res = subprocess.run(cmd, capture_output=True, text=True)
-            if res.returncode == 0 and res.stdout.strip():
-                total += float(res.stdout.strip())
-        except Exception as e:
-            logger.error(f"Failed to get duration for {path}: {e}")
+    for part in parts:
+        total = total * 60 + float(part)
     return total
 
 def get_direct_url(url: str) -> str:
-    """Ensure the dropbox url is a direct download link."""
     if "dropbox.com" in url:
         return url.replace("?dl=0", "").replace("&dl=0", "") + ("&dl=1" if "?" in url else "?dl=1")
     return url
 
 async def download_video(url: str, filename: str, project_id: str, on_progress: Optional[Callable] = None) -> str:
-    """Download a video file via HTTP, updating progress."""
     os.makedirs(f"data/{project_id}/downloads", exist_ok=True)
     filepath = os.path.join(f"data/{project_id}/downloads", filename)
     
-    # If the URL is a local file (for testing)
     if not url.startswith("http"):
         if os.path.exists(url):
-            if on_progress:
-                await on_progress(100)
+            if on_progress: await on_progress(100)
             return url
-        else:
-            raise FileNotFoundError(f"Local file not found: {url}")
+        raise FileNotFoundError(f"Local file not found: {url}")
 
     direct_url = get_direct_url(url)
     start = time.perf_counter()
 
     async with httpx.AsyncClient(follow_redirects=True, timeout=300.0) as client:
         async with client.stream("GET", direct_url) as response:
-            print(f"[DEBUG] Final URL: {response.url}")
-            print(f"[DEBUG] HTTP Status: {response.status_code}")
-            
-            content_type = response.headers.get("Content-Type", "")
-            
-            if response.status_code != 200:
-                raise RuntimeError(f"Download failed: {response.status_code}")
-
-            if "text/html" in content_type.lower():
-                raise RuntimeError(f"Dropbox returned HTML instead of video. Content-Type={content_type}")
-
+            if response.status_code != 200: raise RuntimeError(f"Download failed: {response.status_code}")
             with open(filepath, "wb") as f:
                 async for chunk in response.aiter_bytes(chunk_size=262144):
                     f.write(chunk)
 
-    if not os.path.exists(filepath):
-        raise RuntimeError(f"File not created: {filepath}")
+    if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
+        raise RuntimeError("Downloaded file is empty or missing")
 
-    size = os.path.getsize(filepath)
-
-    if size == 0:
-        raise RuntimeError("Downloaded file is empty")
-
-    elapsed = time.perf_counter() - start
-    size_mb = size / (1024 * 1024)
-    print(f"[PERF] Download: {elapsed:.1f}s  |  {size_mb:.1f} MB  |  {size_mb/elapsed:.1f} MB/s")
+    logger.info(f"Downloaded {filename} in {time.perf_counter() - start:.1f}s")
     return filepath
 
 async def create_preview(video_path: str, project_id: str) -> str:
-    """Create a low-res preview of a video for Gemini analysis."""
-    basename = os.path.basename(video_path)
-    preview_filename = f"preview_{basename}"
+    preview_filename = f"preview_{os.path.basename(video_path)}"
     os.makedirs(f"data/{project_id}/previews", exist_ok=True)
     preview_path = os.path.join(f"data/{project_id}/previews", preview_filename)
     
-    start = time.perf_counter()
-
-    def get_preview_cmd(inp: str, out: str) -> list:
-        return [
-            "ffmpeg", "-y",
-            "-fflags", "+genpts",
-            "-i", inp,
-            "-map", "0:v:0",
-            "-map", "0:a:0?",
-            "-dn",
-            "-vf", "scale=-2:480",
-            "-pix_fmt", "yuv420p",
-            "-c:v", "libx264",
-            "-preset", "ultrafast",
-            "-crf", "28",
-            "-c:a", "aac",
-            "-b:a", "64k",
-            "-ac", "1",
-            out
-        ]
-
-    cmd = get_preview_cmd(video_path, preview_path)
-
+    cmd = [
+        "ffmpeg", "-y", "-i", video_path,
+        "-map", "0:v:0", "-map", "0:a:0?", "-dn",
+        "-vf", "scale=-2:480", "-pix_fmt", "yuv420p",
+        "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
+        "-c:a", "aac", "-b:a", "64k", "-ac", "1", preview_path
+    ]
     try:
         await asyncio.to_thread(run_ffmpeg, cmd)
-    except RuntimeError as e:
-        logger.warning(f"Preview generation failed, attempting normalization: {e}")
-        normalized_path = video_path.replace(".mp4", "_normalized.mp4")
-        if normalized_path == video_path:
-            normalized_path += "_normalized.mp4"
-            
-        norm_cmd = [
-            "ffmpeg", "-y",
-            "-i", video_path,
-            "-map", "0:v:0",
-            "-map", "0:a:0?",
-            "-dn",
-            "-c:v", "libx264",
-            "-pix_fmt", "yuv420p",
-            "-c:a", "aac",
-            normalized_path
-        ]
-        await asyncio.to_thread(run_ffmpeg, norm_cmd)
+    except RuntimeError:
+        logger.warning("Preview generation failed, skipping.")
+        return video_path
         
-        # Retry preview on normalized footage
-        retry_cmd = get_preview_cmd(normalized_path, preview_path)
-        await asyncio.to_thread(run_ffmpeg, retry_cmd)
-        
-        # Cleanup normalized intermediate file
-        try:
-            os.remove(normalized_path)
-        except OSError:
-            pass
-
-    elapsed = time.perf_counter() - start
-    orig_mb = os.path.getsize(video_path) / (1024 * 1024)
-    prev_mb = os.path.getsize(preview_path) / (1024 * 1024)
-    print(f"[PERF] Preview: {elapsed:.1f}s  |  {orig_mb:.1f} MB -> {prev_mb:.1f} MB  ({(1 - prev_mb/orig_mb)*100:.0f}% smaller)")
     return preview_path
 
-async def process_segment(input_path: str, output_path: str, start_time: str, end_time: str):
+async def process_segment(input_path: str, output_path: str, start_time: str, end_time: str, aspect_ratio: str = "9:16"):
     """
-    Two-pass optimized pipeline:
-      Pass 1: Stream-copy trim (near-instant, no re-encode)
-      Pass 2: Crop to 9:16 vertical at 720x1280, fast preset, CRF 23
+    Pass 1: High-Quality Trim, Crop, and Auto Color Normalization.
+    This prepares clips with EXACT framerates and resolutions so `xfade` works perfectly.
     """
     start = time.perf_counter()
-    trimmed_path = output_path.replace(".mp4", "_trim.mp4")
+    
+    # Calculate crop & scale for aspect ratio, plus auto-color matching and subtle Ken Burns simulated scale
+    vf_filter = "crop=ih*9/16:ih,scale=720:1280"
+    if aspect_ratio == "16:9": vf_filter = "crop=iw:iw*9/16,scale=1280:720"
+    elif aspect_ratio == "1:1": vf_filter = "crop=ih:ih,scale=1080:1080"
+    
+    # Inject color normalization (Brighten slightly, boost contrast/saturation to look premium)
+    # Inject standard fps to prevent xfade desyncs
+    vf_chain = f"fps=30,{vf_filter},eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p"
 
-    # --- Pass 1: Fast trim with stream copy (no re-encoding) ---
-    trim_cmd = [
+    # We do a high-quality intermediate encode so the final xfade pass doesn't lose quality
+    cmd = [
         "ffmpeg", "-y",
-        "-ss", start_time,
-        "-to", end_time,
+        "-ss", start_time, "-to", end_time,
         "-i", input_path,
-        "-c", "copy",          # stream copy = instant
-        "-avoid_negative_ts", "make_zero",
-        trimmed_path
-    ]
-
-    await asyncio.to_thread(run_ffmpeg, trim_cmd)
-
-    trim_elapsed = time.perf_counter() - start
-
-    # --- Pass 2: Crop to vertical 9:16 at 720x1280 ---
-    crop_start = time.perf_counter()
-    crop_cmd = [
-        "ffmpeg", "-y",
-        "-i", trimmed_path,
-        "-vf", "crop=ih*9/16:ih,scale=720:1280",
-        "-c:v", "libx264",
-        "-preset", "fast",
-        "-crf", "23",
-        "-c:a", "aac",
-        "-b:a", "128k",
-        "-movflags", "+faststart",
+        "-vf", vf_chain,
+        "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high",
+        "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
         output_path
     ]
 
-    await asyncio.to_thread(run_ffmpeg, crop_cmd)
-
-    # Cleanup temp trimmed file
-    try:
-        os.remove(trimmed_path)
-    except OSError:
-        pass
-
-    total_elapsed = time.perf_counter() - start
-    crop_elapsed = time.perf_counter() - crop_start
-    print(f"[PERF] Segment export: trim={trim_elapsed:.1f}s  crop={crop_elapsed:.1f}s  total={total_elapsed:.1f}s")
+    await asyncio.to_thread(run_ffmpeg, cmd)
+    logger.info(f"[HQ PREP] Prepared clip in {time.perf_counter() - start:.1f}s")
     return output_path
 
 async def build_reel(
@@ -229,71 +128,116 @@ async def build_reel(
     target_duration_sec: int,
     style: str,
     project_id: str,
+    aspect_ratio: str = "9:16",
     on_progress: Optional[Callable] = None
 ) -> str:
-    """
-    Given an ordered list of timeline blocks (from Gemini), build a single Reel.
-    """
-    if not timeline_blocks:
-        raise ValueError("Timeline is empty")
+    if not timeline_blocks: raise ValueError("Timeline is empty")
 
     output_dir = f"data/{project_id}/outputs"
     os.makedirs(output_dir, exist_ok=True)
     output_filename = f"{property_name.replace(' ', '_')}_{style}_{int(time.time())}.mp4"
     output_path = os.path.join(output_dir, output_filename)
-    
     start = time.perf_counter()
-    clip_paths = []
-    
-    # 1. Extract and crop each scene sequentially
+
+    # --- SCENE GROUPING ENGINE ---
+    # Sort blocks to prevent random room jumps (e.g. Exterior -> Kitchen -> Exterior -> Bedroom)
+    scene_order = {"exterior": 1, "living room": 2, "kitchen": 3, "bedroom": 4, "bathroom": 5, "amenities": 6}
+    sorted_blocks = sorted(timeline_blocks, key=lambda x: scene_order.get(x.get("scene_type", "").lower(), 99))
+
+    # --- STYLE-BASED TRANSITION RULES ---
+    s = style.lower()
+    transition_type = 'fade'
+    transition_duration = 0.5
+    if 'viral' in s:
+        transition_type = 'wipeleft'
+        transition_duration = 0.25
+    elif 'cinematic' in s:
+        transition_type = 'fade'
+        transition_duration = 0.7
+    elif 'realtor' in s:
+        transition_type = 'slideleft'
+        transition_duration = 0.4
+
+    # 1. Process and normalize each scene into a temporary HQ clip
     async def process_one(i, scene):
         v_idx = scene.get("video_index", 0)
-        if v_idx >= len(input_paths):
-            logger.warning(f"Scene {i} references invalid video_index {v_idx}. Skipping.")
-            return None
-            
-        inp = input_paths[v_idx]
+        if v_idx >= len(input_paths): return None
         clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
-        # Ensure we have start and end strings, defaulting if missing
+        
         start_t = str(scene.get("start", "0"))
-        end_t = str(scene.get("end", "5"))
-        await process_segment(inp, clip_path, start_t, end_t)
+        # Extend the clip length slightly to accommodate the xfade overlap without shrinking final video length
+        end_t_val = parse_time_to_seconds(scene.get("end", "5"))
+        # We add the transition duration to the cut so the crossfade has visual material to bleed into
+        end_t = str(end_t_val + transition_duration)
+        
+        await process_segment(input_paths[v_idx], clip_path, start_t, end_t, aspect_ratio)
         return clip_path
 
-    # Parallelize extraction
-    tasks = [process_one(i, scene) for i, scene in enumerate(timeline_blocks)]
+    tasks = [process_one(i, scene) for i, scene in enumerate(sorted_blocks)]
     results = await asyncio.gather(*tasks)
     clip_paths = [r for r in results if r]
 
-    # 2. Concat all extracted clips
-    concat_txt = os.path.join(output_dir, f"concat_{int(time.time())}.txt")
-    with open(concat_txt, "w") as f:
-        for cp in clip_paths:
-            # We must use relative paths in concat if they are in same dir, or absolute paths.
-            # Using absolute paths is safest for ffmpeg concat.
-            abs_path = os.path.abspath(cp).replace('\\', '/')
-            f.write(f"file '{abs_path}'\n")
-            
-    concat_cmd = [
-        "ffmpeg", "-y",
-        "-f", "concat",
-        "-safe", "0",
-        "-i", concat_txt,
-        "-c", "copy",
-        output_path
-    ]
+    if not clip_paths: raise ValueError("No valid clips generated")
+
+    # If only 1 clip, just rename and return
+    if len(clip_paths) == 1:
+        os.rename(clip_paths[0], output_path)
+        return output_path
+
+    # --- DYNAMIC SMART CROSSFADE ENGINE ---
+    durations = [get_exact_duration(p) for p in clip_paths]
     
-    await asyncio.to_thread(run_ffmpeg, concat_cmd)
+    # Build filter_complex string
+    filter_chains = []
+    current_time = 0.0
     
-    # Cleanup intermediate clips and concat.txt
-    try:
-        os.remove(concat_txt)
-        for cp in clip_paths:
-            os.remove(cp)
-    except OSError:
-        pass
+    v_labels = [f"[{i}:v]" for i in range(len(clip_paths))]
+    a_labels = [f"[{i}:a]" for i in range(len(clip_paths))]
+
+    for i in range(len(clip_paths) - 1):
+        current_time += durations[i]
+        offset = current_time - (transition_duration * (i + 1))
         
+        in1_v = v_labels[i] if i == 0 else f"[v{i}]"
+        in2_v = v_labels[i+1]
+        out_v = f"[v{i+1}]"
+        
+        xfade_cmd = f"{in1_v}{in2_v}xfade=transition={transition_type}:duration={transition_duration}:offset={offset:.3f}{out_v}"
+        filter_chains.append(xfade_cmd)
+        
+        in1_a = a_labels[i] if i == 0 else f"[a{i}]"
+        in2_a = a_labels[i+1]
+        out_a = f"[a{i+1}]"
+        acrossfade_cmd = f"{in1_a}{in2_a}acrossfade=d={transition_duration}{out_a}"
+        filter_chains.append(acrossfade_cmd)
+
+    filter_complex = ";".join(filter_chains)
+    final_v = f"[v{len(clip_paths)-1}]"
+    final_a = f"[a{len(clip_paths)-1}]"
+
+    # Assemble the massive FFmpeg command
+    concat_cmd = ["ffmpeg", "-y"]
+    for cp in clip_paths:
+        concat_cmd.extend(["-i", cp])
+        
+    concat_cmd.extend([
+        "-filter_complex", filter_complex,
+        "-map", final_v,
+        "-map", final_a,
+        "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high", "-pix_fmt", "yuv420p",
+        "-c:a", "aac", "-b:a", "192k",
+        output_path
+    ])
+
+    logger.info(f"Executing XFADE Graph with {len(clip_paths)} clips...")
+    await asyncio.to_thread(run_ffmpeg, concat_cmd)
+
+    # Cleanup temp clips
+    for cp in clip_paths:
+        try: os.remove(cp)
+        except OSError: pass
+
     elapsed = time.perf_counter() - start
-    logger.info(f"[PERF] Final Reel built from {len(clip_paths)} clips in {elapsed:.1f}s")
+    logger.info(f"[PERF] Final Dynamic Reel built with xfade in {elapsed:.1f}s")
     
     return output_path

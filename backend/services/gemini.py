@@ -66,30 +66,49 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
     return file_info
 
 async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, yield_callback=None) -> dict:
-    """Single Gemini call: analyze multiple videos and build one 20-30s reel."""
+    """Production-Grade AI Selection Engine using Gemini-2.5-Pro."""
     client = get_client()
 
     prompt = f"""Property: '{property_name}'
-Goal: Build ONE {style} style vertical reel targeting exactly {duration} duration.
-You have been provided {len(file_uris)} video clips (indices 0 to {len(file_uris)-1}).
+Target Duration: {duration}
 
-TASKS:
-1. Detect Property Type (apartment, house, villa, penthouse).
-2. Classify every clip (e.g. exterior, entrance, living_room, kitchen, bedroom, pool, drone_view, etc) and score its quality (0-100). Reject blurry, bad lighting, or duplicate footage.
-3. Select ONLY the strongest 8-12 clips.
-4. Smart Reel Ordering:
-   - If House/Villa: Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Backyard -> Pool -> Closing.
-   - If Apartment/Penthouse: Building Exterior -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> View -> Closing.
-   NEVER use upload order. Always sequence based on the property type logic above.
-5. Provide a highly engaging social media hook, a 4-5 line description of the property, and hashtags.
+You are an elite Real Estate Video Editor. I have provided you with {len(file_uris)} raw video files (indices 0 to {len(file_uris)-1}). 
 
-Return strict JSON:
+CRITICAL REQUIREMENTS:
+1. FULL VIDEO ANALYSIS: Analyze the ENTIRE duration of every single video. You MUST extract multiple distinct segments from long videos. Do not limit yourself to the first 5 seconds.
+2. DYNAMIC REEL LENGTH: Scale the number of selected clips to match the requested Target Duration ({duration}).
+3. SMART SCENE RANKING & CONFIDENCE: For every extracted segment, score it from 0-100 on Visual Quality, Lighting, Stability, Luxury Appeal, and Engagement. 
+   - You MUST assign a 'confidence_score' for the scene detection. ONLY select scenes where confidence_score > 85.
+4. SEMANTIC DEDUPLICATION: I have uploaded multiple takes of the same rooms. You MUST identify visually similar or duplicate shots, evaluate their scores, and ONLY return the single highest-rated version. Drop all other duplicates.
+5. REAL ESTATE STORYTELLING ENGINE: Build the final timeline with this exact structure:
+   - OPENING: The single most impressive, highest-rated hook shot (e.g. Drone, Exterior, Luxury Pool).
+   - MIDDLE: A logical property walkthrough (e.g. Entrance -> Living Room -> Kitchen -> Bedrooms -> Bathrooms).
+   - ENDING: The best amenity or a stunning closing shot.
+   - Do NOT jump randomly between rooms (e.g. Pool -> Kitchen -> Pool -> Bedroom).
+6. TRANSPARENCY: Report total analyzed seconds, total selected seconds, and the number of duplicate clips you dropped.
+
+Return strict JSON matching this schema:
 - 'property_type': string
 - 'title': string
 - 'hook': string
-- 'description': string (4-5 lines of text)
+- 'description': string
 - 'hashtags': array of strings
-- 'selected_clips': array of objects {{'video_index': int, 'scene_type': str, 'score': int, 'reason': str, 'start': 'MM:SS', 'end': 'MM:SS'}}
+- 'total_analyzed_duration_sec': int
+- 'total_selected_duration_sec': int
+- 'duplicates_removed_count': int
+- 'selected_clips': array of objects {{
+    'video_index': int,
+    'scene_type': str,
+    'confidence_score': float,
+    'visual_quality_score': int,
+    'lighting_score': int,
+    'stability_score': int,
+    'luxury_appeal': int,
+    'engagement_score': int,
+    'reason': str,
+    'start': 'MM:SS',
+    'end': 'MM:SS'
+}}
 - 'final_order': array of integers (these MUST match the 'video_index' values from selected_clips, defining the exact storyline sequence)."""
 
     schema = types.Schema(
@@ -100,6 +119,9 @@ Return strict JSON:
             "hook": types.Schema(type=types.Type.STRING),
             "description": types.Schema(type=types.Type.STRING),
             "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
+            "total_analyzed_duration_sec": types.Schema(type=types.Type.INTEGER),
+            "total_selected_duration_sec": types.Schema(type=types.Type.INTEGER),
+            "duplicates_removed_count": types.Schema(type=types.Type.INTEGER),
             "selected_clips": types.Schema(
                 type=types.Type.ARRAY,
                 items=types.Schema(
@@ -107,17 +129,22 @@ Return strict JSON:
                     properties={
                         "video_index": types.Schema(type=types.Type.INTEGER),
                         "scene_type": types.Schema(type=types.Type.STRING),
-                        "score": types.Schema(type=types.Type.INTEGER),
+                        "confidence_score": types.Schema(type=types.Type.NUMBER),
+                        "visual_quality_score": types.Schema(type=types.Type.INTEGER),
+                        "lighting_score": types.Schema(type=types.Type.INTEGER),
+                        "stability_score": types.Schema(type=types.Type.INTEGER),
+                        "luxury_appeal": types.Schema(type=types.Type.INTEGER),
+                        "engagement_score": types.Schema(type=types.Type.INTEGER),
                         "reason": types.Schema(type=types.Type.STRING),
                         "start": types.Schema(type=types.Type.STRING),
                         "end": types.Schema(type=types.Type.STRING),
                     },
-                    required=["video_index", "scene_type", "score", "reason", "start", "end"]
+                    required=["video_index", "scene_type", "confidence_score", "visual_quality_score", "lighting_score", "stability_score", "luxury_appeal", "engagement_score", "reason", "start", "end"]
                 )
             ),
             "final_order": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.INTEGER))
         },
-        required=["property_type", "title", "hook", "description", "hashtags", "selected_clips", "final_order"]
+        required=["property_type", "title", "hook", "description", "hashtags", "total_analyzed_duration_sec", "total_selected_duration_sec", "duplicates_removed_count", "selected_clips", "final_order"]
     )
 
     loop = asyncio.get_event_loop()

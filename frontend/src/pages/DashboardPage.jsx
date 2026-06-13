@@ -1,48 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { PlusCircle, FolderKanban, Clock } from 'lucide-react';
-import { GlowCard } from '../components/ui/Card';
-import { Button } from '../components/ui/Button';
+import { Play, Video, LayoutTemplate, Activity, ChevronRight, Plus, FolderKanban, Sparkles } from 'lucide-react';
+import { Card } from '../components/ui/Card';
 import { apiFetch } from '../api/client';
-import { formatRelativeTime } from '../lib/utils';
 import { useAuth } from '../hooks/useAuth';
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const [projects, setProjects] = useState([]);
-  const [stats, setStats] = useState({ totalProjects: 0, totalShorts: 0, hoursSaved: 0 });
-  const navigate = useNavigate();
+  const [stats, setStats] = useState({
+    projects: 0,
+    videos: 0,
+    scenes: 0,
+    exported: 0
+  });
 
   useEffect(() => {
-    fetchDashboardData();
+    async function fetchStats() {
+      try {
+        const res = await apiFetch('/projects/dashboard/stats');
+        if (res.ok) {
+          const data = await res.json();
+          setStats(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch dashboard stats", err);
+      }
+    }
+    fetchStats();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const res = await apiFetch('/projects?limit=3');
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(data.projects || []);
-        
-        // Calculate rough stats
-        const totalProjs = data.total || 0;
-        const totalShorts = (data.projects || []).reduce((acc, p) => acc + (p.generatedCount || 0), 0);
-        // Estimate 2 hours saved per generated short
-        const hoursSaved = totalShorts * 2;
-        
-        setStats({ totalProjects: totalProjs, totalShorts, hoursSaved });
-      }
-    } catch (err) {
-      console.error('Failed to fetch dashboard data', err);
-    }
-  };
+  const navigate = useNavigate();
 
-  const createProject = async () => {
+  const handleCreateProject = async () => {
     try {
       const res = await apiFetch('/projects', {
         method: 'POST',
-        body: JSON.stringify({ title: 'Untitled Project' }),
+        body: JSON.stringify({ title: 'Untitled Reel' }),
       });
       if (res.ok) {
         const project = await res.json();
@@ -54,73 +47,62 @@ export default function DashboardPage() {
   };
 
   return (
-    <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-      {/* Header */}
-      <div className="flex items-end justify-between mb-12">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight mb-1">Workspace</h1>
-          <p className="text-gray-500">Welcome back, {user?.name || 'Creator'}.</p>
+    <div className="flex flex-col gap-10 pb-20">
+      
+      {/* Hero Section */}
+      <div className="relative rounded-[2rem] overflow-hidden bg-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
+        <div className="absolute inset-0 bg-gradient-aurora opacity-10"></div>
+        <div className="relative px-12 py-16 md:py-24 max-w-4xl">
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#0F172A] mb-6">
+            Create Cinematic Property Reels <br/>
+            <span className="text-gradient">with AI Intelligence</span>
+          </h1>
+          <p className="text-lg text-[#64748B] mb-10 max-w-2xl font-medium">
+            Upload raw footage and let our AI Director build professional real-estate marketing videos automatically. Perfect sequencing, auto-captions, and trending audio.
+          </p>
+          <div className="flex items-center gap-4">
+            <button onClick={handleCreateProject} className="bg-gradient-aurora text-white px-8 py-3.5 rounded-xl text-base font-bold shadow-lg shadow-[#0EA5E9]/20 hover:scale-105 transition-transform active:scale-95 flex items-center gap-2">
+              <Plus size={20} /> Create New Reel
+            </button>
+            {/* <button className="bg-white border border-[#E2E8F0] text-[#0F172A] px-8 py-3.5 rounded-xl text-base font-bold shadow-sm hover:bg-[#F8FAFC] transition-colors flex items-center gap-2">
+              <LayoutTemplate size={20} /> View Templates
+            </button> */}
+          </div>
         </div>
-        <Button variant="primary" size="md" onClick={createProject}>
-          <PlusCircle size={18} />
-          New Project
-        </Button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-14">
-        <GlowCard color="blue">
-          <p className="text-gray-500 text-sm font-medium mb-1">Total Projects</p>
-          <p className="text-4xl font-light tracking-tight">{stats.totalProjects}</p>
-        </GlowCard>
-        <GlowCard color="purple">
-          <p className="text-gray-500 text-sm font-medium mb-1">Shorts Generated</p>
-          <p className="text-4xl font-light tracking-tight">{stats.totalShorts}</p>
-        </GlowCard>
-        <GlowCard color="green">
-          <p className="text-gray-500 text-sm font-medium mb-1">Hours Saved</p>
-          <p className="text-4xl font-light tracking-tight text-green-400">{stats.hoursSaved}</p>
-        </GlowCard>
-      </div>
-
-      {/* Recent Projects */}
-      <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-xl font-semibold tracking-tight">Recent Projects</h2>
-        <Link to="/dashboard/projects" className="text-sm text-gray-500 hover:text-white transition">View all →</Link>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {/* Create New Card */}
-        <div
-          onClick={createProject}
-          className="rounded-2xl border border-dashed border-white/10 p-12 flex flex-col items-center justify-center text-gray-600 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/5 transition-all duration-300 cursor-pointer group"
-        >
-          <PlusCircle size={32} className="mb-3 opacity-50 group-hover:opacity-100 transition" />
-          <p className="font-medium text-sm">Create a project</p>
+        
+        {/* Decorative Floating Elements */}
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 hidden lg:flex items-center justify-center">
+          <div className="w-64 h-64 bg-gradient-aurora rounded-full blur-[80px] opacity-20 animate-pulse"></div>
         </div>
+      </div>
 
-        {/* Real Projects */}
-        {projects.map((p) => (
-          <Link
-            key={p._id}
-            to={`/dashboard/projects/${p._id}`}
-            className="bg-[#111] border border-white/10 rounded-2xl p-6 hover:border-white/20 hover:bg-white/[0.03] transition group flex flex-col h-full"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center group-hover:scale-105 transition">
-                <FolderKanban size={18} className="text-blue-400" />
+      {/* Stats Section */}
+      <div>
+        <h2 className="text-xl font-bold text-[#0F172A] mb-6 flex items-center gap-2">
+          <Activity size={20} className="text-[#0EA5E9]" />
+          Your Workspace Activity
+        </h2>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { label: 'Active Projects', value: stats.projects, icon: FolderKanban, color: 'text-[#0EA5E9]', bg: 'bg-[#0EA5E9]/10' },
+            { label: 'Raw Videos Processed', value: stats.videos, icon: Video, color: 'text-[#06B6D4]', bg: 'bg-[#06B6D4]/10' },
+            { label: 'AI Scenes Detected', value: stats.scenes, icon: Sparkles, color: 'text-[#14B8A6]', bg: 'bg-[#14B8A6]/10' },
+            { label: 'Reels Exported', value: stats.exported, icon: Play, color: 'text-[#10B981]', bg: 'bg-[#10B981]/10' },
+          ].map((stat, i) => (
+            <div key={i} className="glass-card rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(0,0,0,0.06)] cursor-pointer">
+              <div className="flex items-center justify-between mb-4">
+                <div className={`w-12 h-12 rounded-2xl ${stat.bg} flex items-center justify-center`}>
+                  <stat.icon size={24} className={stat.color} />
+                </div>
+                <ChevronRight size={20} className="text-[#64748B] opacity-0 group-hover:opacity-100 transition-opacity" />
               </div>
+              <h3 className="text-3xl font-bold text-[#0F172A] mb-1">{stat.value}</h3>
+              <p className="text-sm font-medium text-[#64748B] uppercase tracking-wider">{stat.label}</p>
             </div>
-            <h3 className="text-base font-bold truncate mb-1">{p.title}</h3>
-            <p className="text-xs text-gray-500 mb-6">{p.uploadCount || 0} clips</p>
-            
-            <div className="flex items-center text-[11px] text-gray-600 gap-1.5 mt-auto pt-4 border-t border-white/5">
-              <Clock size={12} />
-              {formatRelativeTime(p.updatedAt)}
-            </div>
-          </Link>
-        ))}
+          ))}
+        </div>
       </div>
-    </motion.div>
+    </div>
   );
 }

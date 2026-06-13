@@ -1,6 +1,5 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
-import { Sidebar } from './components/layout/Sidebar';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
 // Pages
@@ -13,13 +12,15 @@ import ProjectDetailPage from './pages/ProjectDetailPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
 
+import { TopNav } from './components/layout/TopNav';
+
 function DashboardLayout() {
   return (
     <ProtectedRoute>
-      <div className="h-screen flex bg-transparent text-white overflow-hidden selection:bg-brand-primary/30">
-        <Sidebar />
-        <main className="flex-1 overflow-hidden relative flex flex-col">
-          <div className="flex-1 overflow-y-auto px-6 py-6 pb-20">
+      <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#0EA5E9]/20 overflow-hidden">
+        <TopNav />
+        <main className="flex-1 overflow-y-auto w-full">
+          <div className="mx-auto px-8 py-8 w-full max-w-[1600px]">
             <Outlet />
           </div>
         </main>
@@ -42,7 +43,6 @@ export default function App() {
           <Route index element={<DashboardPage />} />
           <Route path="projects" element={<ProjectsPage />} />
           <Route path="projects/:id" element={<ProjectDetailPage />} />
-          <Route path="create" element={<ProjectDetailPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
         </Route>

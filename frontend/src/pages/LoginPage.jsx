@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Play } from 'lucide-react';
-import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 
 export default function LoginPage() {
@@ -28,63 +27,76 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#050505] text-white relative px-6">
-      {/* Ambient */}
-      <div className="absolute top-[10%] left-[15%] w-[30%] h-[30%] bg-blue-600/10 blur-[120px] rounded-full pointer-events-none" />
-      <div className="absolute bottom-[10%] right-[10%] w-[25%] h-[25%] bg-indigo-600/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] text-[#0F172A] relative px-6 overflow-hidden selection:bg-[#0EA5E9]/20">
+      
+      {/* Abstract Aurora Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[10%] left-[15%] w-[40%] h-[50%] bg-[#0EA5E9]/10 blur-[120px] rounded-full mix-blend-multiply" />
+        <div className="absolute bottom-[10%] right-[10%] w-[35%] h-[45%] bg-[#14B8A6]/10 blur-[120px] rounded-full mix-blend-multiply" />
+      </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="w-full max-w-md relative z-10">
+        
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 justify-center mb-10">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/20">
-            <Play size={18} fill="white" className="ml-0.5" />
+        <Link to="/" className="flex items-center gap-3 justify-center mb-10 group">
+          <div className="w-12 h-12 rounded-2xl bg-gradient-aurora flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20 group-hover:scale-105 transition-transform">
+            <Play size={20} fill="white" className="ml-0.5 text-white" />
           </div>
-          <span className="text-2xl font-bold tracking-tight">ReelForge</span>
+          <span className="text-3xl font-extrabold tracking-tight">ReelForge</span>
         </Link>
 
         {/* Card */}
-        <div className="p-10 rounded-3xl bg-white/[0.03] border border-white/[0.06] backdrop-blur-xl">
-          <h2 className="text-3xl font-bold mb-2">Welcome back</h2>
-          <p className="text-gray-500 mb-8">Sign in to your workspace.</p>
+        <div className="p-10 rounded-[2rem] bg-white border border-[#E2E8F0] shadow-[0_30px_60px_rgba(0,0,0,0.05)] relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-aurora"></div>
+          
+          <h2 className="text-3xl font-black mb-2 text-[#0F172A] tracking-tight">Welcome back</h2>
+          <p className="text-[#64748B] font-medium mb-8">Sign in to your ReelForge workspace.</p>
 
           {error && (
-            <div className="bg-red-500/10 border border-red-500/30 text-red-300 px-4 py-3 rounded-xl text-sm mb-6">
+            <div className="bg-red-50 border border-red-100 text-red-600 px-5 py-4 rounded-2xl text-sm font-medium mb-8">
               {error}
             </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Email</label>
+              <label className="block text-sm font-bold text-[#0F172A] mb-2">Email</label>
               <input
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
                 required
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition"
+                className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl px-5 py-4 text-[#0F172A] placeholder:text-[#94a3b8] font-medium focus:outline-none focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 transition-all"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-400 mb-2">Password</label>
+              <div className="flex justify-between items-center mb-2">
+                <label className="block text-sm font-bold text-[#0F172A]">Password</label>
+                <Link to="#" className="text-sm font-bold text-[#0EA5E9] hover:text-[#06B6D4] transition-colors">Forgot?</Link>
+              </div>
               <input
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
-                className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-5 py-4 text-white placeholder:text-gray-600 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition"
+                className="w-full bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl px-5 py-4 text-[#0F172A] placeholder:text-[#94a3b8] font-medium focus:outline-none focus:border-[#0EA5E9] focus:ring-4 focus:ring-[#0EA5E9]/10 transition-all"
               />
             </div>
 
-            <Button type="submit" variant="gradient" size="lg" className="w-full" loading={loading}>
-              Sign In
-            </Button>
+            <button 
+              type="submit" 
+              disabled={loading}
+              className="w-full bg-[#0F172A] text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-[#1e293b] hover:-translate-y-0.5 transition-all disabled:opacity-50 mt-4 flex items-center justify-center gap-2"
+            >
+              {loading ? 'Signing in...' : 'Sign In'}
+            </button>
           </form>
 
-          <p className="text-center text-gray-600 text-sm mt-8">
-            Don&apos;t have an account?{' '}
-            <Link to="/signup" className="text-blue-400 hover:text-blue-300 transition font-medium">Create one</Link>
+          <p className="text-center text-[#64748B] font-medium mt-8">
+            Don't have an account?{' '}
+            <Link to="/signup" className="text-[#0EA5E9] hover:text-[#06B6D4] transition-colors font-bold">Create one</Link>
           </p>
         </div>
       </motion.div>
