@@ -95,11 +95,29 @@ export default function HistoryPage() {
                     <Clock size={12} />
                     {formatRelativeTime(short.createdAt * 1000)}
                   </div>
-                  <a href={`http://localhost:8000${short.videoUrl}`} download>
-                    <button className="bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] hover:bg-[#0F172A] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5">
-                      <Download size={14} /> Save
-                    </button>
-                  </a>
+                  <button 
+                    onClick={async () => {
+                      const url = `http://localhost:8000${short.videoUrl}`;
+                      try {
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `${short.projectTitle || 'ReelForge_Video'}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (err) {
+                        console.error('Download failed', err);
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    className="bg-[#F8FAFC] border border-[#E2E8F0] text-[#0F172A] hover:bg-[#0F172A] hover:text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-colors flex items-center gap-1.5"
+                  >
+                    <Download size={14} /> Save
+                  </button>
                 </div>
               </div>
             </div>

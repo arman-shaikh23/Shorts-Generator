@@ -258,13 +258,22 @@ async def generate_project(
                 )
 
                 web_url = "/" + output_path.replace("\\", "/")
+                
+                # Get actual output duration
+                try:
+                    from services.video import get_exact_duration
+                    actual_dur_sec = await asyncio.to_thread(get_exact_duration, output_path)
+                    actual_duration_str = f"{int(actual_dur_sec)}s"
+                except Exception as e:
+                    logger.warning(f"Failed to get exact duration: {e}")
+                    actual_duration_str = duration
 
                 # Save to generated shorts
                 short = {
                     "projectId": project_id,
                     "userId": user["_id"],
                     "videoUrl": web_url,
-                    "duration": duration,
+                    "duration": actual_duration_str,
                     "style": var_style,
                     "format": aspect_ratio,
                     "hook": var.get("hook", ""),

@@ -16,11 +16,17 @@ SCENE_ORDER = [
     "amenities", "closing drone", "closing"
 ]
 
+# ── Global Client Singleton ──────────────────────────────────
+_gemini_client = None
+
 def get_client():
-    api_key = os.environ.get("GEMINI_API_KEY")
-    if not api_key:
-        raise Exception("GEMINI_API_KEY environment variable is not set.")
-    return genai.Client(api_key=api_key)
+    global _gemini_client
+    if _gemini_client is None:
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            raise Exception("GEMINI_API_KEY environment variable is not set.")
+        _gemini_client = genai.Client(api_key=api_key)
+    return _gemini_client
 
 async def upload_and_wait(file_path: str, display_name: str, yield_callback=None):
     """Upload file to Gemini Files API with exponential backoff polling."""
@@ -74,33 +80,36 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
     return file_info
 
 
-def _calculate_dynamic_duration(clip_count: int) -> str:
-    """Calculate target reel duration based on clip count.
-    
-    5 clips  → 20-40 sec
-    15 clips → 45-90 sec
-    30 clips → 90-180 sec
-    50 clips → 120-240 sec
+def _calculate_dynamic_duration(clip_count: int, target_duration: str) -> str:
+    """Calculate dynamic reel duration based on clip count and target platform mode.
+    '30 sec' or '45 sec' implies SHORTS MODE.
+    '1 min' or '2 min' implies YOUTUBE MODE.
     """
-    if clip_count <= 5:
-        return "20-40 seconds"
-    elif clip_count <= 15:
-        return "45-90 seconds"
-    elif clip_count <= 30:
-        return "90-180 seconds"
+    is_youtube = 'min' in target_duration.lower()
+    
+    if not is_youtube:
+        # SHORTS MODE
+        if clip_count <= 10:
+            return "30-45 seconds"
+        elif clip_count <= 20:
+            return "45-60 seconds"
+        else:
+            return "60 seconds maximum"
     else:
-        return "120-240 seconds"
+        # YOUTUBE MODE
+        if clip_count <= 10:
+            return "60-90 seconds"
+        elif clip_count <= 20:
+            return "90-120 seconds"
+        else:
+            return "120 seconds maximum"
 
 
 async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, duplicate_sensitivity: str = "Low", yield_callback=None) -> dict:
-    """Coverage-First AI Selection Engine.
-    
-    Core principle: USE AS MANY CLIPS AS POSSIBLE (80-95%).
-    Only remove true duplicates. Never aggressively filter.
-    """
+    """Coverage-First AI Selection Engine."""
     client = get_client()
     clip_count = len(file_uris)
-    dynamic_duration = _calculate_dynamic_duration(clip_count)
+    dynamic_duration = _calculate_dynamic_duration(clip_count, duration)
 
     prompt = f"""Property: '{property_name}'
 Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
@@ -109,7 +118,8 @@ Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
 You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
 
-COVERAGE TARGET: Use 80-95% of all {clip_count} clips. If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.80))} clips.
+COVERAGE TARGET: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible.
+If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips.
 
 ═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
 
@@ -118,63 +128,52 @@ ONLY remove a clip if ALL of the following are true:
 2. It has the EXACT same camera angle (within 10 degrees)  
 3. Visual similarity is above 95%
 
-NEVER remove a clip just because:
-- It shows the same room from a different angle
-- It has slightly different lighting
-- It's a different take of the same space
-
-Different angles of the same room = KEEP BOTH.
-Similar but not identical shots = KEEP BOTH.
-
 Duplicate Sensitivity Setting: {duplicate_sensitivity}
-- If "Low": Only remove exact duplicates (same hash or >98% identical)
-- If "Medium": Remove if >95% similarity AND same angle AND same scene
-- If "High": Remove if >90% similarity AND same angle AND same scene
 
-═══ SCENE CATEGORIZATION ═══
+═══ OPENING SHOT SELECTION ═══
 
-Classify each clip into one of these categories:
-Drone, Aerial, Exterior, Entrance, Lobby, Living Room, Kitchen, Dining, Bedroom, Bathroom, Balcony, Pool, Gym, Parking, Garden, Amenities, Closing Drone, Other
+Choose the strongest opening shot from: Drone, Exterior, or Best Luxury Scene.
+AVOID using Parking, Bathroom, or Storage Area as the opening shot under any circumstances (unless no other clips exist).
 
-═══ COVERAGE PROTECTION ═══
+═══ PROPERTY TOUR STORY ENGINE ═══
 
-Before removing ANY clip: check if it is the ONLY representative of its scene category.
-If it is the only clip of type "Pool" or "Gym" etc., you MUST keep it. Never remove the last clip of any category.
+Do NOT use the raw upload order. Do NOT use score-only ordering.
+Detect scene categories and automatically build a logical property walkthrough.
 
-═══ PROPERTY TOUR SEQUENCING ═══
+Preferred sequence:
+1. OPENING: Drone, Exterior, Entrance
+2. MAIN TOUR: Lobby, Living Room, Dining, Kitchen
+3. PRIVATE AREAS: Bedroom, Bathroom, Balcony
+4. AMENITIES: Pool, Gym, Garden, Clubhouse
+5. FINAL SECTION: Parking, Exterior, Closing Drone
 
-Order the final timeline as a logical property walkthrough:
-1. OPENING: Most impressive / dramatic shot (Drone, Exterior, Pool)
-2. WALKTHROUGH: Entrance → Lobby → Living Room → Kitchen → Dining → Bedrooms → Bathrooms
-3. AMENITIES: Balcony → Pool → Gym → Garden → Parking
-4. CLOSING: Best amenity or a stunning closing drone shot
+Parking should NEVER be used as the opening shot. Place it near the end.
 
 ═══ SCENE DIVERSITY ═══
 
 Never place more than 2 clips of the same scene_type consecutively.
-Bad:  Pool → Pool → Pool → Pool
-Good: Pool → Gym → Garden → Pool
 
 ═══ DYNAMIC CLIP DURATION ═══
 
-Each selected clip should display for 3-6 seconds based on visual quality:
-- Quality score 90-100: 5-6 seconds (showcase it)
-- Quality score 70-89: 4-5 seconds (standard)
-- Quality score below 70: 3-4 seconds (quick cut)
+Extract 3-5 seconds from the high-quality portions of each clip.
+- Quality score 90-100: 4-5 seconds
+- Quality score below 90: 3-4 seconds
 
-Target total reel duration: {dynamic_duration} (scales with {clip_count} clips)
+Target total reel duration: {dynamic_duration} (scales intelligently based on {clip_count} unique clips and the requested format).
+
+═══ STORYBOARD VALIDATION ═══
+
+Before outputting, verify:
+- Does the reel start with a premium opening shot?
+- Does it follow the logical property tour?
+- Are all major categories represented?
+- Is parking placed near the end?
+- Is there a strong closing shot?
 
 ═══ SCORING (per clip) ═══
 
 Score each clip 0-100 on: visual_quality_score, lighting_score, stability_score, luxury_appeal, engagement_score.
-Assign confidence_score (0-100) for scene detection accuracy.
-
-═══ STORYTELLING ═══
-
-Style: {style}
-- Opening: Single most impressive hook shot
-- Middle: Logical property walkthrough
-- Ending: Best amenity + strongest closing shot
+Assign confidence_score (0-100).
 
 ═══ OUTPUT FORMAT ═══
 
@@ -185,9 +184,7 @@ Return strict JSON with these fields:
 - coverage_analytics: {{ uploaded_count, duplicates_removed, selected_count, coverage_percentage }}
 - removed_clips: array of {{ video_index, reason }}
 - selected_clips: array of {{ video_index, scene_type, confidence_score, visual_quality_score, lighting_score, stability_score, luxury_appeal, engagement_score, clip_duration_sec, reason, start, end }}
-- final_order: array of video_index integers defining the exact storyline sequence
-
-REMEMBER: Your goal is to INCLUDE almost everything, not to filter aggressively. A user who uploads 29 clips expects to see 26-29 of them in the final reel."""
+- final_order: array of video_index integers defining the exact storyline sequence"""
 
     schema = types.Schema(
         type=types.Type.OBJECT,

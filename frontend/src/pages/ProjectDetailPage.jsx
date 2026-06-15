@@ -117,6 +117,15 @@ export default function ProjectDetailPage() {
     e.target.value = null;
   };
 
+  const deleteUpload = async (uploadId) => {
+    try {
+      await apiFetch(`/projects/${id}/uploads/${uploadId}`, { method: 'DELETE' });
+      await fetchProjectData();
+    } catch {
+      setLocalError('Failed to remove clip.');
+    }
+  };
+
   const goToAnalyze = () => {
     if (!project?.title?.trim()) { setLocalError('Enter a property name.'); return; }
     const readyClips = uploads.filter(u => u.status === 'PROCESSED');
@@ -260,17 +269,28 @@ export default function ProjectDetailPage() {
                   <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-wider mb-4">Clip Processing Status</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                     {uploads.map((u, i) => (
-                      <div key={u._id} className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
-                        <span className="font-bold text-xs text-[#0F172A] truncate pr-2" title={u.originalFilename || `Clip ${i + 1}`}>
+                      <div key={u._id} className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0] group relative overflow-hidden">
+                        <span className="font-bold text-xs text-[#0F172A] truncate pr-6 transition-all group-hover:max-w-[70%]" title={u.originalFilename || `Clip ${i + 1}`}>
                           {u.originalFilename || `Clip ${i + 1}`}
                         </span>
-                        {u.status === 'PROCESSED' ? (
-                          <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Check size={12}/> Ready</span>
-                        ) : u.status === 'ERROR' ? (
-                          <span className="text-[10px] font-black text-[#EF4444] bg-[#EF4444]/10 px-2 py-1 rounded-md shrink-0">Failed</span>
-                        ) : (
-                          <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Loader2 size={12} className="animate-spin"/> Pending</span>
-                        )}
+                        
+                        <div className="flex items-center gap-2 group-hover:opacity-0 transition-opacity">
+                          {u.status === 'PROCESSED' ? (
+                            <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Check size={12}/> Ready</span>
+                          ) : u.status === 'ERROR' ? (
+                            <span className="text-[10px] font-black text-[#EF4444] bg-[#EF4444]/10 px-2 py-1 rounded-md shrink-0">Failed</span>
+                          ) : (
+                            <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Loader2 size={12} className="animate-spin"/> Pending</span>
+                          )}
+                        </div>
+
+                        <button 
+                          onClick={() => deleteUpload(u._id)}
+                          className="absolute right-2 opacity-0 group-hover:opacity-100 bg-red-100 text-red-600 hover:bg-red-500 hover:text-white rounded-md p-1.5 transition-all shadow-sm flex items-center justify-center"
+                          title="Remove clip"
+                        >
+                          <X size={14} />
+                        </button>
                       </div>
                     ))}
                   </div>
@@ -303,7 +323,7 @@ export default function ProjectDetailPage() {
                           <option value="High">High (Strict)</option>
                         </select>
                       </div>
-                      <button onClick={goToAnalyze} disabled={readyClips.length === 0} className="w-full md:w-auto bg-[#0EA5E9] text-white px-8 py-4 rounded-xl text-lg font-black shadow-[0_10px_20px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all">
+                      <button onClick={goToAnalyze} disabled={!hasUploads || uploads.some(u => u.status !== 'PROCESSED')} className="w-full md:w-auto bg-[#0EA5E9] text-white px-8 py-4 rounded-xl text-lg font-black shadow-[0_10px_20px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all">
                         Start AI Analysis <ChevronRight size={20} />
                       </button>
                     </div>
@@ -499,10 +519,15 @@ export default function ProjectDetailPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
                 <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
                   <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">1. Aspect Ratio</h3>
-                  <div className="grid grid-cols-3 gap-4">
-                    <button onClick={() => setAspectRatio('9:16')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Smartphone size={28} className="mb-2" /> Reels</button>
-                    <button onClick={() => setAspectRatio('16:9')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Maximize size={28} className="mb-2" /> YouTube</button>
-                    <button onClick={() => setAspectRatio('1:1')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '1:1' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}><Square size={28} className="mb-2" /> Square</button>
+                  <div className="grid grid-cols-2 gap-4">
+                    <button onClick={() => setAspectRatio('9:16')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                      <Smartphone size={28} className="mb-2" /> Reels
+                      <span className="text-xs font-medium mt-1 opacity-80">45 to 60s</span>
+                    </button>
+                    <button onClick={() => setAspectRatio('16:9')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                      <Maximize size={28} className="mb-2" /> YouTube
+                      <span className="text-xs font-medium mt-1 opacity-80">1 min to 2 min or more</span>
+                    </button>
                   </div>
                 </div>
 
@@ -579,15 +604,29 @@ export default function ProjectDetailPage() {
                 </div>
 
                 <div className="space-y-4">
-                  <a href={`http://localhost:8000${resultsData[0]?.video_url || resultsData[0]?.videoUrl || ''}`} download>
-                    <button className="w-full bg-[#0F172A] text-white py-6 rounded-2xl text-xl font-black shadow-xl hover:bg-[#1e293b] transition-all flex justify-center items-center gap-3">
-                      <Download size={24} /> Download Final MP4
-                    </button>
-                  </a>
-                  <div className="flex gap-4">
-                    <button className="flex-1 bg-white border-2 border-[#E2E8F0] text-[#0F172A] py-5 rounded-2xl text-base font-bold hover:bg-[#F8FAFC] transition-all">Export to Socials</button>
-                    <button className="flex-1 bg-white border-2 border-[#E2E8F0] text-[#0F172A] py-5 rounded-2xl text-base font-bold hover:bg-[#F8FAFC] transition-all">Copy Share Link</button>
-                  </div>
+                  <button 
+                    onClick={async () => {
+                      const url = `http://localhost:8000${resultsData[0]?.video_url || resultsData[0]?.videoUrl}`;
+                      try {
+                        const response = await fetch(url);
+                        const blob = await response.blob();
+                        const blobUrl = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = blobUrl;
+                        a.download = `ReelForge_${resultsData[0]?.style || 'Video'}.mp4`;
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        window.URL.revokeObjectURL(blobUrl);
+                      } catch (err) {
+                        console.error('Download failed', err);
+                        window.open(url, '_blank');
+                      }
+                    }}
+                    className="w-full bg-[#0F172A] text-white py-6 rounded-2xl text-xl font-black shadow-xl hover:bg-[#1e293b] transition-all flex justify-center items-center gap-3"
+                  >
+                    <Download size={24} /> Download Final MP4
+                  </button>
                 </div>
               </div>
 

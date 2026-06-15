@@ -18,13 +18,16 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Micro-Interactions**: Built heavily with Framer Motion to provide high-end, smooth animations (hover scaling, layout transitions, animated step indicators).
 - **Smart Crossfade Engine**: Generated videos use a massive `-filter_complex` FFmpeg pipeline with `xfade` and `acrossfade` for buttery-smooth transitions (Fades, Wipes, Slides) tailored automatically to the selected reel style.
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
-- **Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Hook -> Walkthrough -> Amenities -> CTA.
-- **Coverage Protection System**: Actively prevents dropping clips if they are the only representation of a specific detected category (e.g., Gym, Pool), ensuring maximum footage coverage.
+- **ReelForge Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Drone/Exterior -> Walkthrough -> Amenities -> Parking. Explicitly prevents using low-tier scenes (e.g., Parking, Bathrooms) as the opening hook.
+- **Dynamic Reel Durations**: The platform intelligently scales output duration based on the volume of unique footage available, generating 30-60s Shorts or 60-120s YouTube videos.
+- **Coverage Protection System**: Forces maximum clip utilization (80-95%) by ensuring at least 1 segment from every unique uploaded clip is used. Trims clips dynamically (3-5s) based on visual quality score.
+- **Parallel FFmpeg Traffic Control**: Strictly throttles concurrent video encoding operations (Semaphore) to prevent system freezing and memory starvation during heavy loads (30+ clips).
+- **Automated Storage Management**: Aggressively cleans up intermediate rendering chunks after compilation, ensuring long-term server storage remains free of bloat.
 - **Adjustable Duplicate Sensitivity**: Users can define how aggressively the AI filters clips via a dropdown (Low, Medium, High).
 - **Scene Grouping Algorithm**: Prevents jarring visual jumping by intelligently sorting and grouping similar scenes (e.g. all exterior shots play sequentially).
 - **Studio Grade Quality**: Enforces strict `fps=30`, color-normalization passes (`eq=contrast=1.05`), and high-end `-preset slow -crf 18` encoding for crisp, artifact-free exports.
 - **AI Creative Studio**: Replaces the generic file manager with a 3-stage AI pipeline (Uploaded Footage, AI Director Analysis, and AI Storyboard). Shows detected rooms, confidence scores, and AI rejection reasons.
-- **Multi-Format Generation**: Instantly re-crop and scale videos into 9:16 (Instagram Reels/TikTok), 16:9 (YouTube Long Form), or 1:1 (Square) aspect ratios based on user selection.
+- **Multi-Format Generation**: Instantly re-crop and scale videos into 9:16 (Instagram Reels/TikTok) or 16:9 (YouTube Long Form) aspect ratios based on user selection.
 - **Two-Row Story View**: Visually compare your raw uploaded clips against the final, logically sequenced storyboard selected by the AI Director.
 - **3 Reel Variations**: Instead of a single output, the AI automatically generates 3 unique stylistic variations (Luxury, Viral, Realtor) allowing the user to select the perfect vibe.
 - **Advanced Upload Hub**: Seamlessly import 10-40 videos via dynamic URL cards, Dropbox Folder links, or a massive drag-and-drop local file zone.

@@ -174,6 +174,8 @@ async def build_reel(
         transition_duration = 0.4
 
     # 1. Process and normalize each scene into a temporary HQ clip
+    ffmpeg_sem = asyncio.Semaphore(4)  # Limit concurrent FFmpeg jobs to prevent laptop freezing
+    
     async def process_one(i, scene):
         v_idx = scene.get("video_index", 0)
         if v_idx >= len(input_paths): return None
@@ -192,7 +194,8 @@ async def build_reel(
         # Add transition duration buffer so crossfade has visual material
         end_t = str(end_t_val + transition_duration)
         
-        await process_segment(input_paths[v_idx], clip_path, start_t, end_t, aspect_ratio)
+        async with ffmpeg_sem:
+            await process_segment(input_paths[v_idx], clip_path, start_t, end_t, aspect_ratio)
         return clip_path
 
     tasks = [process_one(i, scene) for i, scene in enumerate(sorted_blocks)]
@@ -255,9 +258,14 @@ async def build_reel(
     await asyncio.to_thread(run_ffmpeg, concat_cmd)
 
     # Cleanup temp clips
+    # Add a short delay to ensure Windows releases the file handles from FFmpeg
+    await asyncio.sleep(1.5)
     for cp in clip_paths:
-        try: os.remove(cp)
-        except OSError: pass
+        try: 
+            os.remove(cp)
+            logger.info(f"Deleted temp clip: {cp}")
+        except OSError as e:
+            logger.warning(f"Could not delete temp clip {cp}: {e}")
 
     elapsed = time.perf_counter() - start
     logger.info(f"[PERF] Final Dynamic Reel built with xfade in {elapsed:.1f}s")

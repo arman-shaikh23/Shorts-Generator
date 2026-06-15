@@ -2,9 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
-## [9.0.0] - Guided AI SaaS Workflow (Wizard)
+## [9.1.0] - ReelForge Story Engine & Stability Patches
 ### Added
-- **6-Step Guided Wizard**: Completely dismantled the massive one-page dashboard into a focused, step-by-step workflow (Upload -> Analyze -> Storyboard -> Style -> Generate -> Export).
+- **ReelForge Story Sequencing**: AI now maps out a logical real estate property tour (Drone -> Exterior -> Entrance -> Living -> Kitchen -> Bedroom -> Bathroom -> Amenities -> Parking -> Closing) rather than sorting clips strictly by visual score.
+- **Dynamic Reel Duration**: Duration algorithm intelligently scales total output time based on the volume of unique footage (e.g., Short Mode: 30-45s for 10 clips, up to 60s max. YouTube Mode: 60-90s for 10 clips, up to 120s max).
+- **Opening Shot Enforcement**: AI is explicitly instructed to open with premium shots (Drone, Exterior, Luxury Scene) and explicitly banned from opening with low-tier scenes (Parking, Storage).
+- **Minimum Clip Usage & 3-5s Segment Extraction**: Guaranteed that 1 segment from every unique uploaded clip is used. Clips are perfectly trimmed to 3-5 seconds depending on visual quality score.
+- **Storage Auto-Cleanup**: The backend now strictly sleeps to release Windows file locks and aggressively purges `clip_x.mp4` intermediate segments after a reel is compiled, saving gigabytes of storage.
+- **Parallel FFmpeg Traffic Control**: Fixed a massive system-crashing bug (`WinError 10055`) by implementing a strict `asyncio.Semaphore(4)` that throttles FFmpeg encodings to 4 maximum concurrent operations, preventing laptop freezes under heavy loads.
+
+### Changed
+- **UI Button Integrity**: The "Start AI Analysis" button is strictly disabled until *all* clips are fully processed.
+- **Aspect Ratio Toggles**: Refined "Final Polish" options to highlight duration lengths for Reels (45 to 60s) and YouTube (1-2 min+), completely removing the legacy 'Square' 1:1 option to streamline the creative flow.
+
+## [9.0.0] - Guided AI SaaS Workflow (Wizard)
 - **Horizontal Progress Navigation**: Added a top bar showing current step progress and property name.
 - **Upload Success Summary Card**: Replaced the sprawling horizontal gallery in Step 1 with a premium Canva/Descript style success card that dynamically appears once clips are uploaded.
 - **Drag-and-Drop Enhancements**: Added Framer Motion hover states, glowing borders, and scaling upload icons to the drag-and-drop zone.

@@ -1,6 +1,6 @@
 # Prompts Documentation
 
-## Prompt 1: Coverage-First Video Analysis & Content Generation (v3)
+## Prompt 1: ReelForge Story Engine & Coverage-First Analysis (v4)
 
 ### The Prompt
 ```text
@@ -9,54 +9,50 @@ Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
 ═══ YOUR #1 PRIORITY: MAXIMIZE FOOTAGE COVERAGE ═══
 
-You are a professional real estate video editor. Your job is to create a
-COMPLETE property tour that uses NEARLY ALL uploaded footage.
+You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
 
-COVERAGE TARGET: Use 80-95% of all clips.
+COVERAGE TARGET: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible.
+If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips.
 
 ═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
 
 ONLY remove a clip if ALL of the following are true:
 1. It shows the EXACT same scene as another clip
-2. It has the EXACT same camera angle (within 10 degrees)
+2. It has the EXACT same camera angle (within 10 degrees)  
 3. Visual similarity is above 95%
 
-NEVER remove a clip just because:
-- It shows the same room from a different angle
-- It has slightly different lighting
-- It's a different take of the same space
+═══ OPENING SHOT SELECTION ═══
+Choose the strongest opening shot from: Drone, Exterior, or Best Luxury Scene.
+AVOID using Parking, Bathroom, or Storage Area as the opening shot under any circumstances (unless no other clips exist).
 
-═══ SCENE CATEGORIZATION ═══
-Drone, Aerial, Exterior, Entrance, Lobby, Living Room, Kitchen, Dining,
-Bedroom, Bathroom, Balcony, Pool, Gym, Parking, Garden, Amenities,
-Closing Drone, Other
+═══ PROPERTY TOUR STORY ENGINE ═══
+Do NOT use the raw upload order. Do NOT use score-only ordering.
+Preferred sequence:
+1. OPENING: Drone, Exterior, Entrance
+2. MAIN TOUR: Lobby, Living Room, Dining, Kitchen
+3. PRIVATE AREAS: Bedroom, Bathroom, Balcony
+4. AMENITIES: Pool, Gym, Garden, Clubhouse
+5. FINAL SECTION: Parking, Exterior, Closing Drone
 
-═══ COVERAGE PROTECTION ═══
-Never remove the last/only clip of any category.
-
-═══ PROPERTY TOUR SEQUENCING ═══
-Opening → Walkthrough → Amenities → Closing
-
-═══ SCENE DIVERSITY ═══
-Never place >2 clips of same type consecutively.
+Parking should NEVER be used as the opening shot. Place it near the end.
 
 ═══ DYNAMIC CLIP DURATION ═══
-Quality 90-100: 5-6s | Quality 70-89: 4-5s | Below 70: 3-4s
+Extract 3-5 seconds from the high-quality portions of each clip.
+- Quality score 90-100: 4-5 seconds
+- Quality score below 90: 3-4 seconds
+
+Target total reel duration: {dynamic_duration} (scales intelligently based on {clip_count} unique clips and the requested format).
 ```
 
-### Key Changes from v1 → v2 → v3
+### Key Changes from v3 → v4
 
-| Aspect | v1 (Original) | v2 (Performance) | v3 (Coverage-First) |
-|---|---|---|---|
-| Selection Philosophy | Best moments only | Best moments only | USE EVERYTHING |
-| Coverage Target | Not specified | Not specified | 80-95% |
-| Duplicate Rules | Not defined | Confidence > 85 | Strict: >95% sim + same angle + same scene |
-| Clip Duration | Raw timestamps | Raw timestamps | Dynamic 3-6s per clip |
-| Reel Duration | Fixed (30s/45s) | Fixed | Dynamic (20s-4min based on clip count) |
-| Scene Categories | None | 6 categories | 18 categories (full property tour) |
-| Coverage Protection | None | Basic | Never remove last-of-category |
-| Diversity Enforcement | None | Basic | Max 2 consecutive same-type |
-| Analytics | None | Basic | Full: uploaded/removed/selected/coverage% |
+| Aspect | v3 | v4 (ReelForge Engine) |
+|---|---|---|
+| Sequence Logic | Loose (Opening → Walkthrough → Closing) | **Strict 5-Stage Property Tour** |
+| Opening Shot | Not restricted | **Must be Drone/Exterior/Luxury. No Parking/Bathrooms** |
+| Minimum Usage | Target 80-95% | **Must use at least 1 segment from EVERY unique clip** |
+| Clip Duration | 3-6s | **Tighter 3-5s extractions** |
+| Output Duration | Static scaling | **Platform-Aware Scaling** (Shorts mode: up to 60s max. YouTube mode: up to 120s max) |
 
 ### Reasoning Behind Each Decision
 
