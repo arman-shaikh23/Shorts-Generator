@@ -15,8 +15,9 @@ const STEPS = [
   { id: 2, label: 'Analyze' },
   { id: 3, label: 'Storyboard' },
   { id: 4, label: 'Style' },
-  { id: 5, label: 'Generate' },
-  { id: 6, label: 'Export' }
+  { id: 5, label: 'Music' },
+  { id: 6, label: 'Generate' },
+  { id: 7, label: 'Export' }
 ];
 
 export default function ProjectDetailPage() {
@@ -27,12 +28,21 @@ export default function ProjectDetailPage() {
   const [project, setProject] = useState(null);
   const [uploads, setUploads] = useState([]);
   const [currentStep, setCurrentStep] = useState(1);
+  const [highestStep, setHighestStep] = useState(1);
 
   const [urlInput, setUrlInput] = useState('');
   const [reelDuration, setReelDuration] = useState('30 sec');
   const [reelStyle, setReelStyle] = useState('Luxury');
   const [aspectRatio, setAspectRatio] = useState('9:16');
   const [duplicateSensitivity, setDuplicateSensitivity] = useState('Low');
+
+  // Music States
+  const [musicMode, setMusicMode] = useState('Auto Select'); // Auto Select, Library, Custom, None
+  const [selectedMusicPath, setSelectedMusicPath] = useState('');
+  const [musicVolume, setMusicVolume] = useState(0.2);
+  const [voVolume, setVoVolume] = useState(1.0);
+  const [isUploadingMusic, setIsUploadingMusic] = useState(false);
+  const [musicLibrary, setMusicLibrary] = useState([]);
 
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isUploadingUrl, setIsUploadingUrl] = useState(false);
@@ -54,7 +64,7 @@ export default function ProjectDetailPage() {
         setUploads(upData.uploads || []);
         
         if (!isPolling && projData.draftTimeline) {
-          if (projData.generatedReels && projData.generatedReels.length > 0) setCurrentStep(6);
+          if (projData.generatedReels && projData.generatedReels.length > 0) setCurrentStep(7);
           else setCurrentStep(3);
         }
       } else if (!isPolling) setLocalError('Failed to load project details.');
@@ -68,13 +78,21 @@ export default function ProjectDetailPage() {
   useEffect(() => {
     fetchProjectData();
     const interval = setInterval(() => fetchProjectData(true), 10000);
+    
+    // Fetch music library
+    apiFetch('/music-library')
+      .then(res => res.ok ? res.json() : { library: [] })
+      .then(data => setMusicLibrary(data.library || []))
+      .catch(err => console.error("Failed to load music library"));
+
     return () => clearInterval(interval);
   }, [fetchProjectData]);
 
   useEffect(() => {
-    if (currentStep === 5 && !isProcessing && result?.results?.length > 0) {
-      setCurrentStep(6);
+    if (currentStep === 6 && !isProcessing && result?.results?.length > 0) {
+      setCurrentStep(7);
     }
+    setHighestStep(prev => Math.max(prev, currentStep));
   }, [currentStep, isProcessing, result]);
 
   const handleTitleBlur = async (e) => {
@@ -147,13 +165,30 @@ export default function ProjectDetailPage() {
 
   const goToStoryboard = () => setCurrentStep(3);
   const goToStyle = () => setCurrentStep(4);
+  const goToMusic = () => setCurrentStep(5);
 
   const handleGenerateReel = () => {
-    setCurrentStep(5);
+    setCurrentStep(6);
     const params = new URLSearchParams();
     params.append('duration', reelDuration);
     params.append('style', reelStyle);
     params.append('aspect_ratio', aspectRatio);
+    
+    // Pass Music Params
+    if (musicMode === 'None') {
+      params.append('music_path', '');
+      params.append('music_volume', '0');
+    } else if (musicMode === 'Auto Select') {
+      const match = musicLibrary.find(t => t.tag === reelStyle) || musicLibrary[0];
+      params.append('music_path', match ? match.path : '');
+      params.append('music_volume', match ? musicVolume : 0);
+    } else {
+      params.append('music_path', selectedMusicPath);
+      params.append('music_volume', musicVolume);
+    }
+    
+    params.append('vo_volume', voVolume);
+
     start(`http://localhost:8000/api/v1/projects/${id}/generation/generate?${params.toString()}&token=${getAccessToken() || ''}`);
   };
 
@@ -190,7 +225,10 @@ export default function ProjectDetailPage() {
         <div className="flex-1 flex items-center justify-center max-w-3xl">
           {STEPS.map((step, idx) => (
             <React.Fragment key={step.id}>
-              <div className="flex flex-col items-center relative">
+              <div 
+                className={`flex flex-col items-center relative transition-all ${step.id <= highestStep && !isProcessing ? 'cursor-pointer hover:scale-105' : 'opacity-70 cursor-not-allowed'}`}
+                onClick={() => { if (step.id <= highestStep && !isProcessing) setCurrentStep(step.id); }}
+              >
                 <motion.div animate={{ scale: currentStep === step.id ? 1.1 : 1 }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${currentStep > step.id ? 'bg-[#10B981] text-white' : currentStep === step.id ? 'bg-[#0EA5E9] text-white ring-4 ring-[#0EA5E9]/20' : 'bg-[#F8FAFC] text-[#94a3b8] border border-[#E2E8F0]'}`}>
                   {currentStep > step.id ? <Check size={14} /> : step.id}
                 </motion.div>
@@ -516,43 +554,187 @@ export default function ProjectDetailPage() {
                 <p className="text-lg text-[#64748B] font-medium mt-2">Select your target platform aspect ratio and creative style.</p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
-                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">1. Aspect Ratio</h3>
+              <div className="flex justify-center mb-10">
+                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem] w-full max-w-xl">
+                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6 text-center">1. Aspect Ratio</h3>
                   <div className="grid grid-cols-2 gap-4">
-                    <button onClick={() => setAspectRatio('9:16')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                    <button onClick={() => { setAspectRatio('9:16'); setReelDuration('30-60 sec'); }} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
                       <Smartphone size={28} className="mb-2" /> Reels
-                      <span className="text-xs font-medium mt-1 opacity-80">45 to 60s</span>
+                      <span className="text-xs font-medium mt-1 opacity-80">30sec to 60 sec max</span>
                     </button>
-                    <button onClick={() => setAspectRatio('16:9')} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                    <button onClick={() => { setAspectRatio('16:9'); setReelDuration('1 min to 2 min or more'); }} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
                       <Maximize size={28} className="mb-2" /> YouTube
                       <span className="text-xs font-medium mt-1 opacity-80">1 min to 2 min or more</span>
                     </button>
                   </div>
                 </div>
-
-                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
-                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">2. Creative Style</h3>
-                  <div className="space-y-3">
-                    {stylesList.map(s => (
-                      <button key={s} onClick={() => setReelStyle(s)} className={`w-full text-left px-6 py-4 rounded-xl text-base font-bold transition-all ${reelStyle === s ? 'bg-[#0F172A] text-white shadow-lg' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
-                        {s} <span className="float-right font-medium opacity-60 text-sm">Automated</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
               </div>
 
               <div className="flex justify-center">
-                <button onClick={handleGenerateReel} className="bg-[#0EA5E9] text-white px-14 py-6 rounded-2xl text-xl font-black shadow-[0_20px_40px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3">
+                <button onClick={goToMusic} className="bg-[#0F172A] text-white px-14 py-6 rounded-2xl text-xl font-black shadow-xl hover:bg-[#1e293b] transition-all flex items-center gap-3">
+                  Continue to Music <ChevronRight size={24} />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* STEP 5: MUSIC SELECTION */}
+          {currentStep === 5 && (
+            <motion.div key="step5" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="h-full flex flex-col max-w-5xl mx-auto w-full">
+              <div className="text-center mb-10">
+                <h2 className="text-4xl font-black text-[#0F172A] tracking-tight">Audio Settings</h2>
+                <p className="text-lg text-[#64748B] font-medium mt-2">Choose the perfect background music and mix volumes.</p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-10">
+                
+                {/* Mode Selector */}
+                <div className="md:col-span-1 space-y-4">
+                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-4">Music Source</h3>
+                  {['Auto Select', 'Library', 'Custom', 'None'].map(mode => (
+                    <button key={mode} onClick={() => { setMusicMode(mode); setSelectedMusicPath(''); }} className={`w-full text-left px-5 py-4 rounded-xl text-sm font-bold transition-all flex items-center justify-between ${musicMode === mode ? 'bg-[#0EA5E9] text-white shadow-md' : 'bg-white text-[#64748B] hover:bg-[#F8FAFC] border border-[#E2E8F0]'}`}>
+                      {mode} {musicMode === mode && <CheckCircle2 size={16} />}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Main Content Area based on Mode */}
+                <div className="md:col-span-2 bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem]">
+                  {musicMode === 'Auto Select' && (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                      <Sparkles size={48} className="text-[#8B5CF6] mb-4" />
+                      <h3 className="text-xl font-black text-[#0F172A] mb-2">AI Soundtrack Curation</h3>
+                      <p className="text-[#64748B] font-medium">We'll automatically choose a track that fits the <strong className="text-[#0EA5E9]">{reelStyle}</strong> style perfectly.</p>
+                    </div>
+                  )}
+
+                  {musicMode === 'None' && (
+                    <div className="flex flex-col items-center justify-center h-full text-center py-10">
+                      <div className="w-16 h-16 rounded-full bg-[#F8FAFC] flex items-center justify-center mb-4"><X size={32} className="text-[#94a3b8]" /></div>
+                      <h3 className="text-xl font-black text-[#0F172A] mb-2">No Music</h3>
+                      <p className="text-[#64748B] font-medium">The final reel will only contain the original audio from your clips.</p>
+                    </div>
+                  )}
+
+                  {musicMode === 'Library' && (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider">Select a Track</h3>
+                        <span className="text-xs font-bold text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-0.5 rounded-md">{musicLibrary.length} tracks found</span>
+                      </div>
+                      
+                      {musicLibrary.length === 0 ? (
+                        <div className="text-center py-10 border-2 border-dashed border-[#E2E8F0] rounded-xl bg-[#F8FAFC]">
+                          <p className="text-sm font-bold text-[#64748B]">No tracks found.</p>
+                          <p className="text-xs font-medium text-[#94a3b8] mt-1">Place your downloaded MP3s in the <br/><code className="bg-white px-1 py-0.5 rounded border border-[#E2E8F0]">backend/data/library/music</code> folder.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 hide-scrollbar">
+                          {musicLibrary.map((track, i) => (
+                            <div key={i} className={`flex items-center justify-between p-4 rounded-xl border transition-all ${selectedMusicPath === track.path ? 'border-[#0EA5E9] bg-[#0EA5E9]/5' : 'border-[#E2E8F0] hover:bg-[#F8FAFC]'}`}>
+                              <div className="flex items-center gap-4">
+                                <button onClick={() => { if(selectedMusicPath !== track.path) setSelectedMusicPath(track.path); else setSelectedMusicPath(''); }} className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedMusicPath === track.path ? 'border-[#0EA5E9]' : 'border-[#cbd5e1]'}`}>
+                                  {selectedMusicPath === track.path && <div className="w-3 h-3 rounded-full bg-[#0EA5E9]" />}
+                                </button>
+                                <div>
+                                  <p className="font-bold text-[#0F172A] text-sm">{track.name}</p>
+                                  <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">{track.tag}</span>
+                                </div>
+                              </div>
+                              <audio src={`http://localhost:8000/${track.path}`} controls controlsList="nodownload" className="h-8 w-40" />
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {musicMode === 'Custom' && (
+                    <div className="flex flex-col h-full">
+                      <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-4">Upload MP3/WAV</h3>
+                      <div className="flex-1 flex flex-col items-center justify-center p-10 border-2 border-dashed border-[#cbd5e1] rounded-2xl bg-[#F8FAFC] relative">
+                        {isUploadingMusic ? (
+                          <Loader2 size={32} className="animate-spin text-[#0EA5E9]" />
+                        ) : selectedMusicPath && selectedMusicPath.startsWith('data/') && !selectedMusicPath.includes('library') ? (
+                          <div className="text-center w-full">
+                            <CheckCircle2 size={40} className="text-[#10B981] mx-auto mb-3" />
+                            <p className="font-bold text-[#0F172A] mb-4 truncate">{selectedMusicPath.split('/').pop()}</p>
+                            <audio src={`http://localhost:8000/${selectedMusicPath}`} controls className="w-full mb-4" />
+                            <button onClick={() => setSelectedMusicPath('')} className="text-xs font-bold text-red-500 hover:underline">Remove Track</button>
+                          </div>
+                        ) : (
+                          <div className="text-center">
+                            <UploadCloud size={32} className="text-[#64748B] mx-auto mb-3" />
+                            <p className="font-bold text-[#0F172A] mb-1">Select Custom Audio File</p>
+                            <p className="text-xs text-[#94a3b8] mb-4">MP3, WAV, M4A up to 20MB</p>
+                            <input 
+                              type="file" 
+                              accept="audio/*" 
+                              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                setIsUploadingMusic(true);
+                                const formData = new FormData();
+                                formData.append('file', file);
+                                try {
+                                  const res = await apiFetch(`/projects/${id}/uploads/music`, { method: 'POST', body: formData });
+                                  const data = await res.json();
+                                  setSelectedMusicPath(data.localPath.replace(/\\/g, '/'));
+                                  setMusicMode('Custom');
+                                } catch (err) {
+                                  setLocalError('Failed to upload custom music.');
+                                } finally {
+                                  setIsUploadingMusic(false);
+                                }
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+
+              {/* Mixing Controls */}
+              {musicMode !== 'None' && (
+                <div className="bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem] mb-10">
+                  <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6">Audio Mixing</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-bold text-[#0F172A]">Background Music Volume</label>
+                        <span className="text-xs font-black text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-1 rounded-md">{Math.round(musicVolume * 100)}%</span>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.05" value={musicVolume} onChange={(e) => setMusicVolume(parseFloat(e.target.value))} className="w-full accent-[#0EA5E9]" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between items-center mb-3">
+                        <label className="text-sm font-bold text-[#0F172A]">Original Clip Audio (Voiceover)</label>
+                        <span className="text-xs font-black text-[#0EA5E9] bg-[#0EA5E9]/10 px-2 py-1 rounded-md">{Math.round(voVolume * 100)}%</span>
+                      </div>
+                      <input type="range" min="0" max="1" step="0.05" value={voVolume} onChange={(e) => setVoVolume(parseFloat(e.target.value))} className="w-full accent-[#0EA5E9]" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-center">
+                <button 
+                  onClick={handleGenerateReel} 
+                  disabled={musicMode === 'Library' && !selectedMusicPath}
+                  className="bg-[#0EA5E9] text-white px-14 py-6 rounded-2xl text-xl font-black shadow-[0_20px_40px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+                >
                   <Play fill="white" size={24} /> Render Final Video
                 </button>
               </div>
             </motion.div>
           )}
 
-          {/* STEP 5: GENERATION SCREEN */}
-          {currentStep === 5 && (
+          {/* STEP 6: GENERATION SCREEN */}
+          {currentStep === 6 && (
             <motion.div key="step5" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="h-full flex flex-col items-center justify-center max-w-2xl mx-auto w-full text-center">
               <div className="relative w-32 h-32 mb-10">
                 <div className="absolute inset-0 border-[6px] border-[#0EA5E9]/10 rounded-full"></div>
@@ -569,8 +751,8 @@ export default function ProjectDetailPage() {
             </motion.div>
           )}
 
-          {/* STEP 6: EXPORT RESULTS */}
-          {currentStep === 6 && (
+          {/* STEP 7: EXPORT RESULTS */}
+          {currentStep === 7 && (
             <motion.div key="step6" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col lg:flex-row gap-10 max-w-7xl mx-auto">
               
               {/* Left Video Player */}

@@ -127,6 +127,22 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     return {"uploads": [upload], "total": count}
 
 
+@router.post("/music")
+async def upload_custom_music(project_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+    """Handle custom music uploads (.mp3, .wav, .m4a)."""
+    await verify_project_ownership(project_id, user)
+    
+    # 1. Save File Locally
+    music_dir = f"data/{project_id}/music"
+    os.makedirs(music_dir, exist_ok=True)
+    local_path = os.path.join(music_dir, file.filename)
+    
+    contents = await file.read()
+    with open(local_path, "wb") as f:
+        f.write(contents)
+        
+    return {"message": "Music uploaded successfully", "localPath": local_path, "filename": file.filename}
+
 @router.get("")
 async def list_uploads(project_id: str, user=Depends(get_current_user)):
     """List all uploads for a project, sorted by order."""

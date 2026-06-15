@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [10.0.0] - Custom Music Engine & Strict Shorts Duration Fix
+### Added
+- **Dynamic Custom Music Library**: Added a new "Music Selection" Step (Step 5) in the workflow. Users can now drop downloaded MP3/WAV files directly into `backend/data/library/music`, and the frontend will automatically scan and display them in a playable library.
+- **Interactive Wizard Navigation**: The top progress bar is now fully clickable. Users can instantly navigate backwards to previous steps (e.g., jumping from Style back to Upload to add a new clip) and seamlessly return forward, with strict "highest step reached" validation preventing them from skipping ahead into uncompleted stages.
+- **Advanced FFmpeg Audio Mixing**: Fully integrated background music rendering. Users can now independently control the `Background Music Volume` and the `Original Voiceover Volume`. FFmpeg uses the `amix` filter to dynamically loop and merge the audio perfectly into the final exported MP4.
+- **Custom Audio Uploads**: Added a drag-and-drop zone with a dedicated API endpoint (`POST /projects/{id}/music`) allowing users to upload specific `.mp3` or `.wav` files directly from their computer into the project without needing to touch the backend folder.
+- **Strict Shorts Duration Cap**: The AI Story Engine now has a mathematical hard-cap implemented in the Gemini prompt. When generating a "Shorts" format reel (max 60s), the AI is strictly forced to select a maximum of 15 clips—actively overriding the "use 80% coverage" rule to ensure the resulting video absolutely stays under 60 seconds.
+
 ## [9.1.0] - ReelForge Story Engine & Stability Patches
 ### Added
 - **ReelForge Story Sequencing**: AI now maps out a logical real estate property tour (Drone -> Exterior -> Entrance -> Living -> Kitchen -> Bedroom -> Bathroom -> Amenities -> Parking -> Closing) rather than sorting clips strictly by visual score.

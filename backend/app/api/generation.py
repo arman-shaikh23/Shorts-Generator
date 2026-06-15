@@ -175,6 +175,9 @@ async def generate_project(
     duration: str = "30 sec",
     style: str = "Luxury",
     aspect_ratio: str = "9:16",
+    music_path: Optional[str] = None,
+    music_volume: float = 0.2,
+    vo_volume: float = 1.0,
     user = Depends(get_current_user)
 ):
     """Phase 2: Render the final reel using the approved timeline."""
@@ -254,7 +257,10 @@ async def generate_project(
                     target_duration_sec=target_duration,
                     style=var_style,
                     project_id=project_id,
-                    aspect_ratio=aspect_ratio
+                    aspect_ratio=aspect_ratio,
+                    music_path=music_path,
+                    music_volume=music_volume,
+                    vo_volume=vo_volume
                 )
 
                 web_url = "/" + output_path.replace("\\", "/")

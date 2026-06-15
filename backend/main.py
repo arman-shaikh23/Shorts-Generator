@@ -44,6 +44,30 @@ app.include_router(uploads_api.router, prefix="/api/v1")
 app.include_router(generation_api.router, prefix="/api/v1")
 app.include_router(history_api.router, prefix="/api/v1")
 
+@app.get("/api/v1/music-library")
+async def get_music_library():
+    """Dynamically scan and return music from the user's library folder."""
+    library_dir = "data/library/music"
+    os.makedirs(library_dir, exist_ok=True)
+    tracks = []
+    for f in os.listdir(library_dir):
+        if f.lower().endswith(('.mp3', '.wav', '.m4a')):
+            # Guess tag from filename, or default to Custom
+            tag = "Custom"
+            name = f.rsplit('.', 1)[0].replace('_', ' ').title()
+            if "lux" in f.lower(): tag = "Luxury"
+            elif "cine" in f.lower(): tag = "Cinematic"
+            elif "viral" in f.lower(): tag = "Viral"
+            elif "real" in f.lower(): tag = "Realtor"
+            elif "ambient" in f.lower(): tag = "Ambient"
+            
+            tracks.append({
+                "name": name,
+                "path": f"{library_dir}/{f}",
+                "tag": tag
+            })
+    return {"library": tracks}
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

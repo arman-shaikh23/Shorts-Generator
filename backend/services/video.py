@@ -140,6 +140,9 @@ async def build_reel(
     style: str,
     project_id: str,
     aspect_ratio: str = "9:16",
+    music_path: Optional[str] = None,
+    music_volume: float = 0.2,
+    vo_volume: float = 1.0,
     on_progress: Optional[Callable] = None
 ) -> str:
     if not timeline_blocks: raise ValueError("Timeline is empty")
@@ -240,11 +243,30 @@ async def build_reel(
     final_v = f"[v{len(clip_paths)-1}]"
     final_a = f"[a{len(clip_paths)-1}]"
 
-    # Assemble the massive FFmpeg command
     concat_cmd = ["ffmpeg", "-y"]
-    for cp in clip_paths:
-        concat_cmd.extend(["-i", cp])
+    
+    if music_path and os.path.exists(music_path):
+        music_idx = len(clip_paths)
+        for cp in clip_paths:
+            concat_cmd.extend(["-i", cp])
+        # Add background music with infinite loop
+        concat_cmd.extend(["-stream_loop", "-1", "-i", music_path])
         
+        # Apply volumes and mix
+        mixing_filter = f"{final_a}volume={vo_volume}[vo];[{music_idx}:a]volume={music_volume}[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a]"
+        filter_complex = f"{filter_complex};{mixing_filter}"
+        final_a = "[mixed_a]"
+    else:
+        for cp in clip_paths:
+            concat_cmd.extend(["-i", cp])
+        
+        # Apply vo_volume even if no music
+        if vo_volume != 1.0:
+            mixing_filter = f"{final_a}volume={vo_volume}[mixed_a]"
+            filter_complex = f"{filter_complex};{mixing_filter}"
+            final_a = "[mixed_a]"
+
+    # Assemble the massive FFmpeg command
     concat_cmd.extend([
         "-filter_complex", filter_complex,
         "-map", final_v,

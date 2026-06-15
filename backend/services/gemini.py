@@ -111,6 +111,16 @@ async def analyze_and_generate(file_uris: list[str], property_name: str, duratio
     clip_count = len(file_uris)
     dynamic_duration = _calculate_dynamic_duration(clip_count, duration)
 
+    is_youtube = 'min' in duration.lower()
+    
+    if not is_youtube:
+        max_clips = 12
+        coverage_instruction = f"""COVERAGE TARGET: Try to use many clips, BUT THIS IS SHORTS MODE.
+CRITICAL DURATION LIMIT: You MUST NOT select more than {max_clips} clips total, even if it means missing the 80% coverage target. The total duration must remain under 60 seconds."""
+    else:
+        coverage_instruction = f"""COVERAGE TARGET: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible.
+If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips."""
+
     prompt = f"""Property: '{property_name}'
 Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
@@ -118,8 +128,7 @@ Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
 You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
 
-COVERAGE TARGET: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible.
-If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips.
+{coverage_instruction}
 
 ═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
 

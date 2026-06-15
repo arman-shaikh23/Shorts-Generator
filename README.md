@@ -11,7 +11,9 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Render Engine**: FFmpeg
 
 ## Features
-- **6-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Generate -> Export).
+- **7-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Music -> Generate -> Export).
+- **Interactive Wizard Navigation**: The top progress bar is fully clickable, allowing users to seamlessly navigate backwards to previous steps (e.g., jump back to Upload to add a new clip) and return forward, with strict progression validation that prevents skipping ahead into uncompleted stages.
+- **Custom Music Engine & Mixing**: Integrated an advanced FFmpeg `amix` pipeline that dynamically loops and mixes background music with the original video audio. Includes a dedicated UI step with volume sliders (0-100%) and an auto-scanning `data/library/music` folder for users to drop in downloaded MP3/WAV files for playable previewing and generation.
 - **Premium Canva-style Upload Workflow**: Focused upload screen with animated drag-and-drop zones, explicit URL integrations (Drive, Dropbox, OneDrive), and a dynamic "Upload Complete" success card to keep the workspace clean.
 - **Luxury Ocean Aurora Dashboard**: A premium, light-themed workspace inspired by Stripe and Linear. Features an 80px floating top navigation bar and a clean responsive 2-column workspace layout.
 - **Authentic Data Visualization**: The UI strictly surfaces real data returned by the backend (e.g. actual extracted clip durations, actual scene types) with zero hardcoded "mock" metrics.
