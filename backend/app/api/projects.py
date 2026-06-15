@@ -128,4 +128,11 @@ async def delete_project(project_id: str, user=Depends(get_current_user)):
     await db.generated_shorts.delete_many({"projectId": project_id})
     await db.projects.delete_one({"_id": ObjectId(project_id)})
 
+    # AGGRESSIVE STORAGE CLEANUP: Destroy the entire project data directory
+    import shutil
+    import os
+    data_dir = f"data/{project_id}"
+    if os.path.exists(data_dir):
+        shutil.rmtree(data_dir, ignore_errors=True)
+
     return {"message": "Project deleted"}

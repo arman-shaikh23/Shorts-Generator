@@ -24,15 +24,17 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Dynamic Reel Durations**: The platform intelligently scales output duration based on the volume of unique footage available, generating 30-60s Shorts or 60-120s YouTube videos.
 - **Coverage Protection System**: Forces maximum clip utilization (80-95%) by ensuring at least 1 segment from every unique uploaded clip is used. Trims clips dynamically (3-5s) based on visual quality score.
 - **Parallel FFmpeg Traffic Control**: Strictly throttles concurrent video encoding operations (Semaphore) to prevent system freezing and memory starvation during heavy loads (30+ clips).
-- **Automated Storage Management**: Aggressively cleans up intermediate rendering chunks after compilation, ensuring long-term server storage remains free of bloat.
-- **Adjustable Duplicate Sensitivity**: Users can define how aggressively the AI filters clips via a dropdown (Low, Medium, High).
-- **Scene Grouping Algorithm**: Prevents jarring visual jumping by intelligently sorting and grouping similar scenes (e.g. all exterior shots play sequentially).
-- **Studio Grade Quality**: Enforces strict `fps=30`, color-normalization passes (`eq=contrast=1.05`), and high-end `-preset slow -crf 18` encoding for crisp, artifact-free exports.
-- **AI Creative Studio**: Replaces the generic file manager with a 3-stage AI pipeline (Uploaded Footage, AI Director Analysis, and AI Storyboard). Shows detected rooms, confidence scores, and AI rejection reasons.
-- **Multi-Format Generation**: Instantly re-crop and scale videos into 9:16 (Instagram Reels/TikTok) or 16:9 (YouTube Long Form) aspect ratios based on user selection.
-- **Two-Row Story View**: Visually compare your raw uploaded clips against the final, logically sequenced storyboard selected by the AI Director.
-- **3 Reel Variations**: Instead of a single output, the AI automatically generates 3 unique stylistic variations (Luxury, Viral, Realtor) allowing the user to select the perfect vibe.
-- **Advanced Upload Hub**: Seamlessly import 10-40 videos via dynamic URL cards, Dropbox Folder links, or a massive drag-and-drop local file zone.
+- **Automated Storage Management**: Aggressively cleans up intermediate rendering chunks immediately after compilation. A background daily cron job (`cleanup.py`) continually sweeps for orphaned files. Furthermore, project deletion instantly triggers a deep recursive destruction of all associated `data/` directories to keep the server lightweight.
+
+### ReelForge Story Engine v6
+- **Scene Role Classification**: Automatically classifies detected scenes into structural roles (`OPENING`, `LOBBY`, `LIVING_ROOM`, `CLOSING`) and builds chronological walkthroughs.
+- **Strict Diversity**: Hardcoded rule preventing the opening clip and closing clip from ever sharing the same source video file (`opening_scene_id != closing_scene_id`).
+- **Duration-First Algorithm**: The AI doesn't pick clips randomly; it calculates a strict Target Duration budget (e.g. 60s for Shorts) and sums individual scene extractions until exactly full.
+- **Strict Deduplication**: 3-stage validation process utilizing SHA-256 (file integrity), 3-frame Perceptual Hashing (visual similarity), and Structural Similarity Index Measure (SSIM).
+- **Format Intelligence**: 
+  - **Shorts Mode**: Hard 60s maximum, strict fast-pacing timeline structure (Hook/Main/Rooms).
+  - **YouTube Mode**: Deep coverage scaling up to 240 seconds, ensuring no skipped rooms.
+
 - **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
 - Direct downloads of fully prepared 4K/1080p clips from the sticky preview player.
 

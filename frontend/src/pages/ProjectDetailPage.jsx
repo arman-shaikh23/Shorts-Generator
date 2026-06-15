@@ -399,18 +399,30 @@ export default function ProjectDetailPage() {
                     {/* Coverage Analytics */}
                     {project?.aiMetadata?.coverage_analytics && (
                       <div className="mb-6 p-4 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] rounded-xl border border-[#10B981]/20 shrink-0">
-                        <p className="text-[10px] font-black text-[#10B981] uppercase tracking-wider mb-3">Coverage Analytics</p>
-                        <div className="grid grid-cols-2 gap-3">
+                        <p className="text-[10px] font-black text-[#10B981] uppercase tracking-wider mb-3">Coverage & Duplicate Audit</p>
+                        <div className="grid grid-cols-2 gap-3 mb-3">
                           <div>
-                            <p className="text-[10px] font-bold text-[#64748B]">Uploaded</p>
+                            <p className="text-[10px] font-bold text-[#64748B]">Total Uploaded</p>
                             <p className="text-lg font-black text-[#0F172A]">{project.aiMetadata.coverage_analytics.uploaded_count}</p>
                           </div>
                           <div>
-                            <p className="text-[10px] font-bold text-[#64748B]">Removed</p>
+                            <p className="text-[10px] font-bold text-[#64748B]">Total Removed</p>
                             <p className="text-lg font-black text-[#EF4444]">{project.aiMetadata.coverage_analytics.duplicates_removed}</p>
                           </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
                           <div>
-                            <p className="text-[10px] font-bold text-[#64748B]">Selected</p>
+                            <p className="text-[10px] font-bold text-[#64748B]">Engine Duplicates (SSIM/Hash)</p>
+                            <p className="text-sm font-black text-[#F59E0B]">{project.aiMetadata.coverage_analytics.pre_processor_duplicates || 0}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">AI Duplicates (Semantic)</p>
+                            <p className="text-sm font-black text-[#F97316]">{project.aiMetadata.coverage_analytics.ai_duplicates || 0}</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3 mt-3 pt-3 border-t border-[#10B981]/20">
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">Unique Selected</p>
                             <p className="text-lg font-black text-[#10B981]">{project.aiMetadata.coverage_analytics.selected_count}</p>
                           </div>
                           <div>
@@ -742,7 +754,7 @@ export default function ProjectDetailPage() {
                 <div className="absolute inset-0 flex items-center justify-center"><Activity size={40} className="text-[#0EA5E9] animate-pulse" /></div>
               </div>
               
-              <h2 className="text-4xl font-black text-[#0F172A] mb-4">Rendering {aspectRatio} Reel</h2>
+              <h2 className="text-4xl font-black text-[#0F172A] mb-4">Rendering {aspectRatio === '16:9' ? 'YouTube Video' : 'Shorts Reel'}</h2>
               <p className="text-xl text-[#64748B] font-medium mb-12">Applying {reelStyle} styling, color grading, and dynamic cuts...</p>
               
               <div className="w-full bg-white border border-[#E2E8F0] shadow-sm p-8 rounded-[2rem] text-left">

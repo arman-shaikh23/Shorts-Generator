@@ -1,71 +1,135 @@
 # Prompts Documentation
 
-## Prompt 1: ReelForge Story Engine & Coverage-First Analysis (v4)
+## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt
 ```text
 Property: '{property_name}'
 Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
-═══ YOUR #1 PRIORITY: MAXIMIZE FOOTAGE COVERAGE ═══
-
-You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
-
-COVERAGE TARGET:
-[If Shorts Mode (<= 60s)]: Try to use many clips, BUT THIS IS SHORTS MODE. CRITICAL DURATION LIMIT: You MUST NOT select more than 12 clips total, even if it means missing the 80% coverage target. The total duration must remain under 60 seconds.
-[If YouTube Mode]: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible. If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips.
-
-═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
-
-ONLY remove a clip if ALL of the following are true:
-1. It shows the EXACT same scene as another clip
-2. It has the EXACT same camera angle (within 10 degrees)  
-3. Visual similarity is above 95%
-
-═══ OPENING SHOT SELECTION ═══
-Choose the strongest opening shot from: Drone, Exterior, or Best Luxury Scene.
-AVOID using Parking, Bathroom, or Storage Area as the opening shot under any circumstances (unless no other clips exist).
-
-═══ PROPERTY TOUR STORY ENGINE ═══
-Do NOT use the raw upload order. Do NOT use score-only ordering.
-Preferred sequence:
-1. OPENING: Drone, Exterior, Entrance
-2. MAIN TOUR: Lobby, Living Room, Dining, Kitchen
-3. PRIVATE AREAS: Bedroom, Bathroom, Balcony
-4. AMENITIES: Pool, Gym, Garden, Clubhouse
-5. FINAL SECTION: Parking, Exterior, Closing Drone
-
-Parking should NEVER be used as the opening shot. Place it near the end.
-
-═══ DYNAMIC CLIP DURATION ═══
+═══ 1. DURATION-FIRST GENERATION & BUDGET ALGORITHM ═══
+DO NOT select clips first.
+Instead, use: {dynamic_duration}
+Add unique clips until the duration budget is reached.
 Extract 3-5 seconds from the high-quality portions of each clip.
-- Quality score 90-100: 4-5 seconds
-- Quality score below 90: 3-4 seconds
+Example: Clip A (4 sec) + Clip B (3 sec) + Clip C (5 sec). Continue until target duration is achieved.
 
-Target total reel duration: {dynamic_duration} (scales intelligently based on {clip_count} unique clips and the requested format).
+[Platform Rules injected here (Shorts Hook/Main/Closing OR YouTube Hook/Main/Closing)]
+
+═══ 2. PROPERTY STORY ENGINE ═══
+Create a logical property walkthrough.
+Priority order: Drone -> Exterior -> Entrance -> Lobby -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Pool -> Gym -> Garden -> Parking -> Closing Drone.
+THIS ORDER SHOULD OVERRIDE CLIP SCORE.
+Bathroom, Parking, or Utility areas should NEVER be the opening shot.
+
+═══ 3. OPENING SHOT ENGINE ═══
+Opening shot candidates: Drone, Exterior, Pool, Luxury Living Room.
+Select the strongest visual. Opening duration: 5–7 sec. Goal: Immediately impress the viewer.
+
+═══ 4. COVERAGE-FIRST SELECTION ═══
+Use maximum unique footage. Goal: 80–95% coverage.
+Only remove: Exact duplicates, Near duplicates >95%
+
+═══ 5. CATEGORY COVERAGE RULE ═══
+Ensure representation of all major categories. Never allow one category to dominate.
+
+═══ 6. STORYBOARD VALIDATOR ═══
+Before outputting, verify:
+✓ Strong opening shot (Not a bathroom/parking)
+✓ Correct chronological property order
+✓ No repeated footage / No duplicate clips
+✓ Duration within target budget
+✓ Coverage requirements met
+If validation fails, silently rebuild the storyboard before responding.
 ```
 
-### Key Changes from v3 → v4
+### Key Changes from v4 → v5
 
-| Aspect | v3 | v4 (ReelForge Engine) |
+| Aspect | v4 | v5 (Duration-First Engine) |
 |---|---|---|
-| Sequence Logic | Loose (Opening → Walkthrough → Closing) | **Strict 5-Stage Property Tour** |
-| Opening Shot | Not restricted | **Must be Drone/Exterior/Luxury. No Parking/Bathrooms** |
-| Minimum Usage | Target 80-95% | **Must use at least 1 segment from EVERY unique clip** |
-| Clip Duration | 3-6s | **Tighter 3-5s extractions** |
-| Output Duration | Static scaling | **Platform-Aware Scaling** (Shorts mode: up to 60s max. YouTube mode: up to 120s max) |
+| Sequence Logic | Strict 5-Stage | **Strict 15-Stage Chronological Priority (Overrides visual score)** |
+| Selection Method | Pick 80% clips, then calculate time | **Set Target Budget (e.g. 60s), then add clips until filled** |
+| Platform Pacing | None | **Strict Timeline Structures (e.g. Shorts: 0-5s Hook, 5-20s Main, etc)** |
+| Shorts Cap | 12 clips maximum | **Absolute 60s hard limit via Budget summation** |
+| YouTube Floor | N/A | **Minimum 60s, scales intelligently up to 240s based on raw footage** |
 
 ### Reasoning Behind Each Decision
 
-- **Coverage-First Mandate**: Users who upload 29 clips expect to see nearly all of them. Dropping to 8-10 creates frustration. The prompt now explicitly mandates 80-95% inclusion.
-- **Strict Duplicate Rules**: The previous prompt let the AI interpret "similar" loosely. Now duplicates require triple-match: same scene + same angle + >95% similarity. Different angles of the same room are preserved.
+- **Duration-First Focus**: Users complained Shorts were sometimes running over 60s or YouTube videos were rendering at just 30s. Instructing the AI to view selection as a "Duration Budget" perfectly aligns its output with the target platform's required pacing.
+- **Score Override**: The AI used to favor 98-score Bathroom clips over 80-score Drone clips for the opening shot. The prompt explicitly forces Sequence logic to override raw Quality Score logic.
 - **Dynamic Duration**: Instead of forcing all reels into 30 seconds, we scale: 5 clips → 20-40s, 30 clips → 90-180s. This respects the user's footage volume.
 - **clip_duration_sec**: Each clip gets 3-6 seconds of screen time based on quality, replacing the old 1-second-per-clip approach.
 - **Property Tour Sequencing**: 18-category ordering ensures logical flow: Drone → Exterior → Entrance → rooms → amenities → closing.
 - **Coverage Protection**: The AI is instructed to never remove the only clip representing a category (e.g., the only Gym shot).
 - **Post-Processing Validation**: After Gemini returns, the backend recalculates coverage percentage and logs a warning if it drops below 70%.
 
-## Prompt 2: Variation Generation (Updated)
+## Prompt 2: ReelForge Story Engine (v6) - Diversity & Roles
+
+### The Prompt
+```text
+Property: '{property_name}'
+Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
+
+═══ 1. DURATION-FIRST GENERATION & BUDGET ALGORITHM ═══
+DO NOT select clips first. Instead, use: {dynamic_duration}
+Add unique clips until the duration budget is reached.
+Extract 3-5 seconds from the high-quality portions of each clip.
+
+[Platform Rules injected here]
+
+═══ 2. SCENE ROLE CLASSIFICATION & STORY BUILDER ═══
+Assign every selected clip a structural ROLE:
+OPENING, PROPERTY_SIGN, EXTERIOR, LOBBY, LIVING_ROOM, DINING, KITCHEN, BEDROOM, BATHROOM, AMENITY, POOL, GYM, PARKING, CLOSING.
+
+Build the reel strictly using this Role order:
+OPENING -> PROPERTY_SIGN -> LOBBY -> LIVING_ROOM -> DINING -> KITCHEN -> BEDROOM -> BATHROOM -> AMENITIES -> POOL -> GYM -> CLOSING
+THIS ORDER MUST OVERRIDE CLIP SCORE.
+
+═══ 3. OPENING SCENE RULES ═══
+Opening candidates: Drone, Exterior, Luxury Living Area.
+NEVER use: Bathroom, Parking, Utility Room.
+Opening duration: 5–7 seconds.
+
+═══ 4. CLOSING SCENE & DIVERSITY RULES ═══
+Closing candidates: Exterior, Pool, Night View, Drone Exit.
+NEVER reuse the opening scene.
+RULE: opening_scene_id != closing_scene_id (The opening video_index MUST NOT match the closing video_index).
+If opening uses Video A, you MUST use Video B for the closing. Avoid using the same source clip twice.
+
+═══ 5. REUSE PROTECTION ═══
+Track scene_id and video_id internally.
+PREVENT the same temporal segment of a video from appearing twice. Use maximum unique footage.
+Only remove: Exact duplicates, Near duplicates >95%.
+
+═══ 6. CATEGORY COVERAGE RULE ═══
+Never allow one category to dominate the reel.
+
+═══ 7. STORYBOARD VALIDATOR ═══
+Before outputting, verify:
+✓ Strong opening (Not bathroom/parking)
+✓ Logical walkthrough order based on Roles
+✓ No repeated opening shot
+✓ No repeated closing shot (Opening video_index != Closing video_index)
+✓ Amenities appear near the end
+✓ Smooth category transitions
+If validation fails, silently rebuild the storyboard before responding.
+```
+
+### Key Changes from v5 → v6
+
+| Aspect | v5 | v6 (Diversity & Roles) |
+|---|---|---|
+| Classification | General scene types | **Strict Structural Roles (OPENING, CLOSING, LOBBY)** |
+| Sequence Logic | Loose 15-stage | **Strict Role-based 12-stage builder** |
+| Closing Shot | Static | **opening_scene_id != closing_scene_id (Forced diversity)** |
+| Reuse Protection | Implicit | **Explicit Tracking of scene_id and video_id** |
+
+### Reasoning Behind Each Decision
+
+- **opening_scene_id != closing_scene_id**: Users noticed reels occasionally started and ended with the exact same clip, which ruined the pacing. This explicit constraint forces Gemini to pick different video sources for the start and end.
+- **Scene Role Classification**: Instead of just tagging a clip as "Pool", tagging it as "CLOSING" explicitly commands the LLM to place it at the end of the timeline sequence, solving the random ordering issue.
+
+## Prompt 3: Variation Generation (Updated)
 
 ### The Prompt
 ```text

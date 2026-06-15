@@ -3,6 +3,7 @@ import logging
 from bson import ObjectId
 from app.core.database import get_db
 from services.video import download_video, create_preview
+from services.deduplication import analyze_duplicate
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,32 @@ async def process_pending_uploads():
             if not check:
                 logger.info(f"Upload {upload_id} was cancelled by user. Aborting.")
                 continue
+                
+            # --- PRE-PROCESS: 3-STAGE DUPLICATE DETECTION ---
+            # Get all existing PROCESSED or PROCESSING uploads for this project (excluding self)
+            cursor = db.uploads.find({
+                "projectId": project_id, 
+                "_id": {"$ne": ObjectId(upload_id)},
+                "status": {"$in": ["PROCESSED", "PROCESSING", "DUPLICATE"]}
+            })
+            existing_files = await cursor.to_list(length=100)
+            
+            # Offload heavy CPU bound duplicate analysis to a thread
+            is_dup, reason, dup_data = await asyncio.to_thread(analyze_duplicate, local_path, existing_files)
+            
+            if is_dup:
+                logger.info(f"Duplicate detected for {upload_id}: {reason}")
+                await db.uploads.update_one(
+                    {"_id": ObjectId(upload_id)},
+                    {"$set": {
+                        "status": "DUPLICATE",
+                        "duplicateReason": reason,
+                        "localPath": local_path,
+                        "fileHash": dup_data.get("fileHash"),
+                        "pHashes": dup_data.get("pHashes")
+                    }}
+                )
+                continue # Skip preview generation and stop processing this clip
 
             # 2. Create Preview
             preview_path = await create_preview(local_path, project_id)
@@ -58,7 +85,9 @@ async def process_pending_uploads():
                 {"$set": {
                     "status": "PROCESSED",
                     "localPath": local_path,
-                    "previewPath": preview_path
+                    "previewPath": preview_path,
+                    "fileHash": dup_data.get("fileHash"),
+                    "pHashes": dup_data.get("pHashes")
                 }}
             )
             

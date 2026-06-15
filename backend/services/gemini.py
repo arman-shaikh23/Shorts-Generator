@@ -89,20 +89,15 @@ def _calculate_dynamic_duration(clip_count: int, target_duration: str) -> str:
     
     if not is_youtube:
         # SHORTS MODE
-        if clip_count <= 10:
-            return "30-45 seconds"
-        elif clip_count <= 20:
-            return "45-60 seconds"
-        else:
-            return "60 seconds maximum"
+        return "Target: 45-60 seconds (ABSOLUTE MAXIMUM 60 SECONDS)"
     else:
         # YOUTUBE MODE
-        if clip_count <= 10:
-            return "60-90 seconds"
-        elif clip_count <= 20:
-            return "90-120 seconds"
+        if clip_count <= 20:
+            return "Target: 60-90 seconds"
+        elif clip_count <= 40:
+            return "Target: 90-180 seconds"
         else:
-            return "120 seconds maximum"
+            return "Target: 180-240 seconds"
 
 
 async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, duplicate_sensitivity: str = "Low", yield_callback=None) -> dict:
@@ -114,70 +109,74 @@ async def analyze_and_generate(file_uris: list[str], property_name: str, duratio
     is_youtube = 'min' in duration.lower()
     
     if not is_youtube:
-        max_clips = 12
-        coverage_instruction = f"""COVERAGE TARGET: Try to use many clips, BUT THIS IS SHORTS MODE.
-CRITICAL DURATION LIMIT: You MUST NOT select more than {max_clips} clips total, even if it means missing the 80% coverage target. The total duration must remain under 60 seconds."""
+        platform_rules = """═══ SHORTS MODE RULES ═══
+Structure:
+0–5 sec: Hook
+5–20 sec: Main Property
+20–45 sec: Best Rooms
+45–60 sec: Amenities + Closing
+HARD LIMIT: 60 sec maximum."""
     else:
-        coverage_instruction = f"""COVERAGE TARGET: Use 80-95% of all clips. Use at least one segment from every unique uploaded clip whenever possible.
-If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.85))} clips."""
+        platform_rules = """═══ YOUTUBE MODE RULES ═══
+YouTube videos must feel like mini property tours.
+Structure:
+0–15 sec: Hook
+15–60 sec: Main Living Areas
+60–120 sec: Bedrooms + Bathrooms
+120–180 sec: Amenities
+180–240 sec: Closing + CTA
+Do not generate YouTube videos under 60 seconds unless insufficient footage exists."""
 
     prompt = f"""Property: '{property_name}'
 Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
-═══ YOUR #1 PRIORITY: MAXIMIZE FOOTAGE COVERAGE ═══
-
-You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
-
-{coverage_instruction}
-
-═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
-
-ONLY remove a clip if ALL of the following are true:
-1. It shows the EXACT same scene as another clip
-2. It has the EXACT same camera angle (within 10 degrees)  
-3. Visual similarity is above 95%
-
-Duplicate Sensitivity Setting: {duplicate_sensitivity}
-
-═══ OPENING SHOT SELECTION ═══
-
-Choose the strongest opening shot from: Drone, Exterior, or Best Luxury Scene.
-AVOID using Parking, Bathroom, or Storage Area as the opening shot under any circumstances (unless no other clips exist).
-
-═══ PROPERTY TOUR STORY ENGINE ═══
-
-Do NOT use the raw upload order. Do NOT use score-only ordering.
-Detect scene categories and automatically build a logical property walkthrough.
-
-Preferred sequence:
-1. OPENING: Drone, Exterior, Entrance
-2. MAIN TOUR: Lobby, Living Room, Dining, Kitchen
-3. PRIVATE AREAS: Bedroom, Bathroom, Balcony
-4. AMENITIES: Pool, Gym, Garden, Clubhouse
-5. FINAL SECTION: Parking, Exterior, Closing Drone
-
-Parking should NEVER be used as the opening shot. Place it near the end.
-
-═══ SCENE DIVERSITY ═══
-
-Never place more than 2 clips of the same scene_type consecutively.
-
-═══ DYNAMIC CLIP DURATION ═══
-
+═══ 1. DURATION-FIRST GENERATION & BUDGET ALGORITHM ═══
+DO NOT select clips first.
+Instead, use: {dynamic_duration}
+Add unique clips until the duration budget is reached.
 Extract 3-5 seconds from the high-quality portions of each clip.
-- Quality score 90-100: 4-5 seconds
-- Quality score below 90: 3-4 seconds
+Example: Clip A (4 sec) + Clip B (3 sec) + Clip C (5 sec). Continue until target duration is achieved.
 
-Target total reel duration: {dynamic_duration} (scales intelligently based on {clip_count} unique clips and the requested format).
+{platform_rules}
 
-═══ STORYBOARD VALIDATION ═══
+═══ 2. SCENE ROLE CLASSIFICATION & STORY BUILDER ═══
+Assign every selected clip a structural ROLE:
+OPENING, PROPERTY_SIGN, EXTERIOR, LOBBY, LIVING_ROOM, DINING, KITCHEN, BEDROOM, BATHROOM, AMENITY, POOL, GYM, PARKING, CLOSING.
 
+Build the reel strictly using this Role order:
+OPENING -> PROPERTY_SIGN -> LOBBY -> LIVING_ROOM -> DINING -> KITCHEN -> BEDROOM -> BATHROOM -> AMENITIES -> POOL -> GYM -> CLOSING
+THIS ORDER MUST OVERRIDE CLIP SCORE.
+
+═══ 3. OPENING SCENE RULES ═══
+Opening candidates: Drone, Exterior, Luxury Living Area.
+NEVER use: Bathroom, Parking, Utility Room.
+Opening duration: 5–7 seconds.
+
+═══ 4. CLOSING SCENE & DIVERSITY RULES ═══
+Closing candidates: Exterior, Pool, Night View, Drone Exit.
+NEVER reuse the opening scene.
+RULE: opening_scene_id != closing_scene_id (The opening video_index MUST NOT match the closing video_index).
+If opening uses Video A, you MUST use Video B for the closing. Avoid using the same source clip twice.
+
+═══ 5. REUSE PROTECTION ═══
+Track scene_id and video_id internally.
+PREVENT the same temporal segment of a video from appearing twice. Use maximum unique footage.
+Only remove: Exact duplicates, Near duplicates >95%.
+
+═══ 6. CATEGORY COVERAGE RULE ═══
+Never allow one category to dominate the reel.
+Bad: Pool, Pool, Pool, Pool
+Good: Pool, Gym, Kitchen, Bedroom
+
+═══ 7. STORYBOARD VALIDATOR ═══
 Before outputting, verify:
-- Does the reel start with a premium opening shot?
-- Does it follow the logical property tour?
-- Are all major categories represented?
-- Is parking placed near the end?
-- Is there a strong closing shot?
+✓ Strong opening (Not bathroom/parking)
+✓ Logical walkthrough order based on Roles
+✓ No repeated opening shot
+✓ No repeated closing shot (Opening video_index != Closing video_index)
+✓ Amenities appear near the end
+✓ Smooth category transitions
+If validation fails, silently rebuild the storyboard before responding.
 
 ═══ SCORING (per clip) ═══
 

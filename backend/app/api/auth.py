@@ -6,6 +6,7 @@ from ..core.dependencies import get_current_user
 import bcrypt
 import datetime
 import uuid
+import asyncio
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -65,10 +66,13 @@ async def signup(req: SignupRequest):
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
+    # Offload CPU-bound hash generation to a background thread
+    password_hash = await asyncio.to_thread(hash_password, req.password)
+
     result = await db.users.insert_one({
         "email": req.email,
         "name": req.name,
-        "passwordHash": hash_password(req.password),
+        "passwordHash": password_hash,
         "authProvider": "email",
         "googleId": None,
         "avatar": None,
@@ -87,7 +91,14 @@ async def login(req: LoginRequest):
     db = get_db()
 
     user = await db.users.find_one({"email": req.email})
-    if not user or not verify_password(req.password, user["passwordHash"]):
+    
+    # Offload CPU-bound hash verification to a background thread
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+        
+    is_valid = await asyncio.to_thread(verify_password, req.password, user["passwordHash"])
+    
+    if not is_valid:
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
     return await issue_tokens(str(user["_id"]))

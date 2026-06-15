@@ -28,11 +28,15 @@ load_dotenv()
 
 app = FastAPI()
 
+from app.core.cleanup import run_daily_cleanup
+
 @app.on_event("startup")
 async def startup_db_client():
     await connect_to_mongo()
     # Start the background worker
     asyncio.create_task(process_pending_uploads())
+    # Start the daily storage cleanup job
+    asyncio.create_task(run_daily_cleanup())
 
 @app.on_event("shutdown")
 async def shutdown_db_client():

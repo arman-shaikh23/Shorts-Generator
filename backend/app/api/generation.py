@@ -50,17 +50,22 @@ async def analyze_project(
 
     async def sse_generator():
         try:
-            # 1. Fetch all PROCESSED uploads
+            # 1. Fetch all PROCESSED uploads and DUPLICATE uploads
             cursor = db.uploads.find({"projectId": project_id, "status": "PROCESSED"}).sort("order", 1)
             uploads = []
             async for doc in cursor:
                 uploads.append(doc)
 
+            dup_cursor = db.uploads.find({"projectId": project_id, "status": "DUPLICATE"})
+            pre_duplicates = []
+            async for doc in dup_cursor:
+                pre_duplicates.append(doc)
+
             if len(uploads) < 3:
                 await q.put({"status": "error", "message": f"Need at least 3 processed clips. Found {len(uploads)}."})
                 return
 
-            await q.put({"status": "progress", "message": f"Found {len(uploads)} processed clips. Uploading to AI..."})
+            await q.put({"status": "progress", "message": f"Found {len(uploads)} processed clips and intercepted {len(pre_duplicates)} exact duplicates. Uploading to AI..."})
 
             # 2. Upload previews to Gemini sequentially to track progress
             file_infos = [None] * len(uploads)
@@ -121,14 +126,29 @@ async def analyze_project(
 
             # Save the timeline and AI metadata to the project
             coverage = gemini_result.get("coverage_analytics", {})
+            
+            # Combine AI removed clips with Pre-processor removed clips
+            ai_removed = gemini_result.get("removed_clips", [])
+            all_removed = ai_removed.copy()
+            for dup in pre_duplicates:
+                all_removed.append({
+                    "video_index": -1, # Pre-processor blocked
+                    "reason": dup.get("duplicateReason", "Pre-Processor Exact Match")
+                })
+                
+            total_uploaded = len(uploads) + len(pre_duplicates)
+            total_removed = len(ai_removed) + len(pre_duplicates)
+
             ai_metadata = {
                 "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),
                 "selected_sec": gemini_result.get("total_selected_duration_sec", 0),
-                "duplicates_removed": gemini_result.get("duplicates_removed_count", 0),
-                "removed_clips": gemini_result.get("removed_clips", []),
+                "duplicates_removed": total_removed,
+                "removed_clips": all_removed,
                 "coverage_analytics": {
-                    "uploaded_count": coverage.get("uploaded_count", len(uploads)),
-                    "duplicates_removed": coverage.get("duplicates_removed", 0),
+                    "uploaded_count": total_uploaded,
+                    "pre_processor_duplicates": len(pre_duplicates),
+                    "ai_duplicates": len(ai_removed),
+                    "duplicates_removed": total_removed,
                     "selected_count": coverage.get("selected_count", len(timeline)),
                     "coverage_percentage": coverage.get("coverage_percentage", 0)
                 }

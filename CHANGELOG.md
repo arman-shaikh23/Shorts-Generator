@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [12.0.0] - ReelForge Story Engine v6 (Diversity & Roles Refactor)
+### Changed
+- **Scene Role Classification**: The AI now tags every clip with a structural structural role (e.g. `OPENING`, `LOBBY`, `CLOSING`) ensuring chronological property tours that don't feel like random clip collections.
+- **Strict Opening/Closing Diversity**: Enforced the rule `opening_scene_id != closing_scene_id`. The engine is now hard-coded to never reuse the opening clip as the closing shot, forcing it to fetch a new clip (e.g. from Video B if Video A was used for the hook).
+- **Explicit Reuse Protection**: Added direct commands to the AI internally tracking `scene_id` and `video_id` to prevent the same temporal segment from appearing twice unless specifically requested.
+
+## [11.0.0] - ReelForge Story Engine v5 (Duration-First Refactor)
+### Changed
+- **Duration-First Algorithm**: The Gemini AI Engine no longer arbitrarily selects clips. It now calculates a strict "Duration Budget" (Shorts: max 60s, YouTube: scales up to 240s based on footage) and intelligently sums clip extractions (e.g., 4s + 3s + 5s) until the precise duration budget is hit.
+- **Chronological Property Sequencing**: Rewrote the core logic to strictly override visual quality scores with logical property tour storytelling. It forces the sequence: Drone -> Exterior -> Entrance -> Lobby -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Pool -> Gym -> Garden -> Parking -> Closing Drone.
+- **Platform Specific Pacing**: The AI now understands explicit timeline pacing. For example, Shorts videos enforce a 5-second "Hook" phase, 15-second "Main Property" phase, and 20-second "Best Rooms" phase.
+- **Opening Shot Enforcement**: Hardcoded restrictions to prevent Bathrooms or Parking areas from ever being the opening shot. The opening shot is now locked to Drone, Exterior, or Luxury shots with a fixed 5-7 second duration.
+
+## [10.1.0] - Automated Storage Cleanup & 3-Stage Deduplication
+### Added
+- **Aggressive Storage Cleanup Pipeline**: Added `app/core/cleanup.py` daily background worker that purges orphaned temporary files older than 24 hours. Additionally, `video.py` now destroys intermediate FFmpeg clips (`clip_X.mp4`) instantly after a reel compiles. Finally, deleting a project now securely wipes its entire filesystem `data/` directory.
+- **3-Stage Pre-Processor Deduplication Engine**: Videos are now filtered *before* AI analysis to save tokens and guarantee duplicate removal.
+  1. **Stage 1 (SHA256 Hash)**: Instantly catches exact identical files.
+  2. **Stage 2 (3-Frame pHash)**: Extracts Beginning, Middle, and End frames, computing the Hamming distance to catch >95% perceptual matches.
+  3. **Stage 3 (Local SSIM)**: Uses OpenCV & skimage Structural Similarity to structurally compare the raw pixel layouts.
+- **Duplicate Audit Panel**: The Analysis transparency UI now breaks down exact duplicates caught by the Local Engine versus semantic duplicates removed by the AI.
+
 ## [10.0.0] - Custom Music Engine & Strict Shorts Duration Fix
 ### Added
 - **Dynamic Custom Music Library**: Added a new "Music Selection" Step (Step 5) in the workflow. Users can now drop downloaded MP3/WAV files directly into `backend/data/library/music`, and the frontend will automatically scan and display them in a playable library.
