@@ -70,13 +70,13 @@ export function TopNav() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-5 shrink-0">
-        <button className="text-[#64748B] hover:text-[#0F172A] transition">
+        {/* <button className="text-[#64748B] hover:text-[#0F172A] transition">
           <Search size={20} />
-        </button>
-        <button className="text-[#64748B] hover:text-[#0F172A] transition relative">
+        </button> */}
+        {/* <button className="text-[#64748B] hover:text-[#0F172A] transition relative">
           <Bell size={20} />
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
-        </button>
+        </button> */}
         
         <div className="w-px h-6 bg-[#E2E8F0] mx-1"></div>
         

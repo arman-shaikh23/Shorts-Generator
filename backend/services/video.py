@@ -39,6 +39,11 @@ def parse_time_to_seconds(time_str: str) -> float:
         total = total * 60 + float(part)
     return total
 
+def has_audio(path: str) -> bool:
+    cmd = ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", path]
+    res = subprocess.run(cmd, capture_output=True, text=True)
+    return bool(res.stdout.strip())
+
 def get_direct_url(url: str) -> str:
     if "dropbox.com" in url:
         return url.replace("?dl=0", "").replace("&dl=0", "") + ("&dl=1" if "?" in url else "?dl=1")
@@ -106,16 +111,22 @@ async def process_segment(input_path: str, output_path: str, start_time: str, en
     # Inject standard fps to prevent xfade desyncs
     vf_chain = f"fps=30,{vf_filter},eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p"
 
-    # We do a high-quality intermediate encode so the final xfade pass doesn't lose quality
     cmd = [
         "ffmpeg", "-y",
         "-ss", start_time, "-to", end_time,
-        "-i", input_path,
+        "-i", input_path
+    ]
+    
+    if not has_audio(input_path):
+        cmd.extend(["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=44100"])
+        cmd.extend(["-map", "0:v:0", "-map", "1:a:0", "-shortest"])
+        
+    cmd.extend([
         "-vf", vf_chain,
         "-c:v", "libx264", "-preset", "slow", "-crf", "18", "-profile:v", "high",
         "-c:a", "aac", "-b:a", "192k", "-ar", "44100",
         output_path
-    ]
+    ])
 
     await asyncio.to_thread(run_ffmpeg, cmd)
     logger.info(f"[HQ PREP] Prepared clip in {time.perf_counter() - start:.1f}s")
@@ -139,9 +150,13 @@ async def build_reel(
     output_path = os.path.join(output_dir, output_filename)
     start = time.perf_counter()
 
-    # --- SCENE GROUPING ENGINE ---
-    # Sort blocks to prevent random room jumps (e.g. Exterior -> Kitchen -> Exterior -> Bedroom)
-    scene_order = {"exterior": 1, "living room": 2, "kitchen": 3, "bedroom": 4, "bathroom": 5, "amenities": 6}
+    # --- SCENE GROUPING ENGINE (Full Property Tour Order) ---
+    scene_order = {
+        "drone": 1, "aerial": 2, "exterior": 3, "entrance": 4, "lobby": 5,
+        "living room": 6, "kitchen": 7, "dining": 8, "bedroom": 9, "bathroom": 10,
+        "balcony": 11, "pool": 12, "gym": 13, "parking": 14, "garden": 15,
+        "amenities": 16, "closing drone": 17, "closing": 18, "other": 19
+    }
     sorted_blocks = sorted(timeline_blocks, key=lambda x: scene_order.get(x.get("scene_type", "").lower(), 99))
 
     # --- STYLE-BASED TRANSITION RULES ---
@@ -165,9 +180,16 @@ async def build_reel(
         clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
         
         start_t = str(scene.get("start", "0"))
-        # Extend the clip length slightly to accommodate the xfade overlap without shrinking final video length
-        end_t_val = parse_time_to_seconds(scene.get("end", "5"))
-        # We add the transition duration to the cut so the crossfade has visual material to bleed into
+        
+        # Use clip_duration_sec from Gemini if available (3-6 seconds per clip)
+        clip_dur = scene.get("clip_duration_sec")
+        if clip_dur and float(clip_dur) > 0:
+            start_seconds = parse_time_to_seconds(start_t)
+            end_t_val = start_seconds + float(clip_dur)
+        else:
+            end_t_val = parse_time_to_seconds(scene.get("end", "5"))
+        
+        # Add transition duration buffer so crossfade has visual material
         end_t = str(end_t_val + transition_duration)
         
         await process_segment(input_paths[v_idx], clip_path, start_t, end_t, aspect_ratio)

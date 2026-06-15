@@ -32,6 +32,7 @@ export default function ProjectDetailPage() {
   const [reelDuration, setReelDuration] = useState('30 sec');
   const [reelStyle, setReelStyle] = useState('Luxury');
   const [aspectRatio, setAspectRatio] = useState('9:16');
+  const [duplicateSensitivity, setDuplicateSensitivity] = useState('Low');
 
   const [isUploadingFile, setIsUploadingFile] = useState(false);
   const [isUploadingUrl, setIsUploadingUrl] = useState(false);
@@ -127,6 +128,7 @@ export default function ProjectDetailPage() {
       const params = new URLSearchParams();
       params.append('duration', reelDuration);
       params.append('style', reelStyle);
+      params.append('duplicate_sensitivity', duplicateSensitivity);
       start(`http://localhost:8000/api/v1/projects/${id}/generation/analyze?${params.toString()}&token=${getAccessToken() || ''}`);
     }
   };
@@ -252,6 +254,29 @@ export default function ProjectDetailPage() {
                 </div>
               </div>
 
+              {/* Upload Status List */}
+              {hasUploads && (
+                <div className="mt-8 bg-white p-6 rounded-[2rem] border border-[#E2E8F0] shadow-sm">
+                  <h3 className="text-sm font-black text-[#0F172A] uppercase tracking-wider mb-4">Clip Processing Status</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {uploads.map((u, i) => (
+                      <div key={u._id} className="flex justify-between items-center p-3 bg-[#F8FAFC] rounded-xl border border-[#E2E8F0]">
+                        <span className="font-bold text-xs text-[#0F172A] truncate pr-2" title={u.originalFilename || `Clip ${i + 1}`}>
+                          {u.originalFilename || `Clip ${i + 1}`}
+                        </span>
+                        {u.status === 'PROCESSED' ? (
+                          <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Check size={12}/> Ready</span>
+                        ) : u.status === 'ERROR' ? (
+                          <span className="text-[10px] font-black text-[#EF4444] bg-[#EF4444]/10 px-2 py-1 rounded-md shrink-0">Failed</span>
+                        ) : (
+                          <span className="text-[10px] font-black text-[#F59E0B] bg-[#F59E0B]/10 px-2 py-1 rounded-md flex items-center gap-1 shrink-0"><Loader2 size={12} className="animate-spin"/> Pending</span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Success Summary Card */}
               <AnimatePresence>
                 {hasUploads && (
@@ -265,9 +290,23 @@ export default function ProjectDetailPage() {
                         <p className="text-base font-bold text-[#64748B] mt-1">{readyClips.length} Clips Ready • 4K/1080p Processed</p>
                       </div>
                     </div>
-                    <button onClick={goToAnalyze} disabled={readyClips.length === 0} className="w-full md:w-auto bg-[#0EA5E9] text-white px-10 py-5 rounded-2xl text-xl font-black shadow-[0_15px_30px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-3 transition-all">
-                      Start AI Analysis <ChevronRight size={24} />
-                    </button>
+                    <div className="flex items-center gap-4 w-full md:w-auto">
+                      <div className="flex flex-col">
+                        <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-1">Duplicate Sensitivity</label>
+                        <select 
+                          value={duplicateSensitivity} 
+                          onChange={(e) => setDuplicateSensitivity(e.target.value)}
+                          className="bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-[#0F172A] font-bold focus:outline-none focus:border-[#0EA5E9] shadow-sm appearance-none min-w-[120px]"
+                        >
+                          <option value="Low">Low (Keep More)</option>
+                          <option value="Medium">Medium</option>
+                          <option value="High">High (Strict)</option>
+                        </select>
+                      </div>
+                      <button onClick={goToAnalyze} disabled={readyClips.length === 0} className="w-full md:w-auto bg-[#0EA5E9] text-white px-8 py-4 rounded-xl text-lg font-black shadow-[0_10px_20px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all">
+                        Start AI Analysis <ChevronRight size={20} />
+                      </button>
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
@@ -296,9 +335,35 @@ export default function ProjectDetailPage() {
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-8">
                   
                   {/* Transparency Panel */}
-                  <div className="col-span-1 bg-white p-8 rounded-[2rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
-                    <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6 flex items-center gap-2"><Activity size={16}/> Transparency Panel</h3>
-                    <div className="space-y-5">
+                  <div className="col-span-1 bg-white p-8 rounded-[2rem] border border-[#E2E8F0] shadow-sm flex flex-col h-full">
+                    <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6 flex items-center gap-2 shrink-0"><Activity size={16}/> Transparency Panel</h3>
+                    
+                    {/* Coverage Analytics */}
+                    {project?.aiMetadata?.coverage_analytics && (
+                      <div className="mb-6 p-4 bg-gradient-to-br from-[#F0FDF4] to-[#ECFDF5] rounded-xl border border-[#10B981]/20 shrink-0">
+                        <p className="text-[10px] font-black text-[#10B981] uppercase tracking-wider mb-3">Coverage Analytics</p>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">Uploaded</p>
+                            <p className="text-lg font-black text-[#0F172A]">{project.aiMetadata.coverage_analytics.uploaded_count}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">Removed</p>
+                            <p className="text-lg font-black text-[#EF4444]">{project.aiMetadata.coverage_analytics.duplicates_removed}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">Selected</p>
+                            <p className="text-lg font-black text-[#10B981]">{project.aiMetadata.coverage_analytics.selected_count}</p>
+                          </div>
+                          <div>
+                            <p className="text-[10px] font-bold text-[#64748B]">Coverage</p>
+                            <p className="text-lg font-black text-[#8B5CF6]">{project.aiMetadata.coverage_analytics.coverage_percentage}%</p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="space-y-5 mb-6 shrink-0">
                       <div>
                         <p className="text-xs font-bold text-[#94a3b8] uppercase mb-1">Total Analyzed</p>
                         <p className="text-2xl font-black text-[#0F172A]">{project?.aiMetadata?.analyzed_sec || 0}s</p>
@@ -312,6 +377,20 @@ export default function ProjectDetailPage() {
                         <p className="text-2xl font-black text-[#10B981]">{project?.aiMetadata?.selected_sec || 0}s</p>
                       </div>
                     </div>
+
+                    {project?.aiMetadata?.removed_clips?.length > 0 && (
+                      <div className="mt-auto border-t border-[#E2E8F0] pt-4 overflow-y-auto min-h-0">
+                        <p className="text-[10px] font-black text-[#64748B] uppercase tracking-wider mb-2">Removed Clips</p>
+                        <ul className="space-y-2">
+                          {project.aiMetadata.removed_clips.map((c, i) => (
+                            <li key={i} className="text-xs bg-red-50 text-red-700 px-2 py-1.5 rounded border border-red-100 flex flex-col gap-1">
+                              <span className="font-bold">Clip #{c.video_index + 1}</span>
+                              <span className="opacity-80 leading-tight">{c.reason}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
                   </div>
 
                   <div className="col-span-1 lg:col-span-3 bg-white p-8 rounded-[2rem] border border-[#E2E8F0] shadow-sm">
@@ -381,7 +460,7 @@ export default function ProjectDetailPage() {
                             <p className="text-base font-black text-[#0F172A] truncate pr-2 capitalize">{item.scene_type || 'Clip'}</p>
                             <span className="text-[10px] font-black text-[#10B981] bg-[#10B981]/10 px-2 py-1 rounded-md">{item.confidence_score ? `${item.confidence_score}% Conf` : 'Extracted'}</span>
                           </div>
-                          <p className="text-xs font-bold text-[#64748B] mb-3">{item.end ? (float_end(item.end) - float_start(item.start)).toFixed(1) : '5.0'}s segment duration</p>
+                          <p className="text-xs font-bold text-[#64748B] mb-3">{item.clip_duration_sec ? `${item.clip_duration_sec}s display` : `${item.end ? (float_end(item.end) - float_start(item.start)).toFixed(1) : '5.0'}s segment`}</p>
                           
                           {/* AI Ranking Badges */}
                           <div className="grid grid-cols-2 gap-2">

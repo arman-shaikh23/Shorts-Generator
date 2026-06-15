@@ -19,6 +19,8 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Smart Crossfade Engine**: Generated videos use a massive `-filter_complex` FFmpeg pipeline with `xfade` and `acrossfade` for buttery-smooth transitions (Fades, Wipes, Slides) tailored automatically to the selected reel style.
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
 - **Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Hook -> Walkthrough -> Amenities -> CTA.
+- **Coverage Protection System**: Actively prevents dropping clips if they are the only representation of a specific detected category (e.g., Gym, Pool), ensuring maximum footage coverage.
+- **Adjustable Duplicate Sensitivity**: Users can define how aggressively the AI filters clips via a dropdown (Low, Medium, High).
 - **Scene Grouping Algorithm**: Prevents jarring visual jumping by intelligently sorting and grouping similar scenes (e.g. all exterior shots play sequentially).
 - **Studio Grade Quality**: Enforces strict `fps=30`, color-normalization passes (`eq=contrast=1.05`), and high-end `-preset slow -crf 18` encoding for crisp, artifact-free exports.
 - **AI Creative Studio**: Replaces the generic file manager with a 3-stage AI pipeline (Uploaded Footage, AI Director Analysis, and AI Storyboard). Shows detected rooms, confidence scores, and AI rejection reasons.

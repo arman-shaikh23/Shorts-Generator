@@ -36,6 +36,7 @@ async def analyze_project(
     request: Request,
     duration: str = "30 sec",
     style: str = "Luxury",
+    duplicate_sensitivity: str = "Low",
     user = Depends(get_current_user)
 ):
     """Phase 1: Ask Gemini to propose a sequence using the uploaded previews. Uses SSE for progress."""
@@ -61,15 +62,26 @@ async def analyze_project(
 
             await q.put({"status": "progress", "message": f"Found {len(uploads)} processed clips. Uploading to AI..."})
 
-            # 2. Upload previews to Gemini
-            upload_tasks = []
-            for i, up in enumerate(uploads):
-                if not up.get("previewPath"):
-                    continue
-                upload_tasks.append(upload_and_wait(up["previewPath"], f"{project['title']}_part{i}"))
+            # 2. Upload previews to Gemini sequentially to track progress
+            file_infos = [None] * len(uploads)
+            total = sum(1 for u in uploads if u.get("previewPath"))
+            completed = 0
+            
+            await q.put({"status": "progress", "message": f"Uploading clips to AI Engine (0/{total} done)..."})
+            
+            async def track_upload(i, up):
+                info = await upload_and_wait(up["previewPath"], f"{project['title']}_part{i}")
+                return i, info
 
-            file_infos = await asyncio.gather(*upload_tasks)
-            file_uris = [info.uri for info in file_infos]
+            tasks = [track_upload(i, up) for i, up in enumerate(uploads) if up.get("previewPath")]
+            
+            for coro in asyncio.as_completed(tasks):
+                idx, info = await coro
+                file_infos[idx] = info
+                completed += 1
+                await q.put({"status": "progress", "message": f"Uploading clips to AI Engine ({completed}/{total} done)..."})
+
+            file_uris = [info.uri for info in file_infos if info is not None]
 
             # 3. Gemini Analysis
             await q.put({"status": "progress", "message": "Detecting Scenes..."})
@@ -83,7 +95,7 @@ async def analyze_project(
             async def yield_message(msg: str):
                 await q.put({"status": "progress", "message": msg})
 
-            gemini_result = await analyze_and_generate(file_uris, project["title"], duration, style, yield_callback=yield_message)
+            gemini_result = await analyze_and_generate(file_uris, project["title"], duration, style, duplicate_sensitivity, yield_callback=yield_message)
 
             # Map the Gemini result to the actual upload objects
             # Assuming Gemini returns final_order referencing the original index
@@ -108,10 +120,18 @@ async def analyze_project(
             gemini_result["timeline"] = timeline
 
             # Save the timeline and AI metadata to the project
+            coverage = gemini_result.get("coverage_analytics", {})
             ai_metadata = {
                 "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),
                 "selected_sec": gemini_result.get("total_selected_duration_sec", 0),
-                "duplicates_removed": gemini_result.get("duplicates_removed_count", 0)
+                "duplicates_removed": gemini_result.get("duplicates_removed_count", 0),
+                "removed_clips": gemini_result.get("removed_clips", []),
+                "coverage_analytics": {
+                    "uploaded_count": coverage.get("uploaded_count", len(uploads)),
+                    "duplicates_removed": coverage.get("duplicates_removed", 0),
+                    "selected_count": coverage.get("selected_count", len(timeline)),
+                    "coverage_percentage": coverage.get("coverage_percentage", 0)
+                }
             }
             await db.projects.update_one(
                 {"_id": ObjectId(project_id)},

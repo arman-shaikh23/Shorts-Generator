@@ -8,6 +8,14 @@ from google.genai import types
 
 gemini_semaphore = asyncio.Semaphore(2)
 
+# ── Property Tour Scene Order ──────────────────────────────
+SCENE_ORDER = [
+    "drone", "aerial", "exterior", "entrance", "lobby",
+    "living room", "kitchen", "dining", "bedroom", "bathroom",
+    "balcony", "pool", "gym", "parking", "garden",
+    "amenities", "closing drone", "closing"
+]
+
 def get_client():
     api_key = os.environ.get("GEMINI_API_KEY")
     if not api_key:
@@ -35,7 +43,7 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
     if yield_callback:
         await yield_callback("Preview uploaded. Waiting for Gemini processing...")
 
-    # Exponential backoff polling: 2s, 4s, 8s, 10s, 10s, ...
+    # Exponential backoff polling: 2s, 3s, 4.5s, 6.75s, 10s, 10s, ...
     poll_start = time.perf_counter()
     delay = 2.0
     max_delay = 10.0
@@ -54,7 +62,7 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
             raise Exception("Gemini failed to process the video.")
 
         await asyncio.sleep(delay)
-        delay = min(delay * 1.5, max_delay)  # exponential backoff capped at 10s
+        delay = min(delay * 1.5, max_delay)
 
     poll_elapsed = time.perf_counter() - poll_start
     total_elapsed = time.perf_counter() - start
@@ -65,51 +73,121 @@ async def upload_and_wait(file_path: str, display_name: str, yield_callback=None
 
     return file_info
 
-async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, yield_callback=None) -> dict:
-    """Production-Grade AI Selection Engine using Gemini-2.5-Pro."""
+
+def _calculate_dynamic_duration(clip_count: int) -> str:
+    """Calculate target reel duration based on clip count.
+    
+    5 clips  → 20-40 sec
+    15 clips → 45-90 sec
+    30 clips → 90-180 sec
+    50 clips → 120-240 sec
+    """
+    if clip_count <= 5:
+        return "20-40 seconds"
+    elif clip_count <= 15:
+        return "45-90 seconds"
+    elif clip_count <= 30:
+        return "90-180 seconds"
+    else:
+        return "120-240 seconds"
+
+
+async def analyze_and_generate(file_uris: list[str], property_name: str, duration: str, style: str, duplicate_sensitivity: str = "Low", yield_callback=None) -> dict:
+    """Coverage-First AI Selection Engine.
+    
+    Core principle: USE AS MANY CLIPS AS POSSIBLE (80-95%).
+    Only remove true duplicates. Never aggressively filter.
+    """
     client = get_client()
+    clip_count = len(file_uris)
+    dynamic_duration = _calculate_dynamic_duration(clip_count)
 
     prompt = f"""Property: '{property_name}'
-Target Duration: {duration}
+Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
 
-You are an elite Real Estate Video Editor. I have provided you with {len(file_uris)} raw video files (indices 0 to {len(file_uris)-1}). 
+═══ YOUR #1 PRIORITY: MAXIMIZE FOOTAGE COVERAGE ═══
 
-CRITICAL REQUIREMENTS:
-1. FULL VIDEO ANALYSIS: Analyze the ENTIRE duration of every single video. You MUST extract multiple distinct segments from long videos. Do not limit yourself to the first 5 seconds.
-2. DYNAMIC REEL LENGTH: Scale the number of selected clips to match the requested Target Duration ({duration}).
-3. SMART SCENE RANKING & CONFIDENCE: For every extracted segment, score it from 0-100 on Visual Quality, Lighting, Stability, Luxury Appeal, and Engagement. 
-   - You MUST assign a 'confidence_score' for the scene detection. ONLY select scenes where confidence_score > 85.
-4. SEMANTIC DEDUPLICATION: I have uploaded multiple takes of the same rooms. You MUST identify visually similar or duplicate shots, evaluate their scores, and ONLY return the single highest-rated version. Drop all other duplicates.
-5. REAL ESTATE STORYTELLING ENGINE: Build the final timeline with this exact structure:
-   - OPENING: The single most impressive, highest-rated hook shot (e.g. Drone, Exterior, Luxury Pool).
-   - MIDDLE: A logical property walkthrough (e.g. Entrance -> Living Room -> Kitchen -> Bedrooms -> Bathrooms).
-   - ENDING: The best amenity or a stunning closing shot.
-   - Do NOT jump randomly between rooms (e.g. Pool -> Kitchen -> Pool -> Bedroom).
-6. TRANSPARENCY: Report total analyzed seconds, total selected seconds, and the number of duplicate clips you dropped.
+You are a professional real estate video editor. Your job is to create a COMPLETE property tour that uses NEARLY ALL uploaded footage.
 
-Return strict JSON matching this schema:
-- 'property_type': string
-- 'title': string
-- 'hook': string
-- 'description': string
-- 'hashtags': array of strings
-- 'total_analyzed_duration_sec': int
-- 'total_selected_duration_sec': int
-- 'duplicates_removed_count': int
-- 'selected_clips': array of objects {{
-    'video_index': int,
-    'scene_type': str,
-    'confidence_score': float,
-    'visual_quality_score': int,
-    'lighting_score': int,
-    'stability_score': int,
-    'luxury_appeal': int,
-    'engagement_score': int,
-    'reason': str,
-    'start': 'MM:SS',
-    'end': 'MM:SS'
-}}
-- 'final_order': array of integers (these MUST match the 'video_index' values from selected_clips, defining the exact storyline sequence)."""
+COVERAGE TARGET: Use 80-95% of all {clip_count} clips. If {clip_count} clips are uploaded, you should select at least {max(1, int(clip_count * 0.80))} clips.
+
+═══ DUPLICATE REMOVAL RULES (VERY STRICT) ═══
+
+ONLY remove a clip if ALL of the following are true:
+1. It shows the EXACT same scene as another clip
+2. It has the EXACT same camera angle (within 10 degrees)  
+3. Visual similarity is above 95%
+
+NEVER remove a clip just because:
+- It shows the same room from a different angle
+- It has slightly different lighting
+- It's a different take of the same space
+
+Different angles of the same room = KEEP BOTH.
+Similar but not identical shots = KEEP BOTH.
+
+Duplicate Sensitivity Setting: {duplicate_sensitivity}
+- If "Low": Only remove exact duplicates (same hash or >98% identical)
+- If "Medium": Remove if >95% similarity AND same angle AND same scene
+- If "High": Remove if >90% similarity AND same angle AND same scene
+
+═══ SCENE CATEGORIZATION ═══
+
+Classify each clip into one of these categories:
+Drone, Aerial, Exterior, Entrance, Lobby, Living Room, Kitchen, Dining, Bedroom, Bathroom, Balcony, Pool, Gym, Parking, Garden, Amenities, Closing Drone, Other
+
+═══ COVERAGE PROTECTION ═══
+
+Before removing ANY clip: check if it is the ONLY representative of its scene category.
+If it is the only clip of type "Pool" or "Gym" etc., you MUST keep it. Never remove the last clip of any category.
+
+═══ PROPERTY TOUR SEQUENCING ═══
+
+Order the final timeline as a logical property walkthrough:
+1. OPENING: Most impressive / dramatic shot (Drone, Exterior, Pool)
+2. WALKTHROUGH: Entrance → Lobby → Living Room → Kitchen → Dining → Bedrooms → Bathrooms
+3. AMENITIES: Balcony → Pool → Gym → Garden → Parking
+4. CLOSING: Best amenity or a stunning closing drone shot
+
+═══ SCENE DIVERSITY ═══
+
+Never place more than 2 clips of the same scene_type consecutively.
+Bad:  Pool → Pool → Pool → Pool
+Good: Pool → Gym → Garden → Pool
+
+═══ DYNAMIC CLIP DURATION ═══
+
+Each selected clip should display for 3-6 seconds based on visual quality:
+- Quality score 90-100: 5-6 seconds (showcase it)
+- Quality score 70-89: 4-5 seconds (standard)
+- Quality score below 70: 3-4 seconds (quick cut)
+
+Target total reel duration: {dynamic_duration} (scales with {clip_count} clips)
+
+═══ SCORING (per clip) ═══
+
+Score each clip 0-100 on: visual_quality_score, lighting_score, stability_score, luxury_appeal, engagement_score.
+Assign confidence_score (0-100) for scene detection accuracy.
+
+═══ STORYTELLING ═══
+
+Style: {style}
+- Opening: Single most impressive hook shot
+- Middle: Logical property walkthrough
+- Ending: Best amenity + strongest closing shot
+
+═══ OUTPUT FORMAT ═══
+
+Return strict JSON with these fields:
+- property_type, title, hook, description, hashtags
+- total_analyzed_duration_sec, total_selected_duration_sec
+- duplicates_removed_count
+- coverage_analytics: {{ uploaded_count, duplicates_removed, selected_count, coverage_percentage }}
+- removed_clips: array of {{ video_index, reason }}
+- selected_clips: array of {{ video_index, scene_type, confidence_score, visual_quality_score, lighting_score, stability_score, luxury_appeal, engagement_score, clip_duration_sec, reason, start, end }}
+- final_order: array of video_index integers defining the exact storyline sequence
+
+REMEMBER: Your goal is to INCLUDE almost everything, not to filter aggressively. A user who uploads 29 clips expects to see 26-29 of them in the final reel."""
 
     schema = types.Schema(
         type=types.Type.OBJECT,
@@ -122,6 +200,27 @@ Return strict JSON matching this schema:
             "total_analyzed_duration_sec": types.Schema(type=types.Type.INTEGER),
             "total_selected_duration_sec": types.Schema(type=types.Type.INTEGER),
             "duplicates_removed_count": types.Schema(type=types.Type.INTEGER),
+            "coverage_analytics": types.Schema(
+                type=types.Type.OBJECT,
+                properties={
+                    "uploaded_count": types.Schema(type=types.Type.INTEGER),
+                    "duplicates_removed": types.Schema(type=types.Type.INTEGER),
+                    "selected_count": types.Schema(type=types.Type.INTEGER),
+                    "coverage_percentage": types.Schema(type=types.Type.NUMBER),
+                },
+                required=["uploaded_count", "duplicates_removed", "selected_count", "coverage_percentage"]
+            ),
+            "removed_clips": types.Schema(
+                type=types.Type.ARRAY,
+                items=types.Schema(
+                    type=types.Type.OBJECT,
+                    properties={
+                        "video_index": types.Schema(type=types.Type.INTEGER),
+                        "reason": types.Schema(type=types.Type.STRING)
+                    },
+                    required=["video_index", "reason"]
+                )
+            ),
             "selected_clips": types.Schema(
                 type=types.Type.ARRAY,
                 items=types.Schema(
@@ -135,16 +234,17 @@ Return strict JSON matching this schema:
                         "stability_score": types.Schema(type=types.Type.INTEGER),
                         "luxury_appeal": types.Schema(type=types.Type.INTEGER),
                         "engagement_score": types.Schema(type=types.Type.INTEGER),
+                        "clip_duration_sec": types.Schema(type=types.Type.NUMBER),
                         "reason": types.Schema(type=types.Type.STRING),
                         "start": types.Schema(type=types.Type.STRING),
                         "end": types.Schema(type=types.Type.STRING),
                     },
-                    required=["video_index", "scene_type", "confidence_score", "visual_quality_score", "lighting_score", "stability_score", "luxury_appeal", "engagement_score", "reason", "start", "end"]
+                    required=["video_index", "scene_type", "confidence_score", "visual_quality_score", "lighting_score", "stability_score", "luxury_appeal", "engagement_score", "clip_duration_sec", "reason", "start", "end"]
                 )
             ),
             "final_order": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.INTEGER))
         },
-        required=["property_type", "title", "hook", "description", "hashtags", "total_analyzed_duration_sec", "total_selected_duration_sec", "duplicates_removed_count", "selected_clips", "final_order"]
+        required=["property_type", "title", "hook", "description", "hashtags", "total_analyzed_duration_sec", "total_selected_duration_sec", "duplicates_removed_count", "coverage_analytics", "removed_clips", "selected_clips", "final_order"]
     )
 
     loop = asyncio.get_event_loop()
@@ -153,8 +253,7 @@ Return strict JSON matching this schema:
 
     async with gemini_semaphore:
         for attempt in range(max_retries + 1):
-            # Fallback model strategy: Pro for first 3 attempts, Flash for the rest
-            model_name = 'gemini-2.5-pro' if attempt < 3 else 'gemini-2.5-flash'
+            model_name = 'gemini-2.5-flash'
             start_attempt = time.perf_counter()
 
             try:
@@ -172,17 +271,38 @@ Return strict JSON matching this schema:
                         ),
                     )
 
-                # Timeout Protection
                 future = loop.run_in_executor(None, _generate)
-                response = await asyncio.wait_for(future, timeout=90.0)
+                response = await asyncio.wait_for(future, timeout=120.0)
 
                 elapsed = time.perf_counter() - start_attempt
                 print(f"[PERF] Gemini {model_name} success on attempt {attempt+1}: {elapsed:.1f}s")
 
                 try:
-                    return json.loads(response.text)
+                    result = json.loads(response.text)
                 except json.JSONDecodeError:
                     raise Exception(f"Failed to decode Gemini response as JSON: {response.text}")
+
+                # ── Post-Processing: Validate Coverage ──
+                selected_count = len(result.get("selected_clips", []))
+                removed_count = len(result.get("removed_clips", []))
+                coverage_pct = (selected_count / clip_count * 100) if clip_count > 0 else 0
+
+                # Ensure coverage_analytics is accurate
+                result["coverage_analytics"] = {
+                    "uploaded_count": clip_count,
+                    "duplicates_removed": removed_count,
+                    "selected_count": selected_count,
+                    "coverage_percentage": round(coverage_pct, 1)
+                }
+                result["duplicates_removed_count"] = removed_count
+
+                print(f"[COVERAGE] {clip_count} uploaded → {removed_count} removed → {selected_count} selected → {coverage_pct:.1f}%")
+
+                # Warn if coverage is too low
+                if coverage_pct < 70 and clip_count > 3:
+                    print(f"[WARNING] Coverage is only {coverage_pct:.1f}%. Expected 80-95%. Gemini may have been too aggressive.")
+
+                return result
 
             except Exception as e:
                 error_str = str(e)
@@ -210,12 +330,13 @@ Return strict JSON matching this schema:
 
                 await asyncio.sleep(delay)
 
+
 async def generate_variations(property_name: str, timeline: list) -> dict:
     """Phase 2: Generate 3 distinct text variations (Luxury, Viral, Realtor) based on the timeline."""
     client = get_client()
 
     # Summarize timeline for context
-    scenes = [f"Index {c.get('video_index', i)}: {c.get('scene_type', 'scene')} ({c.get('start', '0')}-{c.get('end', '5')}s) - {c.get('reason', '')}" for i, c in enumerate(timeline)]
+    scenes = [f"Index {c.get('video_index', i)}: {c.get('scene_type', 'scene')} ({c.get('start', '0')}-{c.get('end', '5')}s, {c.get('clip_duration_sec', 4)}s display) - {c.get('reason', '')}" for i, c in enumerate(timeline)]
     timeline_context = "\n".join(scenes)
 
     prompt = f"""Property: '{property_name}'
@@ -226,6 +347,8 @@ For each variation:
    - Luxury: Slower paced, focus on beautiful wide shots, pools, and main rooms.
    - Instagram Viral: Fast-paced, start with the most dramatic/unique shot as the hook, quick cuts.
    - Realtor Style: Traditional logical walkthrough (Exterior -> Entrance -> Living -> Kitchen).
+
+IMPORTANT: For Luxury and Realtor styles, use as many clips as possible from the pool. Only the Viral style should use aggressive quick-cut filtering.
 
 Pool of Scenes:
 {timeline_context}

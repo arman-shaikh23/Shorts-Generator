@@ -10,8 +10,9 @@ All notable changes to this project will be documented in this file.
 - **Drag-and-Drop Enhancements**: Added Framer Motion hover states, glowing borders, and scaling upload icons to the drag-and-drop zone.
 - **Smart Crossfade Engine**: Replaced basic FFmpeg concatenation with a massive `-filter_complex` pipeline utilizing `xfade` and `acrossfade` for smooth, professional transitions.
 - **Production-Grade AI Selection Engine**: Overhauled the Gemini prompt to perform "Full Video Analysis" (extracting multiple chunks per video), apply strict >85% confidence thresholds, and leverage Gemini's context window for active semantic deduplication.
+- **Coverage Protection & Adjustable Sensitivity**: Implemented a 3-Level duplicate detection engine. Added a "Duplicate Sensitivity" dropdown to the UI. The AI is now strictly instructed to maximize footage coverage and never drop a clip if it's the only one of its category.
 - **Real Estate Storytelling Structure**: Forced the AI output to structure reels identically to professional editors (Impressive Hook -> Walkthrough -> Amenities -> CTA).
-- **Transparency Panel UI**: Added a "Transparency Panel" to the frontend (Steps 2 and 3) displaying the total seconds analyzed, duplicates purged, and detailed AI ranking scores (`visual_quality_score`, `luxury_appeal`) for every chosen clip.
+- **Enhanced Transparency Panel UI**: Added a list view tracking exactly which clips were removed and the specific AI reasoning behind the drop (e.g., "Similarity > 95%"). Also displays total seconds analyzed and detailed AI ranking scores (`visual_quality_score`, `luxury_appeal`) for every chosen clip.
 - **Dynamic Style-Based Transitions**: Auto-assigns transition types based on style (Luxury = 0.5s fade, Viral = fast wipeleft, Realtor = slideleft).
 - **Scene Grouping Engine**: A pre-render sorting algorithm groups identical room types together to prevent jarring random jumps.
 - **Step Isolation**: Isolated the `/analyze` and `/generate` SSE endpoints into distinct views to reduce cognitive load during processing.
