@@ -21,19 +21,18 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Smart Crossfade Engine**: Generated videos use a massive `-filter_complex` FFmpeg pipeline with `xfade` and `acrossfade` for buttery-smooth transitions (Fades, Wipes, Slides) tailored automatically to the selected reel style.
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
 - **ReelForge Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Drone/Exterior -> Walkthrough -> Amenities -> Parking. Explicitly prevents using low-tier scenes (e.g., Parking, Bathrooms) as the opening hook.
-- **Dynamic Reel Durations**: The platform intelligently scales output duration based on the volume of unique footage available, generating 30-60s Shorts or 60-120s YouTube videos.
-- **Coverage Protection System**: Forces maximum clip utilization (80-95%) by ensuring at least 1 segment from every unique uploaded clip is used. Trims clips dynamically (3-5s) based on visual quality score.
+- **Unlimited Dynamic Reel Durations**: The platform intelligently utilizes all unique non-duplicate footage available, generating Shorts and YouTube videos that are exactly as long as needed rather than being artificially cropped to a 30-60s limit.
+- **Seamless Loop Closure**: Automatically appends a 2-second snippet of the first clip to the very end of the final video to create perfect looping content for TikTok, Reels, and Shorts.
+- **Coverage Protection System**: Forces maximum clip utilization (100% of unique clips) by ensuring at least 1 segment from every unique uploaded clip is used.
 - **Parallel FFmpeg Traffic Control**: Strictly throttles concurrent video encoding operations (Semaphore) to prevent system freezing and memory starvation during heavy loads (30+ clips).
 - **Automated Storage Management**: Aggressively cleans up intermediate rendering chunks immediately after compilation. A background daily cron job (`cleanup.py`) continually sweeps for orphaned files. Furthermore, project deletion instantly triggers a deep recursive destruction of all associated `data/` directories to keep the server lightweight.
 
-### ReelForge Story Engine v6
+### ReelForge Story Engine v7
+- **Unlimited Duration Algorithm**: The AI doesn't restrict itself to an arbitrary time budget; it is commanded to use ALL unique, non-duplicate clips for maximum coverage.
+- **Loop Closure Mechanics**: FFmpeg dynamically appends a 2-second snippet of the opening clip to the very end of the reel, creating an infinite loop effect for social platforms.
 - **Scene Role Classification**: Automatically classifies detected scenes into structural roles (`OPENING`, `LOBBY`, `LIVING_ROOM`, `CLOSING`) and builds chronological walkthroughs.
-- **Strict Diversity**: Hardcoded rule preventing the opening clip and closing clip from ever sharing the same source video file (`opening_scene_id != closing_scene_id`).
-- **Duration-First Algorithm**: The AI doesn't pick clips randomly; it calculates a strict Target Duration budget (e.g. 60s for Shorts) and sums individual scene extractions until exactly full.
 - **Strict Deduplication**: 3-stage validation process utilizing SHA-256 (file integrity), 3-frame Perceptual Hashing (visual similarity), and Structural Similarity Index Measure (SSIM).
-- **Format Intelligence**: 
-  - **Shorts Mode**: Hard 60s maximum, strict fast-pacing timeline structure (Hook/Main/Rooms).
-  - **YouTube Mode**: Deep coverage scaling up to 240 seconds, ensuring no skipped rooms.
+- **Format Intelligence**: Shorts and YouTube modes now both deeply utilize all available footage, dropping arbitrary length limits.
 
 - **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
 - Direct downloads of fully prepared 4K/1080p clips from the sticky preview player.

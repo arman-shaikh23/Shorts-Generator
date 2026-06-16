@@ -142,3 +142,38 @@ Goal: Generate 3 distinct Reel Variations using the Pool of Scenes.
 
 ### Reasoning
 - The Luxury and Realtor variations now explicitly keep most clips, maintaining high coverage. Only the Viral style allows dropping clips for fast pacing.
+
+## Prompt 4: ReelForge Story Engine (v7) - Unlimited Duration & Loop Closure
+
+### The Prompt
+```text
+Property: '{property_name}'
+Total Uploaded Clips: {clip_count} (indices 0 to {clip_count - 1})
+
+═══ 1. MAXIMUM COVERAGE (CRITICAL) ═══
+DO NOT stop selecting clips to fit a time budget. Use: TARGET DURATION: UNLIMITED. Use ALL unique, non-duplicate clips. The final video will be exactly as long as necessary to show every important clip.
+You MUST select ALL unique, non-duplicate clips provided in the pool.
+EACH CLIP must have clip_duration_sec between 8-15 seconds.
+Your total_selected_duration_sec MUST equal the sum of all clip_duration_sec for every unique clip in the pool.
+
+[Platform Rules injected here]
+
+═══ 8. STORYBOARD VALIDATOR (RUN BEFORE OUTPUT) ═══
+Verify EACH of these or silently rebuild:
+✓ Strong opening (scene_type is drone/aerial/exterior/living_room/pool, NOT bathroom/parking)
+✓ Logical walkthrough order based on Roles (not visual score)
+✓ No repeated footage / No duplicate clips
+✓ Uses ALL unique non-duplicate clips available
+✓ Opening video_index != Closing video_index
+✓ Amenities appear near the end
+✓ Smooth category transitions (don't jump from kitchen back to exterior)
+If ANY validation fails, silently rebuild the storyboard before responding.
+```
+
+### Key Changes from v6 → v7
+
+| Aspect | v6 (Roles) | v7 (Unlimited Duration) |
+|---|---|---|
+| Target Duration | Strict budget (e.g. 60s hard cap) | **UNLIMITED. Forced to use all unique clips.** |
+| Clip Usage | Drop clips to hit target time | **DO NOT drop clips. Output is as long as necessary.** |
+| Loop Closure (Backend) | None | **FFmpeg appends 2s snippet of the opening clip to the end of the video.** |

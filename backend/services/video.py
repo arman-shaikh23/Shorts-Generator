@@ -155,12 +155,18 @@ async def build_reel(
 
     # --- SCENE GROUPING ENGINE (Full Property Tour Order) ---
     scene_order = {
-        "drone": 1, "aerial": 2, "exterior": 3, "entrance": 4, "lobby": 5,
-        "living room": 6, "kitchen": 7, "dining": 8, "bedroom": 9, "bathroom": 10,
-        "balcony": 11, "pool": 12, "gym": 13, "parking": 14, "garden": 15,
-        "amenities": 16, "closing drone": 17, "closing": 18, "other": 19
+        "drone": 1, "aerial": 2, "exterior": 3, "property_sign": 4, "entrance": 5, "lobby": 6,
+        "living room": 7, "living_room": 7, "dining": 8, "kitchen": 9, "bedroom": 10, "bathroom": 11,
+        "balcony": 12, "pool": 13, "gym": 14, "garden": 15, "parking": 16,
+        "amenities": 17, "amenity": 17, "closing drone": 18, "closing": 19, "other": 20
     }
     sorted_blocks = sorted(timeline_blocks, key=lambda x: scene_order.get(x.get("scene_type", "").lower(), 99))
+
+    # --- LOOP CLOSURE: Add first clip to end for 2 seconds ---
+    if sorted_blocks:
+        first_clip_copy = dict(sorted_blocks[0])
+        first_clip_copy["clip_duration_sec"] = 2.0
+        sorted_blocks.append(first_clip_copy)
 
     # --- STYLE-BASED TRANSITION RULES ---
     s = style.lower()

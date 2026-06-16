@@ -5,20 +5,6 @@ import time
 import random
 from google import genai
 from google.genai import types
-from dotenv import load_dotenv
-
-load_dotenv()
-
-# --- Startup Diagnostics ---
-api_key = os.environ.get("GEMINI_API_KEY", "")
-prefix = api_key[:15] if api_key else "NOT_SET"
-print("========================================")
-print("[STARTUP DIAGNOSTICS] Gemini Analysis Pipeline")
-print(f"ACTIVE GEMINI KEY: {prefix}...")
-print("SELECTED MODEL: gemini-2.5-flash-lite")
-print("BATCH SIZE: 5")
-print("RETRY COUNT: 0 (Fast Fail)")
-print("========================================")
 
 gemini_semaphore = asyncio.Semaphore(2)
 
@@ -115,13 +101,13 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
     client = get_client()
     loop = asyncio.get_event_loop()
     
-    models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro']
+    models = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-flash-lite']
     file_names = [f.name for f in batch_infos]
     prompt_len = len(prompt)
     
     for model_name in models:
-        max_retries = 1
-        backoff_schedule = [5]
+        max_retries = 3
+        backoff_schedule = [5, 10, 20]
         
         async with gemini_semaphore:
             for attempt in range(max_retries):
@@ -140,7 +126,6 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                             ),
                         )
                     
-                    print(f"ACTIVE GEMINI KEY: {os.environ.get('GEMINI_API_KEY', 'UNKNOWN')[:15]}...")
                     print(f"[DEBUG] BATCH={batch_num} | MODEL={model_name} | VIDEOS={len(batch_infos)} | PROMPT_LENGTH={prompt_len} | FILES={file_names}")
                     
                     future = loop.run_in_executor(None, _generate)
@@ -161,13 +146,6 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                 except Exception as e:
                     error_str = str(e)
                     err_type = type(e).__name__
-                    
-                    if any(term in error_str for term in ["GenerateRequestsPerDay", "generate_content_free_tier", "quota exceeded", "RESOURCE_EXHAUSTED", "429"]):
-                        print(f"[QUOTA EXHAUSTED] BATCH={batch_num} | MODEL={model_name} | ERROR={error_str[:150]}")
-                        last_error_was_quota = True
-                        break # Break retry loop, try next model immediately
-
-                    last_error_was_quota = False
                     is_timeout = isinstance(e, asyncio.TimeoutError)
                     is_retryable = is_timeout or any(code in error_str for code in ["429", "500", "502", "503", "504", "UNAVAILABLE", "Model overloaded", "overloaded"])
                     
@@ -182,24 +160,12 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                     base_delay = backoff_schedule[attempt]
                     jitter = random.uniform(0, 3)
                     delay = base_delay + jitter
-                    
-                    # Extract Google's exact requested delay if present
-                    import re
-                    match = re.search(r'Please retry in ([\d\.]+)s', error_str)
-                    if match:
-                        delay = float(match.group(1)) + 1.5
-                        print(f"[RATE LIMIT] Google API requested exact delay. Using {delay:.1f}s")
-                        
                     print(f"[RETRY] Model: {model_name}. Delaying {delay:.1f}s")
                     
                     if yield_callback:
-                        await yield_callback(f"API Rate Limit hit, waiting {int(delay)}s... ({model_name})")
+                        await yield_callback(f"AI servers busy, retrying... ({model_name}, Retry {attempt+1})")
                     await asyncio.sleep(delay)
                     
-    # If we get here and last_error_was_quota is True, ALL models are exhausted!
-    if 'last_error_was_quota' in locals() and locals()['last_error_was_quota']:
-        raise Exception("Gemini quota exhausted across ALL models. Please wait for quota reset or use a billing-enabled project.")
-
     # Isolation Logic
     if len(batch_infos) > 1:
         print(f"[ISOLATION] Batch {batch_num} failed on ALL models. Splitting batch into two halves to isolate toxic video...")
@@ -224,7 +190,7 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
 
 async def analyze_and_generate(file_infos: list, property_name: str, duration: str, style: str, duplicate_sensitivity: str = "Low", yield_callback=None) -> dict:
     total_clip_count = len(file_infos)
-    BATCH_SIZE = 5
+    BATCH_SIZE = 3
     batches = [file_infos[i:i + BATCH_SIZE] for i in range(0, total_clip_count, BATCH_SIZE)]
     
     schema = types.Schema(
@@ -296,24 +262,19 @@ Generate metadata for a real estate reel using these scenes.
         await yield_callback("Generating textual metadata...")
         
     client = get_client()
-    text_models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro']
-    
-    for t_model in text_models:
-        try:
-            def _gen_text():
-                print(f"ACTIVE GEMINI KEY: {os.environ.get('GEMINI_API_KEY', 'UNKNOWN')[:15]}...")
-                return client.models.generate_content(
-                    model=t_model,
-                    contents=text_prompt,
-                    config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=text_schema)
-                )
-            res = await asyncio.get_event_loop().run_in_executor(None, _gen_text)
-            text = res.text
-            if text.startswith("```json"): text = text[7:-3]
-            text_result = json.loads(text)
-            break # Success
-        except Exception as e:
-            print(f"[ERROR] Text generation failed on {t_model}: {e}")
+    try:
+        def _gen_text():
+            return client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=text_prompt,
+                config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=text_schema)
+            )
+        res = await asyncio.get_event_loop().run_in_executor(None, _gen_text)
+        text = res.text
+        if text.startswith("```json"): text = text[7:-3]
+        text_result = json.loads(text)
+    except Exception as e:
+        print(f"[ERROR] Text generation failed: {e}")
         
     return {
         "property_type": text_result.get("property_type", "Real Estate"),
@@ -323,7 +284,7 @@ Generate metadata for a real estate reel using these scenes.
         "hashtags": text_result.get("hashtags", []),
         "selected_clips": all_selected_clips,
         "total_analyzed_duration_sec": 0,
-        "total_selected_duration_sec": 0  # Computed safely in Python later
+        "total_selected_duration_sec": sum(float(c.get("end", 0)) - float(c.get("start", 0)) for c in all_selected_clips)
     }
 
 async def generate_variations(property_name: str, timeline: list) -> dict:
@@ -364,33 +325,26 @@ For each variation, select 'custom_sequence' referencing the Index values to def
 
     loop = asyncio.get_event_loop()
     
-    var_models = ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-2.5-pro']
-    last_error = None
-    
-    for v_model in var_models:
-        def _generate():
-            print(f"ACTIVE GEMINI KEY: {os.environ.get('GEMINI_API_KEY', 'UNKNOWN')[:15]}...")
-            return client.models.generate_content(
-                model=v_model,
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    response_schema=schema,
-                    temperature=0.5,
-                )
+    def _generate():
+        return client.models.generate_content(
+            model="gemini-2.5-flash",
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json",
+                response_schema=schema,
+                temperature=0.5,
             )
+        )
 
-        await gemini_semaphore.acquire()
-        try:
-            response = await loop.run_in_executor(None, _generate)
-            text = response.text
-            if text.startswith("```json"):
-                text = text[7:-3]
-            return json.loads(text)
-        except Exception as e:
-            print(f"[ERROR] Gemini variations generation failed on {v_model}: {e}")
-            last_error = e
-        finally:
-            gemini_semaphore.release()
-            
-    raise last_error
+    await gemini_semaphore.acquire()
+    try:
+        response = await loop.run_in_executor(None, _generate)
+        text = response.text
+        if text.startswith("```json"):
+            text = text[7:-3]
+        return json.loads(text)
+    except Exception as e:
+        print(f"[ERROR] Gemini variations generation failed: {e}")
+        raise
+    finally:
+        gemini_semaphore.release()

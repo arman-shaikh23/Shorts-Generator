@@ -17,6 +17,91 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/generation", tags=["Generation"])
 
+# ── Helpers ─────────────────────────────────────────────
+
+SCENE_ORDER = [
+    "drone", "aerial", "exterior", "property_sign", "entrance", "lobby",
+    "living room", "living_room", "dining", "kitchen",
+    "bedroom", "bathroom",
+    "balcony", "pool", "gym", "garden", "parking", "amenities", "amenity",
+    "closing drone", "closing"
+]
+
+OPENING_ALLOWED = {"drone", "aerial", "exterior", "living room", "living_room", "pool", "lobby"}
+OPENING_BANNED = {"bathroom", "parking", "utility", "storage", "garage", "corridor", "hallway"}
+
+def _parse_target_duration(duration: str) -> int:
+    """Parse duration string to target seconds."""
+    if "min" in duration.lower():
+        if "5 min" in duration: return 300
+        elif "4 min" in duration: return 240
+        elif "3 min" in duration: return 180
+        elif "2 min" in duration: return 120
+        elif "1 min" in duration: return 60
+        return 120  # Default YouTube: 2 min
+    else:
+        if "60" in duration: return 60
+        elif "45" in duration: return 45
+        elif "30" in duration: return 30
+        elif "20" in duration: return 20
+        return 60  # Default Shorts: 60s
+
+def _get_scene_order_key(scene_type: str) -> int:
+    """Get ordering key for a scene type."""
+    st = scene_type.lower().strip()
+    for i, val in enumerate(SCENE_ORDER):
+        if val == st:
+            return i
+    return 99  # Unknown scenes go to end
+
+def _is_bad_opening(scene_type: str) -> bool:
+    """Check if a scene type is inappropriate for opening."""
+    st = scene_type.lower().strip().replace("_", " ")
+    for banned in OPENING_BANNED:
+        if banned in st:
+            return True
+    return False
+
+def _is_good_opening(scene_type: str) -> bool:
+    """Check if a scene type is good for opening."""
+    st = scene_type.lower().strip().replace("_", " ")
+    for allowed in OPENING_ALLOWED:
+        if allowed in st:
+            return True
+    return False
+
+def _fix_timeline(timeline: list[dict]) -> list[dict]:
+    """Post-process timeline to fix sequence and opening."""
+    if not timeline:
+        return timeline
+    
+    fixed = list(timeline)
+    
+    # 1. Fix opening: if first clip is banned, swap with a good one
+    first = fixed[0]
+    if _is_bad_opening(first.get("scene_type", "")):
+        # Find first good opening clip
+        for i, clip in enumerate(fixed):
+            if _is_good_opening(clip.get("scene_type", "")):
+                fixed[0], fixed[i] = fixed[i], fixed[0]
+                logger.info(f"[FIX] Swapped opening clip: was '{first.get('scene_type')}', now '{fixed[0].get('scene_type')}'")
+                break
+    
+    # 2. Sort by scene order for logical walkthrough
+    # Group clips by their relative order, preserving the original sequence otherwise
+    fixed.sort(key=lambda c: _get_scene_order_key(c.get("scene_type", "")))
+    
+    # 3. Ensure opening is still first (it should be since OPENING role has lowest order key)
+    # But double-check: if no clip has role=OPENING, make sure first clip is not banned
+    if fixed and _is_bad_opening(fixed[0].get("scene_type", "")):
+        for i, clip in enumerate(fixed):
+            if _is_good_opening(clip.get("scene_type", "")):
+                fixed[0], fixed[i] = fixed[i], fixed[0]
+                break
+    
+    return fixed
+
+
 # ── Request Models ──────────────────────────────────────
 
 class AnalyzeRequest(BaseModel):
@@ -86,7 +171,7 @@ async def analyze_project(
                 completed += 1
                 await q.put({"status": "progress", "message": f"Uploading clips to AI Engine ({completed}/{total} done)..."})
 
-            file_uris = [info.uri for info in file_infos if info is not None]
+            file_infos_clean = [info for info in file_infos if info is not None]
 
             # 3. Gemini Analysis
             await q.put({"status": "progress", "message": "Detecting Scenes..."})
@@ -100,29 +185,84 @@ async def analyze_project(
             async def yield_message(msg: str):
                 await q.put({"status": "progress", "message": msg})
 
-            gemini_result = await analyze_and_generate(file_uris, project["title"], duration, style, duplicate_sensitivity, yield_callback=yield_message)
+            gemini_result = await analyze_and_generate(file_infos_clean, project["title"], duration, style, duplicate_sensitivity, yield_callback=yield_message)
 
             # Map the Gemini result to the actual upload objects
-            # Assuming Gemini returns final_order referencing the original index
-            timeline = []
-            if "final_order" in gemini_result and "selected_clips" in gemini_result:
-                clips_map = {c["video_index"]: c for c in gemini_result["selected_clips"]}
-                for idx in gemini_result["final_order"]:
-                    if idx in clips_map:
-                        clip_data = clips_map[idx]
-                        if idx < len(uploads):
-                            clip_data["upload_id"] = str(uploads[idx]["_id"])
-                            clip_data["localPath"] = uploads[idx].get("localPath")
-                        timeline.append(clip_data)
-            else:
-                timeline = gemini_result.get("selected_clips", [])
-                for c in timeline:
-                    idx = c.get("video_index", 0)
-                    if idx < len(uploads):
-                        c["upload_id"] = str(uploads[idx]["_id"])
-                        c["localPath"] = uploads[idx].get("localPath")
+            timeline = gemini_result.get("selected_clips", [])
+            mapped_timeline = []
+            for c in timeline:
+                idx = c.get("video_index", 0)
+                if idx < len(uploads):
+                    c["upload_id"] = str(uploads[idx]["_id"])
+                    c["localPath"] = uploads[idx].get("localPath")
+                    mapped_timeline.append(c)
 
+            # ── PYTHON BUSINESS LOGIC: DUPLICATE DETECTION & CATEGORY LIMITS ──
+            seen_upload_scenes = set()
+            scene_counts = {}
+            deduplicated = []
+            ai_removed = []
+            
+            for c in mapped_timeline:
+                stype = c.get("scene_type", "").lower()
+                upload_id = c.get("upload_id")
+                
+                key = f"{upload_id}_{stype}"
+                
+                if key in seen_upload_scenes:
+                    ai_removed.append({"video_index": c.get("video_index"), "reason": f"Python Deduplication: Already selected {stype} from this specific video."})
+                    continue
+                
+                scene_counts[stype] = scene_counts.get(stype, 0) + 1
+                if scene_counts[stype] > 2:
+                    ai_removed.append({"video_index": c.get("video_index"), "reason": f"Python Category Limit: Already have enough {stype} scenes."})
+                    continue
+                    
+                seen_upload_scenes.add(key)
+                deduplicated.append(c)
+
+            # ── PYTHON BUSINESS LOGIC: SORTING ──
+            # Sort chronologically by property tour role, tie-break by hero_score
+            deduplicated.sort(key=lambda c: (_get_scene_order_key(c.get("scene_type", "")), -int(c.get("hero_score", 0))))
+
+            # ── POST-PROCESSING: Fix timeline sequence and opening ──
+            timeline = _fix_timeline(deduplicated)
+
+            # Update final_order to match the fixed timeline
+            gemini_result["final_order"] = [c.get("video_index") for c in timeline]
+            gemini_result["selected_clips"] = timeline
             gemini_result["timeline"] = timeline
+            
+            # Use 'end' - 'start' to compute duration since clip_duration_sec is gone
+            total_sec = 0
+            
+            def parse_time(t):
+                if isinstance(t, (int, float)): return float(t)
+                t = str(t).strip()
+                if ":" in t:
+                    parts = t.split(":")
+                    if len(parts) == 3: return float(parts[0])*3600 + float(parts[1])*60 + float(parts[2])
+                    if len(parts) == 2: return float(parts[0])*60 + float(parts[1])
+                try:
+                    return float(t)
+                except:
+                    return 0.0
+
+            for c in timeline:
+                start_val = parse_time(c.get("start", 0))
+                end_val = parse_time(c.get("end", 5))
+                # Ensure they are safely overwritten as strings or numbers that FFmpeg understands
+                c["start"] = start_val
+                c["end"] = end_val
+                dur = end_val - start_val
+                if dur <= 0: dur = 4.0
+                c["clip_duration_sec"] = dur
+                total_sec += dur
+                
+            gemini_result["total_selected_duration_sec"] = total_sec
+            gemini_result["removed_clips"] = ai_removed
+
+            logger.info(f"[POST-PROCESS] Fixed timeline: {len(timeline)} clips, total {gemini_result['total_selected_duration_sec']:.0f}s")
 
             # Save the timeline and AI metadata to the project
             coverage = gemini_result.get("coverage_analytics", {})
@@ -246,9 +386,7 @@ async def generate_project(
                 await q.put({"status": "error", "message": "No local video paths found for the timeline."})
                 return
 
-            target_duration = 30
-            if "20" in duration: target_duration = 20
-            elif "45" in duration: target_duration = 45
+            target_duration = _parse_target_duration(duration)
 
             results = []
 

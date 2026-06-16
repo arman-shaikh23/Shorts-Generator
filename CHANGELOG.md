@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [13.0.0] - ReelForge Story Engine v7 (Unlimited Duration & Loop Closure)
+### Changed
+- **Unlimited Duration Algorithm**: Removed the 30-60 second artificial constraint for short videos. The AI is now instructed to utilize all non-duplicate uploaded clips, rendering a video that is exactly as long as necessary to showcase every important room.
+- **Strict Semantic Ordering**: Refined the API and Render pipeline to strictly ignore raw AI confidence sorting and force a chronological property tour: Drone -> Aerial -> Exterior -> Entrance -> Lobby -> Living Room -> Kitchen -> Bedroom -> Bathroom -> Amenities -> Closing.
+- **Loop Closure System**: Added a programmatic loop generator in the FFmpeg render pipeline. The system now takes the very first opening clip, cuts a 2.0-second snippet, and appends it to the very end of the reel. This creates a perfect loop effect when uploaded to Shorts/Reels/TikTok.
+
 ## [12.0.0] - ReelForge Story Engine v6 (Diversity & Roles Refactor)
 ### Changed
 - **Scene Role Classification**: The AI now tags every clip with a structural structural role (e.g. `OPENING`, `LOBBY`, `CLOSING`) ensuring chronological property tours that don't feel like random clip collections.

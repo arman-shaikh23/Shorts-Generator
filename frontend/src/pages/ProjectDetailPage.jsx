@@ -34,7 +34,6 @@ export default function ProjectDetailPage() {
   const [reelDuration, setReelDuration] = useState('30 sec');
   const [reelStyle, setReelStyle] = useState('Luxury');
   const [aspectRatio, setAspectRatio] = useState('9:16');
-  const [duplicateSensitivity, setDuplicateSensitivity] = useState('Low');
 
   // Music States
   const [musicMode, setMusicMode] = useState('Auto Select'); // Auto Select, Library, Custom, None
@@ -155,7 +154,7 @@ export default function ProjectDetailPage() {
       const params = new URLSearchParams();
       params.append('duration', reelDuration);
       params.append('style', reelStyle);
-      params.append('duplicate_sensitivity', duplicateSensitivity);
+      params.append('duplicate_sensitivity', 'Low');
       start(`http://localhost:8000/api/v1/projects/${id}/generation/analyze?${params.toString()}&token=${getAccessToken() || ''}`);
     }
   };
@@ -349,18 +348,6 @@ export default function ProjectDetailPage() {
                       </div>
                     </div>
                     <div className="flex items-center gap-4 w-full md:w-auto">
-                      <div className="flex flex-col">
-                        <label className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-1">Duplicate Sensitivity</label>
-                        <select 
-                          value={duplicateSensitivity} 
-                          onChange={(e) => setDuplicateSensitivity(e.target.value)}
-                          className="bg-white border border-[#E2E8F0] rounded-xl px-4 py-3 text-[#0F172A] font-bold focus:outline-none focus:border-[#0EA5E9] shadow-sm appearance-none min-w-[120px]"
-                        >
-                          <option value="Low">Low (Keep More)</option>
-                          <option value="Medium">Medium</option>
-                          <option value="High">High (Strict)</option>
-                        </select>
-                      </div>
                       <button onClick={goToAnalyze} disabled={!hasUploads || uploads.some(u => u.status !== 'PROCESSED')} className="w-full md:w-auto bg-[#0EA5E9] text-white px-8 py-4 rounded-xl text-lg font-black shadow-[0_10px_20px_rgba(14,165,233,0.3)] hover:scale-105 active:scale-95 disabled:opacity-50 disabled:pointer-events-none flex items-center justify-center gap-2 transition-all">
                         Start AI Analysis <ChevronRight size={20} />
                       </button>
@@ -571,12 +558,12 @@ export default function ProjectDetailPage() {
                   <h3 className="text-sm font-black text-[#64748B] uppercase tracking-wider mb-6 text-center">1. Aspect Ratio</h3>
                   <div className="grid grid-cols-2 gap-4">
                     <button onClick={() => { setAspectRatio('9:16'); setReelDuration('30-60 sec'); }} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '9:16' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
-                      <Smartphone size={28} className="mb-2" /> Reels
-                      <span className="text-xs font-medium mt-1 opacity-80">30sec to 60 sec max</span>
+                      <Smartphone size={28} className="mb-2" /> Reels / Shorts
+                      <span className="text-xs font-medium mt-1 opacity-80">30–60 seconds (fast-paced)</span>
                     </button>
-                    <button onClick={() => { setAspectRatio('16:9'); setReelDuration('1 min to 2 min or more'); }} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
-                      <Maximize size={28} className="mb-2" /> YouTube
-                      <span className="text-xs font-medium mt-1 opacity-80">1 min to 2 min or more</span>
+                    <button onClick={() => { setAspectRatio('16:9'); setReelDuration('2 min or more'); }} className={`flex flex-col items-center justify-center py-6 rounded-2xl text-sm font-bold transition-all ${aspectRatio === '16:9' ? 'bg-[#0EA5E9]/10 text-[#0EA5E9] ring-2 ring-[#0EA5E9]' : 'bg-[#F8FAFC] text-[#64748B] hover:bg-white border border-[#E2E8F0]'}`}>
+                      <Maximize size={28} className="mb-2" /> YouTube Video
+                      <span className="text-xs font-medium mt-1 opacity-80">2–5 minutes (full tour)</span>
                     </button>
                   </div>
                 </div>
