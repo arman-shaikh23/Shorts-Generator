@@ -9,10 +9,16 @@ All notable changes to this project will be documented in this file.
 - **Strict Pre-Trim Rules**: The backend automatically enforces a 3.0s minimum safe start to the start of every selected clip to absolutely eliminate camera shake, autofocus hunting, and gimbal calibration movements.
 - **Maximized Property Coverage**: Eliminated subjective visual deduplication (pHash). The pipeline now preserves unique camera angles and room perspectives, guaranteeing maximum property coverage (e.g. 18-21 unique videos used if uploaded).
 - **Target Selection Range**: Gemini now instructed to search the `3s-8s` safe zone of videos instead of automatically capturing from 0.0s.
-- **Short-Impact Formatting**: Reel durations are strictly enforced to 3-6 seconds per clip, rejecting any sequence longer than 6s.
-- **Camera Continuity logic**: Sequences clips based on camera direction (e.g., `left_to_right`) to prevent jarring visual jumps.
-- **Luxury Sequence Flow**: Enforced a strict chronological sequence designed for luxury real estate (Drone Establishing -> Exterior -> Entrance -> Lobby -> Living Room -> Kitchen -> Dining -> Bedroom -> Bathroom -> Balcony -> Amenities -> Pool -> Gym -> Garden -> Closing).
-- **Opening & Closing Protections**: AI identifies and strictly sets the highest `hook_score` clip as the opening and highest `luxury_score` clip as the closing shot.
+- **Premium Dashboard Hero Redesign**: The dashboard has been upgraded to a 2-column SaaS layout. It now features an animated, glassmorphism Demo Video Card on the right side, showing a looping showcase of ReelForge in action (raw clips to cinematic reel), highlighting core AI features automatically.
+- **Single Active Video Playback**: Enhanced the user experience across the Dashboard and History pages. Starting a new reel now automatically pauses all other videos on the page and resets their playback position to prevent overlapping audio.
+- **Hybrid OpenCV/Gemini Scoring**: Offloaded mathematical physics tasks (motion blur, heavy shake, gimbal stability, exposure) to OpenCV (`cv_analyzer.py`), leaving Gemini strictly to handle aesthetic metadata (`composition`, `luxury_score`). Both engines merge scores to compute a master `final_score` for the timeline builder.
+- **Phase 5 Render Coverage Audit**: Introduced a new backend verification stage that dynamically compares `selected_clips` vs `rendered_clips` after FFmpeg concatenation. Automatically logs missing clips, enabling fast debugging of missing renders or timeline overlaps.
+- **Dynamic Pre-Trim Skipping**: Ripped out the hardcoded 3-second start buffer. The system now uses OpenCV to mathematically analyze the first `0-3` seconds of a clip. It only trims the start if it detects physical instability (acceleration, calibration, exposure pumps). Otherwise, 0.0s is preserved.
+- **Dynamic Cinematic Pacing**: Completely removed fixed target reel durations. Final pacing now uses intelligent boundaries: 4-7s (Default), 7-10s (Hero clips), and up to 12s (Exceptional Drones) to maintain momentum without forcing length.
+- **Maximum Coverage Strategy**: The system now preserves unique videos aggressively, aiming for a 90-100% preferred coverage target. It will only drop videos if their `final_score` mathematically fails, ensuring high quality footage is never discarded randomly.
+- **Extended Clip Limits**: Clip constraints have been widened. Preferred clip length is now 5-8s, with Hero scenes extending up to 6-10s. The absolute ceiling for a single clip is now 10s. Weak clips are softly trimmed to 4-5s.
+- **Scene Diversity Constraints**: Added hard caps and scoring penalties to strictly prevent repetitive shots: max 2 contiguous exterior shots, max 2 drone shots, and max 2 shots from the exact same room category in a row.
+- **Camera Continuity logic**: Sequences clips based on camera direction (e.g., `left_to_right`) to prevent jarring visual jumps, penalizing abrupt reverses in motion.
 - **Verbose Debugging**: Explicit reasoning is now logged for every single clip removed from the pipeline.
 
 ## [13.0.0] - ReelForge Story Engine v7 (Unlimited Duration & Loop Closure)

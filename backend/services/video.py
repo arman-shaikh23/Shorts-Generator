@@ -138,7 +138,6 @@ async def process_segment(input_path: str, output_path: str, start_time: str, en
 
 async def build_reel(
     timeline_blocks: list[dict],
-    input_paths: list[str],
     property_name: str,
     target_duration_sec: int,
     style: str,
@@ -148,7 +147,7 @@ async def build_reel(
     music_volume: float = 0.2,
     vo_volume: float = 1.0,
     on_progress: Optional[Callable] = None
-) -> str:
+) -> tuple[str, int]:
     if not timeline_blocks: raise ValueError("Timeline is empty")
 
     output_dir = f"data/{project_id}/outputs"
@@ -182,15 +181,16 @@ async def build_reel(
     ffmpeg_sem = asyncio.Semaphore(4)  # Limit concurrent FFmpeg jobs to prevent laptop freezing
     
     MIN_SAFE_START = 3.0
-    MAX_CLIP_DURATION = 6.0
+    MAX_CLIP_DURATION = 10.0
 
     async def process_one(i, scene):
-        v_idx = scene.get("video_index", 0)
-        if v_idx >= len(input_paths): return None
+        local_path = scene.get("localPath")
+        if not local_path or not os.path.exists(local_path):
+            logger.error(f"Missing local file for clip: {scene.get('video_index')}")
+            return None
         clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
         
         start_seconds = parse_time_to_seconds(scene.get("start", "0"))
-        start_seconds = max(start_seconds, MIN_SAFE_START)
         start_t = str(start_seconds)
         
         # Use clip_duration_sec from Gemini if available (3-6 seconds per clip)
@@ -208,7 +208,7 @@ async def build_reel(
         end_t = str(end_t_val + transition_duration)
         
         async with ffmpeg_sem:
-            await process_segment(input_paths[v_idx], clip_path, start_t, end_t, aspect_ratio)
+            await process_segment(local_path, clip_path, start_t, end_t, aspect_ratio)
         return clip_path
 
     tasks = [process_one(i, scene) for i, scene in enumerate(sorted_blocks)]
@@ -220,7 +220,7 @@ async def build_reel(
     # If only 1 clip, just rename and return
     if len(clip_paths) == 1:
         os.rename(clip_paths[0], output_path)
-        return output_path
+        return output_path, len(clip_paths)
 
     # --- DYNAMIC SMART CROSSFADE ENGINE ---
     durations = [get_exact_duration(p) for p in clip_paths]

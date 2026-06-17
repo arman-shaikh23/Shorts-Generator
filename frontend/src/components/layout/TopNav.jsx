@@ -1,12 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Play, Bell, Search, LayoutDashboard, FolderKanban, Sparkles, LogOut, Plus } from 'lucide-react';
+import { Play, Bell, Search, LayoutDashboard, FolderKanban, Sparkles, LogOut, Plus, PlayCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
+import HowItWorksModal from '../HowItWorksModal';
 
 export function TopNav() {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
+  const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const navItems = [
     { to: '/dashboard', label: 'Dashboard' },
@@ -80,6 +83,17 @@ export function TopNav() {
         
         <div className="w-px h-6 bg-[#E2E8F0] mx-1"></div>
         
+        {/* How It Works Button */}
+        <button 
+          onClick={() => setShowHowItWorks(true)}
+          className="flex items-center gap-1.5 text-sm font-medium text-[#64748B] hover:text-[#0EA5E9] hover:scale-105 transition-all duration-200"
+        >
+          <PlayCircle size={16} className="text-[#0EA5E9]" />
+          How It Works
+        </button>
+
+        <div className="w-px h-6 bg-[#E2E8F0] mx-1"></div>
+
         {/* Profile Dropdown (Simplified) */}
         <div className="flex items-center gap-3 cursor-pointer group">
           <div className="w-9 h-9 rounded-full bg-gradient-aurora text-white flex items-center justify-center text-xs font-bold shadow-md">
@@ -95,6 +109,11 @@ export function TopNav() {
           <Plus size={16} /> Create Reel
         </button>
       </div>
+
+      <HowItWorksModal 
+        isOpen={showHowItWorks} 
+        onClose={() => setShowHowItWorks(false)} 
+      />
     </header>
   );
 }

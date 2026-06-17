@@ -12,6 +12,8 @@ from ..core.database import get_db
 from ..core.dependencies import get_current_user
 from services.gemini import upload_and_wait, analyze_and_generate, generate_variations
 from services.video import build_reel
+from services.cv_analyzer import analyze_video_segment
+from services.timeline_optimizer import parse_time
 
 logger = logging.getLogger(__name__)
 
@@ -191,17 +193,34 @@ async def analyze_project(
             from services.timeline_optimizer import TimelineOptimizer
             ai_removed = []
             
-            # Map the Gemini result to the actual upload objects
+            # Map the Gemini result to the actual upload objects and Run CV Analysis
             timeline = gemini_result.get("selected_clips", [])
             mapped_timeline = []
             for c in timeline:
                 idx = c.get("video_index", 0)
                 if idx < len(uploads):
                     c["upload_id"] = str(uploads[idx]["_id"])
-                    c["localPath"] = uploads[idx].get("localPath")
+                    local_path = uploads[idx].get("localPath")
+                    c["localPath"] = local_path
+                    
+                    # Run OpenCV Analysis on the selected segment
+                    start_sec = parse_time(c.get("start", "0"))
+                    end_sec = parse_time(c.get("end", "5"))
+                    
+                    # 1. Dynamic 3s Skip logic
+                    if start_sec < 1.0:
+                        first_3s_analysis = analyze_video_segment(local_path, 0.0, 3.0)
+                        if first_3s_analysis.get("is_unstable"):
+                            start_sec = 3.0
+                            c["start"] = "3.0"
+                    
+                    # 2. Get overall segment CV metrics
+                    cv_scores = analyze_video_segment(local_path, start_sec, end_sec)
+                    c.update(cv_scores) # Merge OpenCV scores into the clip dict
+                    
                     mapped_timeline.append(c)
 
-            optimized_timeline = TimelineOptimizer.optimize(mapped_timeline, ai_removed)
+            optimized_timeline = TimelineOptimizer.optimize(mapped_timeline, ai_removed, style=style)
             timeline = optimized_timeline
 
             # Update final_order to match the fixed timeline
@@ -238,6 +257,12 @@ async def analyze_project(
                 reason = dup.get("reason", "Unknown reason")
                 logger.info(f"REMOVED: Video {v_id} - {reason}")
 
+            # Coverage calculation
+            unique_videos_used = len(set(c.get("video_index") for c in timeline if c.get("video_index") is not None))
+            coverage_percentage = (unique_videos_used / total_uploaded) * 100 if total_uploaded > 0 else 0
+            if unique_videos_used > 0 and coverage_percentage == 0:
+                coverage_percentage = 1.0 # Never show 0% if videos were used
+
             ai_metadata = {
                 "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),
                 "selected_sec": gemini_result.get("total_selected_duration_sec", 0),
@@ -248,8 +273,9 @@ async def analyze_project(
                     "pre_processor_duplicates": len(pre_duplicates),
                     "ai_duplicates": len(ai_removed),
                     "duplicates_removed": total_removed,
-                    "selected_count": coverage.get("selected_count", len(timeline)),
-                    "coverage_percentage": coverage.get("coverage_percentage", 0)
+                    "selected_count": len(timeline),
+                    "unique_videos_used": unique_videos_used,
+                    "coverage_percentage": round(coverage_percentage, 2)
                 }
             }
             await db.projects.update_one(
@@ -332,18 +358,14 @@ async def generate_project(
                     "hashtags": ["#realestate", "#property"]
                 }]
 
-            # Fetch local paths for the timeline
-            input_paths = []
+            # Phase 5: RENDER COVERAGE AUDIT setup
+            # Populate localPath directly into the timeline blocks
             for item in timeline:
                 upload_id = item.get("upload_id")
-                if upload_id:
+                if upload_id and not item.get("localPath"):
                     upload = await db.uploads.find_one({"_id": ObjectId(upload_id)})
                     if upload and upload.get("localPath"):
-                        input_paths.append(upload["localPath"])
-
-            if not input_paths:
-                await q.put({"status": "error", "message": "No local video paths found for the timeline."})
-                return
+                        item["localPath"] = upload["localPath"]
 
             target_duration = _parse_target_duration(duration)
 
@@ -367,9 +389,8 @@ async def generate_project(
                     var_timeline = timeline
 
                 # Render video for this variation
-                output_path = await build_reel(
+                result = await build_reel(
                     timeline_blocks=var_timeline,
-                    input_paths=input_paths,
                     property_name=project["title"],
                     target_duration_sec=target_duration,
                     style=var_style,
@@ -379,6 +400,30 @@ async def generate_project(
                     music_volume=music_volume,
                     vo_volume=vo_volume
                 )
+                
+                logger.info(f"[BUILD_REEL_RETURN_TYPE] {type(result)}")
+                
+                if isinstance(result, tuple) and len(result) >= 2:
+                    output_path = result[0]
+                    rendered_count = result[1]
+                elif isinstance(result, dict):
+                    output_path = result.get("output_path", "")
+                    rendered_count = result.get("rendered_count", len(var_timeline))
+                else:
+                    output_path = str(result)
+                    rendered_count = len(var_timeline) # fallback
+                    
+                logger.info(f"[RENDERED_COUNT] {rendered_count}")
+                logger.info(f"[OUTPUT_PATH] {output_path}")
+                
+                # --- PHASE 5: RENDER COVERAGE AUDIT ---
+                selected_count = len(var_timeline)
+                if rendered_count < selected_count:
+                    missing_clips = selected_count - rendered_count
+                    logger.warning(f"[RENDER AUDIT] Variation {var_style}: Selected {selected_count}, Rendered {rendered_count}. Missing {missing_clips} clips.")
+                    await q.put({"status": "progress", "message": f"[Audit] Recovered from {missing_clips} render failures..."})
+                else:
+                    logger.info(f"[RENDER AUDIT] Variation {var_style}: PERFECT MATCH. Selected {selected_count}, Rendered {rendered_count}.")
 
                 web_url = "/" + output_path.replace("\\", "/")
                 
@@ -415,10 +460,20 @@ async def generate_project(
                 
                 results.append(short)
 
-                # Update project generated count
+                # Update project generated count and render audit
                 await db.projects.update_one(
                     {"_id": ObjectId(project_id)},
-                    {"$set": {"status": "COMPLETED"}, "$inc": {"generatedCount": 1}}
+                    {
+                        "$set": {
+                            "status": "COMPLETED",
+                            f"aiMetadata.render_audit.{var_style}": {
+                                "selected_count": selected_count,
+                                "rendered_count": rendered_count,
+                                "missing_clips": selected_count - rendered_count
+                            }
+                        }, 
+                        "$inc": {"generatedCount": 1}
+                    }
                 )
 
             await q.put({"status": "completed", "results": results})

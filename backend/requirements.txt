@@ -11,3 +11,5 @@ passlib[bcrypt]
 pyjwt
 pydantic-settings
 email-validator
+opencv-python-headless
+numpy

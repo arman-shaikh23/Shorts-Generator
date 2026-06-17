@@ -53,3 +53,6 @@ backend/downloads/
 backend/data/
 backend/outputs/
 outputs/
+
+frontend/public/demo/*.mp4
+frontend/public/tutorials/*.mp4

@@ -187,7 +187,11 @@ Analyze the attached videos. Extract the most stunning, stable cinematic scenes.
 Never select the first 2-3 seconds automatically. Instead, analyze the entire video and choose the most stable cinematic portion. 
 For example: Bad: 0s-3s = adjustment, 3s-8s = stable. Required: select 3s-8s.
 Reject footage with camera shake, autofocus hunting, exposure shifts, drone acceleration, gimbal calibration, or abrupt turns.
-Preferred clip duration: 3-5 seconds. NEVER return clips longer than 6 seconds. Prioritize short, impactful, stable middle portions.
+
+Reel Duration Goals:
+- Preferred clip duration: 5-7 seconds.
+- Minimum clip duration: 4 seconds (use 3 seconds ONLY if the scene quality is very weak).
+- Do NOT aggressively compress the reel. Cinematic storytelling is more important than short reels.
 
 Return an array of 'selected_clips'.
 For each clip:
@@ -213,3 +217,43 @@ Avoid selecting visually similar clips. Keep only the strongest angles.
 | Stability & Aesthetics | Single Score | **Splits scoring into `hero_score`, `stability_score`, `hook_score`, and `luxury_score` for precise filtering.** |
 | Backend Optimization | Python sorting | **New `TimelineOptimizer` strictly filters low-stability shots, removes duplicates, selects the best hooks, and sequences everything using Luxury Flow.** |
 | Clip Trimming | Gemini Start/End | **Backend automatically pads start+2s to avoid gimbal setup jitter.** |
+
+## Prompt 6: Hybrid OpenCV / Gemini Engine (v9)
+
+### The Prompt
+```text
+Property: '{property_name}'
+Analyze the attached videos. Extract the most stunning cinematic scenes.
+Focus purely on aesthetics, framing, and content. (Physical camera shake is handled by an external computer vision pipeline, so assume clips can be trimmed for stability later).
+
+Reel Goals:
+- Build the longest high-quality cinematic timeline possible. 
+- NEVER remove a good clip just to make the reel shorter.
+- Select segments between 4 and 12 seconds depending on their aesthetic quality.
+
+Return an array of 'selected_clips'.
+For each clip:
+- 'video_index': The exact index of the video (0 for the first video in this batch, 1 for the second, etc.)
+- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities'). 
+  CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms (kitchen/bedroom/etc.). It can ONLY be drone, aerial, exterior, pool, garden, or amenities.
+- 'start' and 'end': Timestamps in seconds.
+- 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Premium. 89-70: Good but not exceptional. Below 70: Avoid).
+- 'composition_score': 0-100 score evaluating framing, rule of thirds, and architectural lines.
+- 'hook_score': 0-100 score for how well the shot works as an opening hook.
+- 'luxury_score': 0-100 score for how luxurious the shot feels (high-end aesthetics).
+- 'camera_motion': Choose from: static, push_in, push_out, pan, orbit, tilt.
+- 'camera_direction': Choose from: left_to_right, right_to_left, forward, backward, neutral.
+- 'shot_size': Choose from: wide, medium, close.
+
+Avoid selecting visually similar clips. Keep only the strongest angles.
+```
+
+### Key Changes from v8 → v9
+
+| Aspect | v8 | v9 (Hybrid Engine) |
+|---|---|---|
+| Stability & Physics | Evaluated by Gemini | **Evaluated mathematically by OpenCV (`cv_analyzer.py`) before timeline optimization.** |
+| Aesthetics | General Hero Score | **Adds strict `composition_score` for Gemini to grade architectural framing.** |
+| Trimming Rules | Backend hardcode `MIN_SAFE_START = 3.0` | **Dynamic OpenCV Pre-Trim. Only skips 0-3s if math detects shake/exposure pumps.** |
+| Drone Classification | Implicit | **Hard constraint added to prevent DJI/Drone footage from being labeled as Kitchens/Bathrooms.** |
+| Pacing Limits | 10s ceiling | **Raised ceiling to 12s for exceptional drone footage, removed duration limits, targeting 90-100% preferred coverage.** |

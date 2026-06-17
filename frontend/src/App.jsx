@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
@@ -15,6 +15,24 @@ import SettingsPage from './pages/SettingsPage';
 import { TopNav } from './components/layout/TopNav';
 
 function DashboardLayout() {
+  useEffect(() => {
+    const handlePlay = (e) => {
+      if (e.target.tagName === 'VIDEO') {
+        const videos = document.querySelectorAll('video');
+        videos.forEach((vid) => {
+          if (vid !== e.target && !vid.paused) {
+            vid.pause();
+            vid.currentTime = 0; // Reset as requested
+          }
+        });
+      }
+    };
+    
+    // Capture phase listener for 'play' since media events don't bubble
+    document.addEventListener('play', handlePlay, true);
+    return () => document.removeEventListener('play', handlePlay, true);
+  }, []);
+
   return (
     <ProtectedRoute>
       <div className="min-h-screen flex flex-col bg-[#F8FAFC] text-[#0F172A] selection:bg-[#0EA5E9]/20 overflow-hidden">

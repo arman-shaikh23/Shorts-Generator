@@ -1,8 +1,17 @@
 import os
+import signal
 import json
 import asyncio
 import sys
 import time
+
+def force_exit(*args):
+    print("\n[SHUTDOWN] Forcefully exiting to bypass hanging Gemini threads...")
+    os._exit(0)
+
+# Ensure Ctrl+C immediately terminates backend
+signal.signal(signal.SIGINT, force_exit)
+
 from fastapi import FastAPI, Request, Query, HTTPException
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware

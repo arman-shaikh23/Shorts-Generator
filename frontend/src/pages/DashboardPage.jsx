@@ -4,6 +4,7 @@ import { Play, Video, LayoutTemplate, Activity, ChevronRight, Plus, FolderKanban
 import { Card } from '../components/ui/Card';
 import { apiFetch } from '../api/client';
 import { useAuth } from '../hooks/useAuth';
+import DemoVideoCard from '../components/dashboard/DemoVideoCard';
 
 export default function DashboardPage() {
   const { user } = useAuth();
@@ -52,27 +53,35 @@ export default function DashboardPage() {
       {/* Hero Section */}
       <div className="relative rounded-[2rem] overflow-hidden bg-white shadow-[0_20px_50px_rgba(0,0,0,0.04)] border border-[#E2E8F0]">
         <div className="absolute inset-0 bg-gradient-aurora opacity-10"></div>
-        <div className="relative px-12 py-16 md:py-24 max-w-4xl">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-[#0F172A] mb-6">
-            Create Cinematic Property Reels <br/>
-            <span className="text-gradient">with AI Intelligence</span>
-          </h1>
-          <p className="text-lg text-[#64748B] mb-10 max-w-2xl font-medium">
-            Upload raw footage and let our AI Director build professional real-estate marketing videos automatically. Perfect sequencing, auto-captions, and trending audio.
-          </p>
-          <div className="flex items-center gap-4">
-            <button onClick={handleCreateProject} className="bg-gradient-aurora text-white px-8 py-3.5 rounded-xl text-base font-bold shadow-lg shadow-[#0EA5E9]/20 hover:scale-105 transition-transform active:scale-95 flex items-center gap-2">
-              <Plus size={20} /> Create New Reel
-            </button>
-            {/* <button className="bg-white border border-[#E2E8F0] text-[#0F172A] px-8 py-3.5 rounded-xl text-base font-bold shadow-sm hover:bg-[#F8FAFC] transition-colors flex items-center gap-2">
-              <LayoutTemplate size={20} /> View Templates
-            </button> */}
+        
+        <div className="relative flex flex-col lg:flex-row items-center justify-between px-8 py-10 md:px-12 md:py-12 gap-8 lg:gap-12">
+          
+          {/* Left Side: Text and CTA */}
+          <div className="flex-1 max-w-2xl text-center lg:text-left z-10">
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight text-[#0F172A] mb-6 leading-tight">
+              Create Cinematic Property Reels <br className="hidden md:block"/>
+              <span className="text-gradient">with AI Intelligence</span>
+            </h1>
+            <p className="text-lg text-[#64748B] mb-10 max-w-xl mx-auto lg:mx-0 font-medium leading-relaxed">
+              Upload raw footage and let our AI Director build professional real-estate marketing videos automatically. Perfect sequencing, auto-captions, and trending audio.
+            </p>
+            <div className="flex items-center justify-center lg:justify-start gap-4">
+              <button onClick={handleCreateProject} className="bg-gradient-aurora text-white px-8 py-4 rounded-xl text-lg font-bold shadow-lg shadow-[#0EA5E9]/20 hover:scale-105 transition-transform active:scale-95 flex items-center gap-2">
+                <Plus size={24} /> Create New Reel
+              </button>
+            </div>
           </div>
+
+          {/* Right Side: Demo Video Card */}
+          <div className="flex-1 w-full lg:w-auto z-10 flex justify-center lg:justify-end">
+            <DemoVideoCard />
+          </div>
+
         </div>
         
         {/* Decorative Floating Elements */}
-        <div className="absolute right-0 top-0 bottom-0 w-1/3 hidden lg:flex items-center justify-center">
-          <div className="w-64 h-64 bg-gradient-aurora rounded-full blur-[80px] opacity-20 animate-pulse"></div>
+        <div className="absolute right-0 top-0 bottom-0 w-1/3 hidden lg:flex items-center justify-center pointer-events-none">
+          <div className="w-[500px] h-[500px] bg-gradient-aurora rounded-full blur-[120px] opacity-10 animate-pulse"></div>
         </div>
       </div>
 

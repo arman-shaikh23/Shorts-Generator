@@ -18,7 +18,19 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Luxury Ocean Aurora Dashboard**: A premium, light-themed workspace inspired by Stripe and Linear. Features an 80px floating top navigation bar and a clean responsive 2-column workspace layout.
 - **Authentic Data Visualization**: The UI strictly surfaces real data returned by the backend (e.g. actual extracted clip durations, actual scene types) with zero hardcoded "mock" metrics.
 - **Micro-Interactions**: Built heavily with Framer Motion to provide high-end, smooth animations (hover scaling, layout transitions, animated step indicators).
-- **Smart Crossfade Engine**: Generated videos use a massive `-filter_complex` FFmpeg pipeline with `xfade` and `acrossfade` for buttery-smooth transitions (Fades, Wipes, Slides) tailored automatically to the selected reel style.
+
+### 1. Premium SaaS Dashboard Experience
+The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboard instantly showcases the platform’s capabilities through a looping demo reel. Users immediately understand the "22 Raw Clips → AI Analysis → Cinematic Reel" workflow without ever needing to read a tutorial.
+
+### 2. Hybrid Cinematic AI Engine (OpenCV + Gemini)
+- **Computer Vision Pre-Processing**: Before hitting the AI, an OpenCV physics layer (`cv_analyzer.py`) mathematically analyzes the footage for motion blur (Variance of Laplacian), exposure spikes, and severe camera shake (MSE). It dynamically scrubs out the first 0-3 seconds *only* if the operator was calibrating the gimbal.
+- **Advanced Contextual Understanding**: The AI views every frame of your raw footage. It categorizes rooms (e.g., distinguishing a kitchen from a living room) and determines the exact camera movement (pan, tilt, drone approach).
+- **Strict Drone Segregation**: Explicit classification constraints guarantee DJI/Drone footage will never be incorrectly labeled as interior property rooms.
+- **Smart Pacing Bounds**: Clips are intelligently trimmed based on their calculated `final_score` (OpenCV Physics + Gemini Aesthetics). Weak clips are bounded to 4-7s, Hero clips to 7-10s, and exceptional Drone shots up to 12s.
+- **Maximum Coverage Strategy**: The system strictly prefers 90-100% coverage, ensuring virtually every unique video provided by the user is beautifully integrated into the final story, provided it passes the mathematical quality threshold.
+- **Phase 5 Render Coverage Audit**: A dedicated backend verification pipeline ensures that every clip approved by the Timeline Optimizer actually survives the FFmpeg concatenation phase, automatically logging potential mismatches.
+
+### 3. Smart Deduplication & Scene Diversity
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
 - **ReelForge Storytelling Engine**: Analyzes and builds sequences following a strict real estate logic: Drone/Exterior -> Walkthrough -> Amenities -> Parking. Explicitly prevents using low-tier scenes (e.g., Parking, Bathrooms) as the opening hook.
 - **Unlimited Dynamic Reel Durations**: The platform intelligently utilizes all unique non-duplicate footage available, generating Shorts and YouTube videos that are exactly as long as needed rather than being artificially cropped to a 30-60s limit.

@@ -141,13 +141,13 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                         )
                     
                     print(f"ACTIVE GEMINI KEY: {os.environ.get('GEMINI_API_KEY', 'UNKNOWN')[:15]}...")
-                    print(f"[DEBUG] BATCH={batch_num} | MODEL={model_name} | VIDEOS={len(batch_infos)} | PROMPT_LENGTH={prompt_len} | FILES={file_names}")
+                    print(f"[VIDEO START] BATCH={batch_num} | MODEL={model_name} | VIDEOS={len(batch_infos)} | PROMPT_LENGTH={prompt_len} | FILES={file_names}")
                     
                     future = loop.run_in_executor(None, _generate)
-                    response = await asyncio.wait_for(future, timeout=180.0)
+                    response = await asyncio.wait_for(future, timeout=90.0)
                     
                     elapsed = time.perf_counter() - start_attempt
-                    print(f"[PERF] Gemini {model_name} success on attempt {attempt+1}: {elapsed:.1f}s")
+                    print(f"[VIDEO SUCCESS] Gemini {model_name} success on attempt {attempt+1}: {elapsed:.1f}s")
                     
                     text = response.text
                     if text.startswith("```json"):
@@ -158,6 +158,10 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                     except json.JSONDecodeError:
                         raise Exception(f"Failed to decode Gemini response as JSON. Excerpt: {text[:100]}")
                         
+                except asyncio.TimeoutError:
+                    print(f"[VIDEO TIMEOUT] BATCH={batch_num} | MODEL={model_name} | Hung for >90s. Aborting.")
+                    print(f"[VIDEO FALLBACK] Switching to next fallback model...")
+                    break # Break retry loop, try next model immediately
                 except Exception as e:
                     error_str = str(e)
                     err_type = type(e).__name__
@@ -177,6 +181,7 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                     
                     if not is_retryable or attempt == max_retries - 1:
                         print(f"[WARN] Exhausted retries or non-retryable error for {model_name}. Moving to fallback model if available.")
+                        print(f"[VIDEO FALLBACK] Switching to next fallback model...")
                         break
                         
                     base_delay = backoff_schedule[attempt]
@@ -240,14 +245,14 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
                         "start": types.Schema(type=types.Type.STRING),
                         "end": types.Schema(type=types.Type.STRING),
                         "hero_score": types.Schema(type=types.Type.INTEGER),
-                        "stability_score": types.Schema(type=types.Type.INTEGER),
+                        "composition_score": types.Schema(type=types.Type.INTEGER),
                         "hook_score": types.Schema(type=types.Type.INTEGER),
                         "luxury_score": types.Schema(type=types.Type.INTEGER),
                         "camera_motion": types.Schema(type=types.Type.STRING),
                         "camera_direction": types.Schema(type=types.Type.STRING),
                         "shot_size": types.Schema(type=types.Type.STRING)
                     },
-                    required=["video_index", "scene_type", "start", "end", "hero_score", "stability_score", "hook_score", "luxury_score", "camera_motion", "camera_direction", "shot_size"]
+                    required=["video_index", "scene_type", "start", "end", "hero_score", "composition_score", "hook_score", "luxury_score", "camera_motion", "camera_direction", "shot_size"]
                 )
             )
         },
@@ -255,20 +260,23 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
     )
     
     prompt = f"""Property: '{property_name}'
-Analyze the attached videos. Extract the most stunning, stable cinematic scenes.
-Never select the first 2-3 seconds automatically. Instead, analyze the entire video and choose the most stable cinematic portion. 
-For example: Bad: 0s-3s = adjustment, 3s-8s = stable. Required: select 3s-8s.
-Reject footage with camera shake, autofocus hunting, exposure shifts, drone acceleration, gimbal calibration, or abrupt turns.
-Preferred clip duration: 3-5 seconds. NEVER return clips longer than 6 seconds. Prioritize short, impactful, stable middle portions.
+Analyze the attached videos. Extract the most stunning cinematic scenes.
+Focus purely on aesthetics, framing, and content. (Physical camera shake is handled by an external computer vision pipeline, so assume clips can be trimmed for stability later).
+
+Reel Goals:
+- Build the longest high-quality cinematic timeline possible. 
+- NEVER remove a good clip just to make the reel shorter.
+- Select segments between 4 and 12 seconds depending on their aesthetic quality.
 
 Return an array of 'selected_clips'.
 For each clip:
 - 'video_index': The exact index of the video (0 for the first video in this batch, 1 for the second, etc.)
-- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities'). NEVER classify drone footage as interior rooms!
-- 'start' and 'end': Timestamps in seconds. Avoid timestamps near clip start.
-- 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Stable, Premium. 89-70: Good but not exceptional. Below 70: Avoid). Penalize shake, blur, autofocus, exposure flicker, and camera corrections heavily.
-- 'stability_score': 0-100 score for gimbal/camera stability.
-- 'hook_score': 0-100 score for how well the shot works as an opening hook (impressive, eye-catching).
+- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities'). 
+  CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms (kitchen/bedroom/etc.). It can ONLY be drone, aerial, exterior, pool, garden, or amenities.
+- 'start' and 'end': Timestamps in seconds.
+- 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Premium. 89-70: Good but not exceptional. Below 70: Avoid).
+- 'composition_score': 0-100 score evaluating framing, rule of thirds, and architectural lines.
+- 'hook_score': 0-100 score for how well the shot works as an opening hook.
 - 'luxury_score': 0-100 score for how luxurious the shot feels (high-end aesthetics).
 - 'camera_motion': Choose from: static, push_in, push_out, pan, orbit, tilt.
 - 'camera_direction': Choose from: left_to_right, right_to_left, forward, backward, neutral.
@@ -318,6 +326,7 @@ Generate metadata for a real estate reel using these scenes.
     
     for t_model in text_models:
         try:
+            print(f"[TEXT START] Generating metadata with {t_model}")
             def _gen_text():
                 print(f"ACTIVE GEMINI KEY: {os.environ.get('GEMINI_API_KEY', 'UNKNOWN')[:15]}...")
                 return client.models.generate_content(
@@ -325,13 +334,19 @@ Generate metadata for a real estate reel using these scenes.
                     contents=text_prompt,
                     config=types.GenerateContentConfig(response_mime_type="application/json", response_schema=text_schema)
                 )
-            res = await asyncio.get_event_loop().run_in_executor(None, _gen_text)
+            future = asyncio.get_event_loop().run_in_executor(None, _gen_text)
+            res = await asyncio.wait_for(future, timeout=90.0)
             text = res.text
             if text.startswith("```json"): text = text[7:-3]
             text_result = json.loads(text)
+            print(f"[TEXT SUCCESS] Metadata generated successfully on {t_model}")
             break # Success
+        except asyncio.TimeoutError:
+            print(f"[TEXT TIMEOUT] Model {t_model} hung for >90s! Aborting request.")
+            print(f"[TEXT FALLBACK] Switching to next fallback model...")
         except Exception as e:
             print(f"[ERROR] Text generation failed on {t_model}: {e}")
+            print(f"[TEXT FALLBACK] Switching to next fallback model...")
         
     return {
         "property_type": text_result.get("property_type", "Real Estate"),
@@ -400,13 +415,21 @@ For each variation, select 'custom_sequence' referencing the Index values to def
 
         await gemini_semaphore.acquire()
         try:
-            response = await loop.run_in_executor(None, _generate)
+            print(f"[TEXT START] Generating variations with {v_model}")
+            future = loop.run_in_executor(None, _generate)
+            response = await asyncio.wait_for(future, timeout=90.0)
             text = response.text
             if text.startswith("```json"):
                 text = text[7:-3]
+            print(f"[TEXT SUCCESS] Variations generated successfully on {v_model}")
             return json.loads(text)
+        except asyncio.TimeoutError:
+            print(f"[TEXT TIMEOUT] Model {v_model} hung for >90s! Aborting request.")
+            print(f"[TEXT FALLBACK] Switching to next fallback model...")
+            last_error = Exception("Timeout on all models")
         except Exception as e:
             print(f"[ERROR] Gemini variations generation failed on {v_model}: {e}")
+            print(f"[TEXT FALLBACK] Switching to next fallback model...")
             last_error = e
         finally:
             gemini_semaphore.release()
