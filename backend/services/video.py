@@ -14,7 +14,11 @@ subprocess.run(["ffmpeg", "-version"], check=True)
 
 def run_ffmpeg(cmd):
     logger.info(f"Running FFmpeg: {' '.join(cmd)}")
-    result = subprocess.run(cmd, capture_output=True, text=True)
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    except subprocess.TimeoutExpired:
+        logger.error(f"[FFMPEG TIMEOUT] Command hung for >120s. Killed.")
+        raise RuntimeError("FFmpeg process timed out after 120 seconds")
     if result.returncode != 0:
         logger.error(f"FFmpeg failed:\n{result.stderr}")
         raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")
@@ -147,7 +151,7 @@ async def build_reel(
     music_volume: float = 0.2,
     vo_volume: float = 1.0,
     on_progress: Optional[Callable] = None
-) -> tuple[str, int]:
+) -> dict:
     if not timeline_blocks: raise ValueError("Timeline is empty")
 
     output_dir = f"data/{project_id}/outputs"
@@ -156,8 +160,13 @@ async def build_reel(
     output_path = os.path.join(output_dir, output_filename)
     start = time.perf_counter()
 
+    # Calculate selected_duration from timeline
+    selected_duration_sec = 0.0
+    for blk in timeline_blocks:
+        selected_duration_sec += float(blk.get("clip_duration_sec", 4.0))
+
     # --- LOOP CLOSURE: Add first clip to end for 2 seconds ---
-    sorted_blocks = list(timeline_blocks) # timeline_blocks is already optimized and sorted
+    sorted_blocks = list(timeline_blocks)
     if sorted_blocks:
         first_clip_copy = dict(sorted_blocks[0])
         first_clip_copy["clip_duration_sec"] = 2.0
@@ -178,49 +187,71 @@ async def build_reel(
         transition_duration = 0.4
 
     # 1. Process and normalize each scene into a temporary HQ clip
-    ffmpeg_sem = asyncio.Semaphore(4)  # Limit concurrent FFmpeg jobs to prevent laptop freezing
-    
-    MIN_SAFE_START = 3.0
-    MAX_CLIP_DURATION = 10.0
+    ffmpeg_sem = asyncio.Semaphore(4)
+    skipped_clips = []
 
     async def process_one(i, scene):
         local_path = scene.get("localPath")
-        if not local_path or not os.path.exists(local_path):
-            logger.error(f"Missing local file for clip: {scene.get('video_index')}")
-            return None
-        clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
+        clip_id = scene.get("clip_id", f"{scene.get('video_index', i)}_{scene.get('start', '0')}_{scene.get('end', '5')}")
         
+        if not local_path or not os.path.exists(local_path):
+            logger.error(f"[SKIP] Missing local file for clip: {clip_id}")
+            skipped_clips.append({"clip_id": clip_id, "reason": "missing_file"})
+            return None
+        
+        clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
+
         start_seconds = parse_time_to_seconds(scene.get("start", "0"))
         start_t = str(start_seconds)
-        
-        # Use clip_duration_sec from Gemini if available (3-6 seconds per clip)
+
+        # Use clip_duration_sec from optimizer (already bounded by trim logic)
         clip_dur = scene.get("clip_duration_sec")
         if clip_dur and float(clip_dur) > 0:
-            actual_dur = min(float(clip_dur), MAX_CLIP_DURATION)
-            end_t_val = start_seconds + actual_dur
+            end_t_val = start_seconds + float(clip_dur)
         else:
             end_t_val = parse_time_to_seconds(scene.get("end", "5"))
-            actual_dur = end_t_val - start_seconds
-            if actual_dur > MAX_CLIP_DURATION:
-                end_t_val = start_seconds + MAX_CLIP_DURATION
-        
+
         # Add transition duration buffer so crossfade has visual material
         end_t = str(end_t_val + transition_duration)
-        
-        async with ffmpeg_sem:
-            await process_segment(local_path, clip_path, start_t, end_t, aspect_ratio)
-        return clip_path
+
+        try:
+            async with ffmpeg_sem:
+                await process_segment(local_path, clip_path, start_t, end_t, aspect_ratio)
+            return clip_path
+        except RuntimeError as e:
+            err_str = str(e)
+            if "timed out" in err_str.lower():
+                reason = "ffmpeg_timeout"
+            elif "decode" in err_str.lower() or "codec" in err_str.lower():
+                reason = "decode_error"
+            else:
+                reason = "ffmpeg_error"
+            logger.error(f"[SKIP] FFmpeg failed for clip {clip_id}: {err_str[:100]}")
+            skipped_clips.append({"clip_id": clip_id, "reason": reason})
+            return None
 
     tasks = [process_one(i, scene) for i, scene in enumerate(sorted_blocks)]
     results = await asyncio.gather(*tasks)
     clip_paths = [r for r in results if r]
+
+    rendered_count = len(clip_paths)
+    selected_count = len(timeline_blocks)
 
     if not clip_paths: raise ValueError("No valid clips generated")
 
     # If only 1 clip, just rename and return
     if len(clip_paths) == 1:
         os.rename(clip_paths[0], output_path)
-        return output_path, len(clip_paths)
+        rendered_duration = get_exact_duration(output_path)
+        return {
+            "output_path": output_path,
+            "rendered_count": 1,
+            "selected_count": selected_count,
+            "selected_duration_sec": selected_duration_sec,
+            "rendered_duration_sec": rendered_duration,
+            "duration_coverage_pct": (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100,
+            "skipped_clips": skipped_clips
+        }
 
     # --- DYNAMIC SMART CROSSFADE ENGINE ---
     durations = [get_exact_duration(p) for p in clip_paths]
@@ -259,10 +290,8 @@ async def build_reel(
         music_idx = len(clip_paths)
         for cp in clip_paths:
             concat_cmd.extend(["-i", cp])
-        # Add background music with infinite loop
         concat_cmd.extend(["-stream_loop", "-1", "-i", music_path])
         
-        # Apply volumes and mix
         mixing_filter = f"{final_a}volume={vo_volume}[vo];[{music_idx}:a]volume={music_volume}[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a]"
         filter_complex = f"{filter_complex};{mixing_filter}"
         final_a = "[mixed_a]"
@@ -270,13 +299,11 @@ async def build_reel(
         for cp in clip_paths:
             concat_cmd.extend(["-i", cp])
         
-        # Apply vo_volume even if no music
         if vo_volume != 1.0:
             mixing_filter = f"{final_a}volume={vo_volume}[mixed_a]"
             filter_complex = f"{filter_complex};{mixing_filter}"
             final_a = "[mixed_a]"
 
-    # Assemble the massive FFmpeg command
     concat_cmd.extend([
         "-filter_complex", filter_complex,
         "-map", final_v,
@@ -290,7 +317,6 @@ async def build_reel(
     await asyncio.to_thread(run_ffmpeg, concat_cmd)
 
     # Cleanup temp clips
-    # Add a short delay to ensure Windows releases the file handles from FFmpeg
     await asyncio.sleep(1.5)
     for cp in clip_paths:
         try: 
@@ -300,6 +326,24 @@ async def build_reel(
             logger.warning(f"Could not delete temp clip {cp}: {e}")
 
     elapsed = time.perf_counter() - start
-    logger.info(f"[PERF] Final Dynamic Reel built with xfade in {elapsed:.1f}s")
     
-    return output_path
+    # Get actual rendered duration
+    rendered_duration = get_exact_duration(output_path)
+    duration_coverage = (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100
+    
+    logger.info(f"[PERF] Final Dynamic Reel built with xfade in {elapsed:.1f}s")
+    logger.info(f"[RENDER AUDIT] Selected: {selected_count} clips / {selected_duration_sec:.1f}s | Rendered: {rendered_count} clips / {rendered_duration:.1f}s | Duration Coverage: {duration_coverage:.1f}%")
+    if skipped_clips:
+        for sc in skipped_clips:
+            logger.warning(f"[RENDER SKIP] clip_id={sc['clip_id']} reason={sc['reason']}")
+
+    return {
+        "output_path": output_path,
+        "rendered_count": rendered_count,
+        "selected_count": selected_count,
+        "selected_duration_sec": selected_duration_sec,
+        "rendered_duration_sec": rendered_duration,
+        "duration_coverage_pct": round(duration_coverage, 1),
+        "skipped_clips": skipped_clips
+    }
+

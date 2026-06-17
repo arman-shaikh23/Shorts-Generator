@@ -7,8 +7,8 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Backend**: FastAPI (Python), Motor (Async MongoDB)
 - **Database**: MongoDB (Atlas)
 - **Auth**: RSA-256 JWT with Refresh Token Rotation
-- **AI Engine**: Google Gemini Pro (via Files API)
-- **Render Engine**: FFmpeg
+- **AI Engine**: Google Gemini Pro (via Files API) + OpenCV Hybrid Scoring
+- **Render Engine**: FFmpeg with Dynamic Crossfade Graph
 
 ## Features
 - **7-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Music -> Generate -> Export).
@@ -22,13 +22,19 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 ### 1. Premium SaaS Dashboard Experience
 The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboard instantly showcases the platform’s capabilities through a looping demo reel. Users immediately understand the "22 Raw Clips → AI Analysis → Cinematic Reel" workflow without ever needing to read a tutorial.
 
-### 2. Hybrid Cinematic AI Engine (OpenCV + Gemini)
+### 2. Hybrid Cinematic AI Engine v9 (OpenCV + Gemini)
 - **Computer Vision Pre-Processing**: Before hitting the AI, an OpenCV physics layer (`cv_analyzer.py`) mathematically analyzes the footage for motion blur (Variance of Laplacian), exposure spikes, and severe camera shake (MSE). It dynamically scrubs out the first 0-3 seconds *only* if the operator was calibrating the gimbal.
 - **Advanced Contextual Understanding**: The AI views every frame of your raw footage. It categorizes rooms (e.g., distinguishing a kitchen from a living room) and determines the exact camera movement (pan, tilt, drone approach).
+- **Multi-Segment Extraction**: A single uploaded video can contribute up to 3 distinct scenes if it contains multiple rooms (e.g., lobby at 3-7s, entrance at 10-15s). Each segment gets a unique `clip_id` for accurate tracking.
 - **Strict Drone Segregation**: Explicit classification constraints guarantee DJI/Drone footage will never be incorrectly labeled as interior property rooms.
-- **Smart Pacing Bounds**: Clips are intelligently trimmed based on their calculated `final_score` (OpenCV Physics + Gemini Aesthetics). Weak clips are bounded to 4-7s, Hero clips to 7-10s, and exceptional Drone shots up to 12s.
-- **Maximum Coverage Strategy**: The system strictly prefers 90-100% coverage, ensuring virtually every unique video provided by the user is beautifully integrated into the final story, provided it passes the mathematical quality threshold.
-- **Phase 5 Render Coverage Audit**: A dedicated backend verification pipeline ensures that every clip approved by the Timeline Optimizer actually survives the FFmpeg concatenation phase, automatically logging potential mismatches.
+- **Story Zones Architecture**: Clips are grouped into 4 cinematic zones — OPENING (drone/aerial/exterior), INTERIOR (lobby through bathroom), AMENITIES (pool/gym/garden), CLOSING — ensuring natural real-estate storytelling.
+- **Strict Walkthrough Mode**: For Luxury and Realtor styles, clips follow a hard walkthrough order (Drone → Exterior → Entrance → Lobby → Living Room → Kitchen → Bedroom → Bathroom → Amenities → Closing). For Instagram/Viral, clips are ordered by hero-score impact.
+- **Room Continuity Scoring**: Natural room transitions (e.g., Living Room → Kitchen) receive bonuses, while unnatural jumps (e.g., Kitchen → Pool) are penalized, creating smooth virtual tours.
+- **Hero Clip Protection**: Clips with `hero_score >= 90` are NEVER removed from the timeline regardless of other quality metrics.
+- **Sequence Validation**: Post-optimization validation enforces 4 hard rules: no backward movement, max 3 same-type consecutive clips, drone only in opening/closing zones, bathroom never before living room.
+- **Smart Pacing Bounds**: Clips are intelligently trimmed based on their calculated `final_score`. Weak clips bounded to 4-7s, Hero clips to 7-10s, exceptional Drone shots up to 12s.
+- **Full Render Audit**: Every render is tracked with `selected_count`, `rendered_count`, `selected_duration`, `rendered_duration`, `duration_coverage_pct`, and detailed skip reasons (`missing_file`, `ffmpeg_timeout`, `decode_error`).
+- **ALL-Clips Variation Rendering**: All 3 style variations (Luxury, Instagram, Realtor) MUST include every approved timeline clip. `custom_sequence` controls ordering only, never removal.
 
 ### 3. Smart Deduplication & Scene Diversity
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
@@ -39,12 +45,13 @@ The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboar
 - **Parallel FFmpeg Traffic Control**: Strictly throttles concurrent video encoding operations (Semaphore) to prevent system freezing and memory starvation during heavy loads (30+ clips).
 - **Automated Storage Management**: Aggressively cleans up intermediate rendering chunks immediately after compilation. A background daily cron job (`cleanup.py`) continually sweeps for orphaned files. Furthermore, project deletion instantly triggers a deep recursive destruction of all associated `data/` directories to keep the server lightweight.
 
-### ReelForge Story Engine v7
-- **Unlimited Duration Algorithm**: The AI doesn't restrict itself to an arbitrary time budget; it is commanded to use ALL unique, non-duplicate clips for maximum coverage.
+### ReelForge Story Engine v9
+- **Strict Walkthrough Algorithm**: Hard walkthrough order for Luxury/Realtor styles with 4 Story Zones. Instagram/Viral uses hero-score-first ordering for attention optimization.
+- **Unlimited Duration Algorithm**: The AI doesn't restrict itself to an arbitrary time budget; it uses ALL unique clips for maximum coverage. 85s of selected footage → 85s final reel.
 - **Loop Closure Mechanics**: FFmpeg dynamically appends a 2-second snippet of the opening clip to the very end of the reel, creating an infinite loop effect for social platforms.
-- **Scene Role Classification**: Automatically classifies detected scenes into structural roles (`OPENING`, `LOBBY`, `LIVING_ROOM`, `CLOSING`) and builds chronological walkthroughs.
+- **Scene Role Classification**: Expanded scene types include `home_office`, `conference_room`, `corridor`, `staircase`, `walk_in_closet`, `terrace`, `rooftop` alongside all standard real estate rooms.
 - **Strict Deduplication**: 3-stage validation process utilizing SHA-256 (file integrity), 3-frame Perceptual Hashing (visual similarity), and Structural Similarity Index Measure (SSIM).
-- **Format Intelligence**: Shorts and YouTube modes now both deeply utilize all available footage, dropping arbitrary length limits.
+- **Server Crash Prevention**: Background tasks are wrapped in `safe_background_task()` with auto-restart. FFmpeg subprocesses have 120s timeouts. Ctrl+C immediately kills the server.
 
 - **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
 - Direct downloads of fully prepared 4K/1080p clips from the sticky preview player.

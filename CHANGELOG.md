@@ -1,6 +1,32 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+  
+## [15.0.0] - ReelForge Cinematic Engine v9 (Critical Reel Quality Upgrade)
+### Added
+- **Strict Walkthrough Mode**: Enforced a hard real-estate walkthrough sequence for Luxury/Realtor styles: Drone → Exterior → Entrance → Lobby → Living Room → Dining → Kitchen → Master Bedroom → Bedroom → Bathroom → Balcony → Pool → Gym → Garden → Amenities → Parking → Closing. Missing scenes are skipped, never reordered backwards.
+- **Story Zones**: Clips are now grouped into 4 cinematic zones: `OPENING` (drone/aerial/exterior/entrance), `INTERIOR` (lobby through bathroom), `AMENITIES` (pool/gym/garden/parking), `CLOSING` (closing exterior/drone). Each zone is assembled in order for natural storytelling.
+- **Flexible Mode for Instagram/Viral**: Instagram and Viral styles use hero-score ordering with scene diversity instead of strict walkthrough, prioritizing attention over tour order.
+- **Room Continuity Scoring**: Natural room-to-room transitions receive bonuses (e.g., Living Room → Kitchen: +10), while unnatural jumps receive penalties (e.g., Kitchen → Pool: -15).
+- **Hero Clip Protection**: Clips with `hero_score >= 90` are now NEVER removed from the timeline, regardless of other quality scores, unless the file is physically missing or corrupted.
+- **Unique `clip_id` System**: Every clip now gets a unique identifier (`{video_index}_{start}_{end}`) enabling multi-segment extraction where a single uploaded video can contribute up to 3 distinct scenes.
+- **Multi-Segment Extraction**: Gemini can now extract multiple usable segments from a single video (e.g., lobby at 3-7s, entrance at 10-15s). Capped at `MAX_SEGMENTS_PER_VIDEO = 3`.
+- **Sequence Validation**: Post-optimization `validate_storyline()` enforces 4 rules: no backward movement, max 3 same-type consecutive clips, drone only in opening/closing, bathroom never before living room.
+- **Full Render Audit with Duration Coverage**: `build_reel()` now returns a comprehensive audit dict tracking `selected_count`, `rendered_count`, `selected_duration`, `rendered_duration`, `duration_coverage_pct`, and `skipped_clips` with reasons.
+- **Render Fail Threshold**: Generation automatically alerts if `rendered_count < selected_count * 0.9` (less than 90% of clips rendered).
+- **Detailed Skip Reasons**: Every skipped clip is logged with a specific reason: `missing_file`, `ffmpeg_timeout`, `decode_error`, `ffmpeg_error`.
+- **Expanded Scene Types**: Added `home_office`, `conference_room`, `corridor`, `staircase`, `walk_in_closet`, `terrace`, `rooftop` to the walkthrough order and Gemini prompt.
+
+### Changed
+- **ALL-Clips Variation Rendering**: Variations now MUST include every approved timeline clip. `custom_sequence` only controls ordering, never removal. Missing clips are appended in original timeline order.
+- **Variations use `clip_id` strings** instead of `video_index` integers, preventing multi-segment clips from overwriting each other.
+- **Removed `MAX_CLIP_DURATION = 10.0` double-cap** from `build_reel()` — the timeline optimizer already enforces smart duration bounds (4-12s based on score and scene type).
+
+### Fixed
+- **85s → 25s Duration Bug**: Root cause was `generate_variations()` cherry-picking only 6 of 19 clips. Now all clips are always included.
+- **Server Crash Prevention**: Background tasks (`upload_worker`, `daily_cleanup`) are now wrapped in `safe_background_task()` that auto-restarts on crash instead of killing the event loop.
+- **FFmpeg Deadlock Prevention**: Added 120-second timeout to all FFmpeg subprocess calls. Hung processes are killed and the clip is skipped instead of blocking all renders.
+- **Ctrl+C Immediate Kill**: `SIGINT` handler calls `os._exit(0)` to bypass hanging Gemini threads.
 
 ## [14.0.0] - ReelForge Cinematic Engine v8
 ### Added

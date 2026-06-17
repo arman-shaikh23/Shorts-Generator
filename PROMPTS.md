@@ -257,3 +257,97 @@ Avoid selecting visually similar clips. Keep only the strongest angles.
 | Trimming Rules | Backend hardcode `MIN_SAFE_START = 3.0` | **Dynamic OpenCV Pre-Trim. Only skips 0-3s if math detects shake/exposure pumps.** |
 | Drone Classification | Implicit | **Hard constraint added to prevent DJI/Drone footage from being labeled as Kitchens/Bathrooms.** |
 | Pacing Limits | 10s ceiling | **Raised ceiling to 12s for exceptional drone footage, removed duration limits, targeting 90-100% preferred coverage.** |
+
+---
+
+## Prompt 7: Critical Reel Quality Upgrade (v10 — Story Zones + Strict Walkthrough)
+
+### Analysis Prompt (Multi-Segment Extraction)
+```text
+Property: '{property_name}'
+Analyze the attached videos. Extract the most stunning cinematic scenes.
+
+MULTI-SEGMENT EXTRACTION:
+- A single video may contain MULTIPLE usable scenes at different timestamps.
+- Return multiple selected_clips entries with the same video_index but different
+  start/end timestamps if the video contains visually distinct segments.
+- LIMIT: Maximum 3 segments per video.
+
+Scene Types: drone, aerial, exterior, lobby, living_room, kitchen, bedroom,
+bathroom, pool, gym, garden, parking, amenities, home_office, conference_room,
+corridor, staircase, walk_in_closet, terrace, balcony, rooftop
+
+CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms.
+```
+
+### Variation Prompt (Reorder Only, Never Remove)
+```text
+Property: '{property_name}'
+Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style).
+
+CRITICAL RULES:
+- custom_sequence MUST include ALL clip_id values from the pool.
+- You are REORDERING clips for storytelling flow, NOT removing clips.
+- Every clip_id must appear EXACTLY ONCE in each variation's custom_sequence.
+- Variation generation may NOT remove clips.
+- Variation generation may NOT duplicate clips.
+- All {N} clips must be present in each variation.
+
+custom_sequence uses clip_id strings (format: "{video_index}_{start}_{end}")
+```
+
+### Timeline Optimizer (Story Zones + Strict Walkthrough)
+```python
+STORY_ZONES = {
+    "OPENING":   ["drone", "aerial", "exterior", "entrance"],
+    "INTERIOR":  ["lobby", "living_room", "dining", "kitchen", "home_office",
+                  "conference_room", "corridor", "staircase", "walk_in_closet",
+                  "master_bedroom", "bedroom", "bathroom"],
+    "AMENITIES": ["terrace", "balcony", "pool", "gym", "garden", "amenities",
+                  "parking", "rooftop"],
+    "CLOSING":   ["closing_exterior", "closing_drone", "closing"]
+}
+
+# Style-based strictness
+Luxury/Realtor:     strict_walkthrough = True
+Instagram/Viral:    strict_walkthrough = False (hero-score ordering)
+
+# Hero Protection
+if hero_score >= 90: NEVER REMOVE
+
+# Room Continuity Scoring
+("living_room", "kitchen"): +10
+("kitchen", "pool"):        -15
+
+# Sequence Validation (4 Rules)
+1. No backward movement in walkthrough order
+2. No more than 3 same scene_type in a row
+3. Drone only in Opening/Closing zones
+4. Bathroom never before Living Room
+```
+
+### Render Audit
+```json
+{
+    "selected_count": 19,
+    "rendered_count": 19,
+    "selected_duration": 85.0,
+    "rendered_duration": 83.2,
+    "duration_coverage": 97.9,
+    "coverage": 100.0,
+    "skipped_clips": []
+}
+```
+
+### Key Changes from v9 → v10
+
+| Aspect | v9 | v10 (Story Zones + Strict Walkthrough) |
+|---|---|---|
+| Room Sequence | Soft scoring preference | **Hard walkthrough order (Luxury/Realtor) or hero-score impact (Instagram/Viral)** |
+| Clip Identification | `video_index` integer | **Unique `clip_id` string (`{video_index}_{start}_{end}`)** |
+| Multi-Segment | 1 segment per video | **Up to 3 segments per video, each with unique clip_id** |
+| Variation Clips | Cherry-picked subset | **ALL clips included, reorder only, no removal allowed** |
+| Render Audit | Count-based | **Full duration coverage audit with skip reasons** |
+| Hero Protection | None | **hero_score >= 90 clips are NEVER removed** |
+| Continuity | None | **Room-to-room transition bonuses/penalties** |
+| Server Stability | No crash guard | **Background tasks auto-restart, FFmpeg 120s timeout** |

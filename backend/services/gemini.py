@@ -120,8 +120,7 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
     prompt_len = len(prompt)
     
     for model_name in models:
-        max_retries = 1
-        backoff_schedule = [5]
+        max_retries = 3  # Allow more retries for transient 503s
         
         async with gemini_semaphore:
             for attempt in range(max_retries):
@@ -165,47 +164,67 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
                 except Exception as e:
                     error_str = str(e)
                     err_type = type(e).__name__
-                    
-                    if any(term in error_str for term in ["GenerateRequestsPerDay", "generate_content_free_tier", "quota exceeded", "RESOURCE_EXHAUSTED", "429"]):
-                        print(f"[QUOTA EXHAUSTED] BATCH={batch_num} | MODEL={model_name} | ERROR={error_str[:150]}")
-                        last_error_was_quota = True
-                        break # Break retry loop, try next model immediately
-
-                    last_error_was_quota = False
-                    is_timeout = isinstance(e, asyncio.TimeoutError)
-                    is_retryable = is_timeout or any(code in error_str for code in ["429", "500", "502", "503", "504", "UNAVAILABLE", "Model overloaded", "overloaded"])
-                    
                     elapsed = time.perf_counter() - start_attempt
                     
                     print(f"[ERROR] BATCH={batch_num} | MODEL={model_name} | VIDEOS={len(batch_infos)} | PROMPT_LENGTH={prompt_len} | ERROR_TYPE={err_type} | ERROR={error_str}")
                     
-                    if not is_retryable or attempt == max_retries - 1:
-                        print(f"[WARN] Exhausted retries or non-retryable error for {model_name}. Moving to fallback model if available.")
-                        print(f"[VIDEO FALLBACK] Switching to next fallback model...")
-                        break
+                    # ── REAL QUOTA: Only daily per-model rate limits ──
+                    # These are actual quota errors that mean "try a different model"
+                    is_real_quota = any(term in error_str for term in [
+                        "GenerateRequestsPerDay", 
+                        "generate_content_free_tier", 
+                        "quota exceeded",
+                        "rate_limit",
+                        "rateLimitExceeded",
+                    ])
+                    
+                    # ── TRANSIENT 503/429: Server overloaded, retry same model ──
+                    is_transient = any(code in error_str for code in [
+                        "503", "UNAVAILABLE", "500", "502", "504", 
+                        "Model overloaded", "overloaded", "high demand",
+                        "RESOURCE_EXHAUSTED"
+                    ])
+                    
+                    # Also check for 429 that ISN'T a daily quota limit
+                    if "429" in error_str and not is_real_quota:
+                        is_transient = True
+                    
+                    if is_real_quota:
+                        print(f"[QUOTA EXHAUSTED] BATCH={batch_num} | MODEL={model_name} | Daily limit hit. Switching model.")
+                        last_error_was_quota = True
+                        break  # Try next model
+                    
+                    last_error_was_quota = False
+                    
+                    if is_transient and attempt < max_retries - 1:
+                        # Retry same model with backoff — it's just temporarily busy
+                        import re
+                        base_delay = 8 * (attempt + 1)  # 8s, 16s, 24s
+                        jitter = random.uniform(0, 3)
+                        delay = base_delay + jitter
                         
-                    base_delay = backoff_schedule[attempt]
-                    jitter = random.uniform(0, 3)
-                    delay = base_delay + jitter
-                    
-                    # Extract Google's exact requested delay if present
-                    import re
-                    match = re.search(r'Please retry in ([\d\.]+)s', error_str)
-                    if match:
-                        delay = float(match.group(1)) + 1.5
-                        print(f"[RATE LIMIT] Google API requested exact delay. Using {delay:.1f}s")
+                        match = re.search(r'Please retry in ([\d\.]+)s', error_str)
+                        if match:
+                            delay = float(match.group(1)) + 1.5
+                            print(f"[RATE LIMIT] Google API requested exact delay. Using {delay:.1f}s")
                         
-                    print(f"[RETRY] Model: {model_name}. Delaying {delay:.1f}s")
+                        print(f"[RETRY] Model: {model_name} | Attempt {attempt+2}/{max_retries} | Waiting {delay:.1f}s (transient 503)")
+                        
+                        if yield_callback:
+                            await yield_callback(f"Server busy, retrying in {int(delay)}s... ({model_name})")
+                        await asyncio.sleep(delay)
+                        continue
                     
-                    if yield_callback:
-                        await yield_callback(f"API Rate Limit hit, waiting {int(delay)}s... ({model_name})")
-                    await asyncio.sleep(delay)
+                    # Non-retryable or exhausted retries
+                    print(f"[WARN] Exhausted retries or non-retryable error for {model_name}. Moving to fallback model if available.")
+                    print(f"[VIDEO FALLBACK] Switching to next fallback model...")
+                    break
                     
-    # If we get here and last_error_was_quota is True, ALL models are exhausted!
+    # If we get here and last_error_was_quota is True, ALL models' daily quota is gone
     if 'last_error_was_quota' in locals() and locals()['last_error_was_quota']:
         raise Exception("Gemini quota exhausted across ALL models. Please wait for quota reset or use a billing-enabled project.")
 
-    # Isolation Logic
+    # Isolation Logic — try splitting the batch to find a toxic video
     if len(batch_infos) > 1:
         print(f"[ISOLATION] Batch {batch_num} failed on ALL models. Splitting batch into two halves to isolate toxic video...")
         mid = len(batch_infos) // 2
@@ -268,10 +287,15 @@ Reel Goals:
 - NEVER remove a good clip just to make the reel shorter.
 - Select segments between 4 and 12 seconds depending on their aesthetic quality.
 
+MULTI-SEGMENT EXTRACTION:
+- A single video may contain MULTIPLE usable scenes at different timestamps.
+- Return multiple selected_clips entries with the same video_index but different start/end timestamps if the video contains visually distinct segments (e.g., lobby at 3-7s, entrance at 10-15s, chandelier at 18-23s).
+- LIMIT: Maximum 3 segments per video.
+
 Return an array of 'selected_clips'.
 For each clip:
 - 'video_index': The exact index of the video (0 for the first video in this batch, 1 for the second, etc.)
-- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities'). 
+- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities', 'home_office', 'conference_room', 'corridor', 'staircase', 'walk_in_closet', 'terrace', 'balcony', 'rooftop'). 
   CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms (kitchen/bedroom/etc.). It can ONLY be drone, aerial, exterior, pool, garden, or amenities.
 - 'start' and 'end': Timestamps in seconds.
 - 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Premium. 89-70: Good but not exceptional. Below 70: Avoid).
@@ -363,15 +387,31 @@ async def generate_variations(property_name: str, timeline: list) -> dict:
     """Phase 2: Generate distinct text variations based on the timeline."""
     client = get_client()
 
-    scenes = [f"Index {c.get('video_index', i)}: {c.get('scene_type', 'scene')} ({c.get('start', '0')}-{c.get('end', '5')}s) - Score: {c.get('hero_score', 0)}" for i, c in enumerate(timeline)]
+    scenes = []
+    for i, c in enumerate(timeline):
+        cid = c.get("clip_id", f"{c.get('video_index', i)}_{c.get('start','0')}_{c.get('end','5')}")
+        scenes.append(f"clip_id={cid} Index={c.get('video_index', i)}: {c.get('scene_type', 'scene')} ({c.get('start', '0')}-{c.get('end', '5')}s) Score={c.get('hero_score', 0)}")
     timeline_context = "\n".join(scenes)
+    
+    # Build list of all clip_ids for the prompt
+    all_clip_ids = [c.get("clip_id", f"{c.get('video_index', i)}_{c.get('start','0')}_{c.get('end','5')}") for i, c in enumerate(timeline)]
 
     prompt = f"""Property: '{property_name}'
 Goal: Generate 3 distinct Reel Variations (Luxury, Instagram Viral, Realtor Style).
 Pool of Scenes:
 {timeline_context}
 
-For each variation, select 'custom_sequence' referencing the Index values to define the sequence.
+CRITICAL RULES:
+- custom_sequence MUST include ALL clip_id values from the pool.
+- You are REORDERING clips for storytelling flow, NOT removing clips.
+- Every clip_id must appear EXACTLY ONCE in each variation's custom_sequence.
+- Variation generation may NOT remove clips.
+- Variation generation may NOT duplicate clips.
+- All {len(all_clip_ids)} clips must be present in each variation.
+
+All clip_ids that MUST appear: {all_clip_ids}
+
+For each variation, provide 'custom_sequence' as an array of clip_id strings defining the playback order.
 """
 
     schema = types.Schema(
@@ -386,7 +426,7 @@ For each variation, select 'custom_sequence' referencing the Index values to def
                         "hook": types.Schema(type=types.Type.STRING),
                         "description": types.Schema(type=types.Type.STRING),
                         "hashtags": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
-                        "custom_sequence": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.INTEGER)),
+                        "custom_sequence": types.Schema(type=types.Type.ARRAY, items=types.Schema(type=types.Type.STRING)),
                     },
                     required=["style", "hook", "description", "hashtags", "custom_sequence"]
                 )

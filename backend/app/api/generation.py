@@ -7,6 +7,7 @@ import time
 from sse_starlette.sse import EventSourceResponse
 import logging
 import json
+from collections import Counter
 
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
@@ -196,29 +197,54 @@ async def analyze_project(
             # Map the Gemini result to the actual upload objects and Run CV Analysis
             timeline = gemini_result.get("selected_clips", [])
             mapped_timeline = []
-            for c in timeline:
+            
+            for i, c in enumerate(timeline):
                 idx = c.get("video_index", 0)
                 if idx < len(uploads):
                     c["upload_id"] = str(uploads[idx]["_id"])
                     local_path = uploads[idx].get("localPath")
                     c["localPath"] = local_path
                     
-                    # Run OpenCV Analysis on the selected segment
+                    await q.put({"status": "progress", "message": f"Computer Vision Analysis ({i+1}/{len(timeline)})..."})
+                    
+                    # Run OpenCV Analysis on the selected segment (offloaded to thread to prevent blocking event loop)
                     start_sec = parse_time(c.get("start", "0"))
                     end_sec = parse_time(c.get("end", "5"))
                     
                     # 1. Dynamic 3s Skip logic
                     if start_sec < 1.0:
-                        first_3s_analysis = analyze_video_segment(local_path, 0.0, 3.0)
+                        first_3s_analysis = await asyncio.to_thread(analyze_video_segment, local_path, 0.0, 3.0)
                         if first_3s_analysis.get("is_unstable"):
                             start_sec = 3.0
                             c["start"] = "3.0"
                     
                     # 2. Get overall segment CV metrics
-                    cv_scores = analyze_video_segment(local_path, start_sec, end_sec)
+                    cv_scores = await asyncio.to_thread(analyze_video_segment, local_path, start_sec, end_sec)
                     c.update(cv_scores) # Merge OpenCV scores into the clip dict
                     
                     mapped_timeline.append(c)
+
+            # --- MULTI-SEGMENT CAP: Max 3 segments per video ---
+            MAX_SEGMENTS_PER_VIDEO = 3
+            seg_counts = Counter(c.get("video_index") for c in mapped_timeline)
+            over_limit = {vid: count for vid, count in seg_counts.items() if count > MAX_SEGMENTS_PER_VIDEO}
+            if over_limit:
+                for vid_idx, count in over_limit.items():
+                    # Keep top 3 by hero_score, remove the rest
+                    vid_clips = [(i, c) for i, c in enumerate(mapped_timeline) if c.get("video_index") == vid_idx]
+                    vid_clips.sort(key=lambda x: int(x[1].get("hero_score", 0)), reverse=True)
+                    remove_indices = [i for i, c in vid_clips[MAX_SEGMENTS_PER_VIDEO:]]
+                    for ri in sorted(remove_indices, reverse=True):
+                        removed = mapped_timeline.pop(ri)
+                        ai_removed.append({"video_index": vid_idx, "reason": f"Multi-segment cap: video {vid_idx} had {count} segments, kept top 3"})
+                    logger.info(f"[MULTI-SEGMENT CAP] Video {vid_idx}: had {count} segments, capped to {MAX_SEGMENTS_PER_VIDEO}")
+
+            # --- ASSIGN UNIQUE clip_id ---
+            for c in mapped_timeline:
+                vid_idx = c.get("video_index", 0)
+                start_val = c.get("start", "0")
+                end_val = c.get("end", "5")
+                c["clip_id"] = f"{vid_idx}_{start_val}_{end_val}"
 
             optimized_timeline = TimelineOptimizer.optimize(mapped_timeline, ai_removed, style=style)
             timeline = optimized_timeline
@@ -375,16 +401,30 @@ async def generate_project(
                 var_style = var.get("style", style)
                 await q.put({"status": "progress", "message": f"Rendering {var_style} variation ({i+1}/{len(variations)})..."})
                 
-                # Build custom timeline for this variation
+                # Build custom timeline using clip_id (strings, not integers)
                 custom_seq = var.get("custom_sequence", [])
+                timeline_map = {block.get("clip_id", f"{block.get('video_index')}_{block.get('start','0')}_{block.get('end','5')}"): block for block in timeline}
+                
+                # Start with clips in custom_sequence order
                 var_timeline = []
-                timeline_map = {block.get("video_index"): block for block in timeline}
+                used_ids = set()
+                for cid in custom_seq:
+                    cid_str = str(cid)  # Ensure string comparison
+                    if cid_str in timeline_map and cid_str not in used_ids:
+                        var_timeline.append(timeline_map[cid_str])
+                        used_ids.add(cid_str)
                 
-                for idx in custom_seq:
-                    if idx in timeline_map:
-                        var_timeline.append(timeline_map[idx])
+                # CRITICAL: Append ALL missing clips in original timeline order
+                # This ensures NO clips are ever removed by the variation generator
+                for block in timeline:
+                    block_id = block.get("clip_id", f"{block.get('video_index')}_{block.get('start','0')}_{block.get('end','5')}")
+                    if block_id not in used_ids:
+                        var_timeline.append(block)
+                        used_ids.add(block_id)
                 
-                # Fallback to original timeline if custom_sequence failed
+                logger.info(f"[VARIATION {var_style}] custom_seq had {len(custom_seq)} clips, var_timeline has {len(var_timeline)} clips (timeline has {len(timeline)})")
+                
+                # Safety: if somehow var_timeline is still empty, use original
                 if not var_timeline:
                     var_timeline = timeline
 
@@ -401,40 +441,62 @@ async def generate_project(
                     vo_volume=vo_volume
                 )
                 
-                logger.info(f"[BUILD_REEL_RETURN_TYPE] {type(result)}")
-                
-                if isinstance(result, tuple) and len(result) >= 2:
-                    output_path = result[0]
-                    rendered_count = result[1]
-                elif isinstance(result, dict):
+                # Extract render audit data from build_reel dict
+                if isinstance(result, dict):
                     output_path = result.get("output_path", "")
                     rendered_count = result.get("rendered_count", len(var_timeline))
+                    selected_count = result.get("selected_count", len(var_timeline))
+                    selected_duration_sec = result.get("selected_duration_sec", 0)
+                    rendered_duration_sec = result.get("rendered_duration_sec", 0)
+                    duration_coverage_pct = result.get("duration_coverage_pct", 100)
+                    skipped_clips = result.get("skipped_clips", [])
+                elif isinstance(result, tuple) and len(result) >= 2:
+                    output_path = result[0]
+                    rendered_count = result[1]
+                    selected_count = len(var_timeline)
+                    selected_duration_sec = sum(float(c.get("clip_duration_sec", 4.0)) for c in var_timeline)
+                    rendered_duration_sec = 0
+                    duration_coverage_pct = 100
+                    skipped_clips = []
                 else:
                     output_path = str(result)
-                    rendered_count = len(var_timeline) # fallback
+                    rendered_count = len(var_timeline)
+                    selected_count = len(var_timeline)
+                    selected_duration_sec = sum(float(c.get("clip_duration_sec", 4.0)) for c in var_timeline)
+                    rendered_duration_sec = 0
+                    duration_coverage_pct = 100
+                    skipped_clips = []
                     
                 logger.info(f"[RENDERED_COUNT] {rendered_count}")
                 logger.info(f"[OUTPUT_PATH] {output_path}")
                 
-                # --- PHASE 5: RENDER COVERAGE AUDIT ---
-                selected_count = len(var_timeline)
+                # --- RENDER COVERAGE AUDIT ---
                 if rendered_count < selected_count:
                     missing_clips = selected_count - rendered_count
                     logger.warning(f"[RENDER AUDIT] Variation {var_style}: Selected {selected_count}, Rendered {rendered_count}. Missing {missing_clips} clips.")
-                    await q.put({"status": "progress", "message": f"[Audit] Recovered from {missing_clips} render failures..."})
+                    await q.put({"status": "progress", "message": f"[Audit] {missing_clips} clips failed to render..."})
                 else:
                     logger.info(f"[RENDER AUDIT] Variation {var_style}: PERFECT MATCH. Selected {selected_count}, Rendered {rendered_count}.")
+                
+                # FAIL THRESHOLD: Alert if <90% clips rendered
+                if rendered_count < selected_count * 0.9:
+                    logger.error(f"[RENDER AUDIT FAIL] Only {rendered_count}/{selected_count} clips rendered for {var_style}!")
+                    await q.put({"status": "progress", "message": f"⚠️ Render audit warning: only {rendered_count}/{selected_count} clips rendered"})
 
                 web_url = "/" + output_path.replace("\\", "/")
                 
-                # Get actual output duration
-                try:
-                    from services.video import get_exact_duration
-                    actual_dur_sec = await asyncio.to_thread(get_exact_duration, output_path)
-                    actual_duration_str = f"{int(actual_dur_sec)}s"
-                except Exception as e:
-                    logger.warning(f"Failed to get exact duration: {e}")
-                    actual_duration_str = duration
+                # Use rendered_duration from build_reel if available
+                if rendered_duration_sec > 0:
+                    actual_duration_str = f"{int(rendered_duration_sec)}s"
+                else:
+                    try:
+                        from services.video import get_exact_duration
+                        actual_dur_sec = await asyncio.to_thread(get_exact_duration, output_path)
+                        actual_duration_str = f"{int(actual_dur_sec)}s"
+                        rendered_duration_sec = actual_dur_sec
+                    except Exception as e:
+                        logger.warning(f"Failed to get exact duration: {e}")
+                        actual_duration_str = duration
 
                 # Save to generated shorts
                 short = {
@@ -451,26 +513,29 @@ async def generate_project(
                 }
                 await db.generated_shorts.insert_one(short)
                 
-                # We return the _id so the frontend can use it if needed, but we stringify it
                 short["_id"] = str(short["_id"])
-                
-                # Make sure projectId and userId are also strings if we return them
                 short["projectId"] = str(short["projectId"])
                 short["userId"] = str(short["userId"])
                 
                 results.append(short)
 
-                # Update project generated count and render audit
+                # Update project with full render audit
+                render_audit_data = {
+                    "selected_count": selected_count,
+                    "rendered_count": rendered_count,
+                    "selected_duration": round(selected_duration_sec, 1),
+                    "rendered_duration": round(rendered_duration_sec, 1),
+                    "duration_coverage": round(duration_coverage_pct, 1),
+                    "coverage": round((rendered_count / selected_count * 100) if selected_count > 0 else 100, 1),
+                    "skipped_clips": skipped_clips
+                }
+                
                 await db.projects.update_one(
                     {"_id": ObjectId(project_id)},
                     {
                         "$set": {
                             "status": "COMPLETED",
-                            f"aiMetadata.render_audit.{var_style}": {
-                                "selected_count": selected_count,
-                                "rendered_count": rendered_count,
-                                "missing_clips": selected_count - rendered_count
-                            }
+                            f"aiMetadata.render_audit.{var_style}": render_audit_data
                         }, 
                         "$inc": {"generatedCount": 1}
                     }

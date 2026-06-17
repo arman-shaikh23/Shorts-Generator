@@ -4,6 +4,9 @@ import json
 import asyncio
 import sys
 import time
+import logging
+
+logger = logging.getLogger(__name__)
 
 def force_exit(*args):
     print("\n[SHUTDOWN] Forcefully exiting to bypass hanging Gemini threads...")
@@ -39,13 +42,23 @@ app = FastAPI()
 
 from app.core.cleanup import run_daily_cleanup
 
+async def safe_background_task(coro_func, name):
+    """Wrap background tasks so crashes restart instead of killing the server."""
+    while True:
+        try:
+            logger.info(f"[CRASH GUARD] Starting background task: {name}")
+            await coro_func()
+        except Exception as e:
+            logger.error(f"[CRASH GUARD] Background task '{name}' crashed: {e}")
+            logger.error(f"[CRASH GUARD] Restarting '{name}' in 10s...")
+            await asyncio.sleep(10)
+
 @app.on_event("startup")
 async def startup_db_client():
     await connect_to_mongo()
-    # Start the background worker
-    asyncio.create_task(process_pending_uploads())
-    # Start the daily storage cleanup job
-    asyncio.create_task(run_daily_cleanup())
+    # Start background workers with crash protection
+    asyncio.create_task(safe_background_task(process_pending_uploads, "upload_worker"))
+    asyncio.create_task(safe_background_task(run_daily_cleanup, "daily_cleanup"))
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
