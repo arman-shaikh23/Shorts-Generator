@@ -102,10 +102,14 @@ async def process_segment(input_path: str, output_path: str, start_time: str, en
     """
     start = time.perf_counter()
     
-    # Calculate crop & scale for aspect ratio, plus auto-color matching and subtle Ken Burns simulated scale
-    vf_filter = "crop=ih*9/16:ih,scale=720:1280"
-    if aspect_ratio == "16:9": vf_filter = "crop=iw:iw*9/16,scale=1280:720"
-    elif aspect_ratio == "1:1": vf_filter = "crop=ih:ih,scale=1080:1080"
+    # Smart cropping to prevent out-of-bounds errors on various input aspect ratios
+    # Calculates the largest possible crop box that fits within the source while maintaining the target aspect ratio
+    if aspect_ratio == "16:9":
+        vf_filter = "crop='min(iw,ih*16/9)':'min(ih,iw*9/16)',scale=1280:720"
+    elif aspect_ratio == "1:1":
+        vf_filter = "crop='min(iw,ih)':'min(ih,iw)',scale=1080:1080"
+    else: # Default 9:16
+        vf_filter = "crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280"
     
     # Inject color normalization (Brighten slightly, boost contrast/saturation to look premium)
     # Inject standard fps to prevent xfade desyncs
@@ -153,16 +157,8 @@ async def build_reel(
     output_path = os.path.join(output_dir, output_filename)
     start = time.perf_counter()
 
-    # --- SCENE GROUPING ENGINE (Full Property Tour Order) ---
-    scene_order = {
-        "drone": 1, "aerial": 2, "exterior": 3, "property_sign": 4, "entrance": 5, "lobby": 6,
-        "living room": 7, "living_room": 7, "dining": 8, "kitchen": 9, "bedroom": 10, "bathroom": 11,
-        "balcony": 12, "pool": 13, "gym": 14, "garden": 15, "parking": 16,
-        "amenities": 17, "amenity": 17, "closing drone": 18, "closing": 19, "other": 20
-    }
-    sorted_blocks = sorted(timeline_blocks, key=lambda x: scene_order.get(x.get("scene_type", "").lower(), 99))
-
     # --- LOOP CLOSURE: Add first clip to end for 2 seconds ---
+    sorted_blocks = list(timeline_blocks) # timeline_blocks is already optimized and sorted
     if sorted_blocks:
         first_clip_copy = dict(sorted_blocks[0])
         first_clip_copy["clip_duration_sec"] = 2.0
@@ -185,20 +181,28 @@ async def build_reel(
     # 1. Process and normalize each scene into a temporary HQ clip
     ffmpeg_sem = asyncio.Semaphore(4)  # Limit concurrent FFmpeg jobs to prevent laptop freezing
     
+    MIN_SAFE_START = 3.0
+    MAX_CLIP_DURATION = 6.0
+
     async def process_one(i, scene):
         v_idx = scene.get("video_index", 0)
         if v_idx >= len(input_paths): return None
         clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
         
-        start_t = str(scene.get("start", "0"))
+        start_seconds = parse_time_to_seconds(scene.get("start", "0"))
+        start_seconds = max(start_seconds, MIN_SAFE_START)
+        start_t = str(start_seconds)
         
         # Use clip_duration_sec from Gemini if available (3-6 seconds per clip)
         clip_dur = scene.get("clip_duration_sec")
         if clip_dur and float(clip_dur) > 0:
-            start_seconds = parse_time_to_seconds(start_t)
-            end_t_val = start_seconds + float(clip_dur)
+            actual_dur = min(float(clip_dur), MAX_CLIP_DURATION)
+            end_t_val = start_seconds + actual_dur
         else:
             end_t_val = parse_time_to_seconds(scene.get("end", "5"))
+            actual_dur = end_t_val - start_seconds
+            if actual_dur > MAX_CLIP_DURATION:
+                end_t_val = start_seconds + MAX_CLIP_DURATION
         
         # Add transition duration buffer so crossfade has visual material
         end_t = str(end_t_val + transition_duration)

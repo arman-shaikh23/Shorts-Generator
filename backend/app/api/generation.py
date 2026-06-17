@@ -187,6 +187,10 @@ async def analyze_project(
 
             gemini_result = await analyze_and_generate(file_infos_clean, project["title"], duration, style, duplicate_sensitivity, yield_callback=yield_message)
 
+            # ── POST-PROCESSING: Cinematic Timeline Optimizer ──
+            from services.timeline_optimizer import TimelineOptimizer
+            ai_removed = []
+            
             # Map the Gemini result to the actual upload objects
             timeline = gemini_result.get("selected_clips", [])
             mapped_timeline = []
@@ -197,36 +201,8 @@ async def analyze_project(
                     c["localPath"] = uploads[idx].get("localPath")
                     mapped_timeline.append(c)
 
-            # ── PYTHON BUSINESS LOGIC: DUPLICATE DETECTION & CATEGORY LIMITS ──
-            seen_upload_scenes = set()
-            scene_counts = {}
-            deduplicated = []
-            ai_removed = []
-            
-            for c in mapped_timeline:
-                stype = c.get("scene_type", "").lower()
-                upload_id = c.get("upload_id")
-                
-                key = f"{upload_id}_{stype}"
-                
-                if key in seen_upload_scenes:
-                    ai_removed.append({"video_index": c.get("video_index"), "reason": f"Python Deduplication: Already selected {stype} from this specific video."})
-                    continue
-                
-                scene_counts[stype] = scene_counts.get(stype, 0) + 1
-                if scene_counts[stype] > 2:
-                    ai_removed.append({"video_index": c.get("video_index"), "reason": f"Python Category Limit: Already have enough {stype} scenes."})
-                    continue
-                    
-                seen_upload_scenes.add(key)
-                deduplicated.append(c)
-
-            # ── PYTHON BUSINESS LOGIC: SORTING ──
-            # Sort chronologically by property tour role, tie-break by hero_score
-            deduplicated.sort(key=lambda c: (_get_scene_order_key(c.get("scene_type", "")), -int(c.get("hero_score", 0))))
-
-            # ── POST-PROCESSING: Fix timeline sequence and opening ──
-            timeline = _fix_timeline(deduplicated)
+            optimized_timeline = TimelineOptimizer.optimize(mapped_timeline, ai_removed)
+            timeline = optimized_timeline
 
             # Update final_order to match the fixed timeline
             gemini_result["final_order"] = [c.get("video_index") for c in timeline]
@@ -234,30 +210,7 @@ async def analyze_project(
             gemini_result["timeline"] = timeline
             
             # Use 'end' - 'start' to compute duration since clip_duration_sec is gone
-            total_sec = 0
-            
-            def parse_time(t):
-                if isinstance(t, (int, float)): return float(t)
-                t = str(t).strip()
-                if ":" in t:
-                    parts = t.split(":")
-                    if len(parts) == 3: return float(parts[0])*3600 + float(parts[1])*60 + float(parts[2])
-                    if len(parts) == 2: return float(parts[0])*60 + float(parts[1])
-                try:
-                    return float(t)
-                except:
-                    return 0.0
-
-            for c in timeline:
-                start_val = parse_time(c.get("start", 0))
-                end_val = parse_time(c.get("end", 5))
-                # Ensure they are safely overwritten as strings or numbers that FFmpeg understands
-                c["start"] = start_val
-                c["end"] = end_val
-                dur = end_val - start_val
-                if dur <= 0: dur = 4.0
-                c["clip_duration_sec"] = dur
-                total_sec += dur
+            total_sec = sum(float(c.get("clip_duration_sec", 4.0)) for c in timeline)
                 
             gemini_result["total_selected_duration_sec"] = total_sec
             gemini_result["removed_clips"] = ai_removed
@@ -278,6 +231,12 @@ async def analyze_project(
                 
             total_uploaded = len(uploads) + len(pre_duplicates)
             total_removed = len(ai_removed) + len(pre_duplicates)
+
+            # Debug logging for every removed clip as requested by user
+            for dup in all_removed:
+                v_id = dup.get("video_index", "-1")
+                reason = dup.get("reason", "Unknown reason")
+                logger.info(f"REMOVED: Video {v_id} - {reason}")
 
             ai_metadata = {
                 "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),

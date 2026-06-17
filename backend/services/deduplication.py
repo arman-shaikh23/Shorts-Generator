@@ -129,7 +129,7 @@ def analyze_duplicate(new_file: str, existing_files: list[dict]) -> tuple[bool, 
         if ext_path and os.path.exists(ext_path):
             try:
                 similarity = calculate_ssim(new_file, ext_path)
-                if similarity >= 0.90:  # 90% structural similarity
+                if similarity >= 0.95:  # 95% structural similarity (exact duplicates)
                     return True, f"Stage 3: Local SSIM Comparison ({similarity*100:.1f}%)", new_data
             except Exception as e:
                 logger.error(f"Error calculating SSIM: {e}")

@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## [14.0.0] - ReelForge Cinematic Engine v8
+### Added
+- **Cinematic Timeline Optimizer**: Added a new Python backend module (`timeline_optimizer.py`) to programmatically polish the final video reel timeline, fixing camera stability and visual flow.
+- **Advanced Metadata Extraction**: Gemini now extracts `camera_motion`, `camera_direction`, `shot_size`, `stability_score`, `hook_score`, and `luxury_score` for every clip.
+- **Strict Pre-Trim Rules**: The backend automatically enforces a 3.0s minimum safe start to the start of every selected clip to absolutely eliminate camera shake, autofocus hunting, and gimbal calibration movements.
+- **Maximized Property Coverage**: Eliminated subjective visual deduplication (pHash). The pipeline now preserves unique camera angles and room perspectives, guaranteeing maximum property coverage (e.g. 18-21 unique videos used if uploaded).
+- **Target Selection Range**: Gemini now instructed to search the `3s-8s` safe zone of videos instead of automatically capturing from 0.0s.
+- **Short-Impact Formatting**: Reel durations are strictly enforced to 3-6 seconds per clip, rejecting any sequence longer than 6s.
+- **Camera Continuity logic**: Sequences clips based on camera direction (e.g., `left_to_right`) to prevent jarring visual jumps.
+- **Luxury Sequence Flow**: Enforced a strict chronological sequence designed for luxury real estate (Drone Establishing -> Exterior -> Entrance -> Lobby -> Living Room -> Kitchen -> Dining -> Bedroom -> Bathroom -> Balcony -> Amenities -> Pool -> Gym -> Garden -> Closing).
+- **Opening & Closing Protections**: AI identifies and strictly sets the highest `hook_score` clip as the opening and highest `luxury_score` clip as the closing shot.
+- **Verbose Debugging**: Explicit reasoning is now logged for every single clip removed from the pipeline.
+
 ## [13.0.0] - ReelForge Story Engine v7 (Unlimited Duration & Loop Closure)
 ### Changed
 - **Unlimited Duration Algorithm**: Removed the 30-60 second artificial constraint for short videos. The AI is now instructed to utilize all non-duplicate uploaded clips, rendering a video that is exactly as long as necessary to showcase every important room.

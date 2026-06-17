@@ -224,7 +224,7 @@ async def _analyze_batch(batch_infos: list, prompt: str, schema: types.Schema, y
 
 async def analyze_and_generate(file_infos: list, property_name: str, duration: str, style: str, duplicate_sensitivity: str = "Low", yield_callback=None) -> dict:
     total_clip_count = len(file_infos)
-    BATCH_SIZE = 5
+    BATCH_SIZE = 8
     batches = [file_infos[i:i + BATCH_SIZE] for i in range(0, total_clip_count, BATCH_SIZE)]
     
     schema = types.Schema(
@@ -239,9 +239,15 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
                         "scene_type": types.Schema(type=types.Type.STRING),
                         "start": types.Schema(type=types.Type.STRING),
                         "end": types.Schema(type=types.Type.STRING),
-                        "hero_score": types.Schema(type=types.Type.INTEGER)
+                        "hero_score": types.Schema(type=types.Type.INTEGER),
+                        "stability_score": types.Schema(type=types.Type.INTEGER),
+                        "hook_score": types.Schema(type=types.Type.INTEGER),
+                        "luxury_score": types.Schema(type=types.Type.INTEGER),
+                        "camera_motion": types.Schema(type=types.Type.STRING),
+                        "camera_direction": types.Schema(type=types.Type.STRING),
+                        "shot_size": types.Schema(type=types.Type.STRING)
                     },
-                    required=["video_index", "scene_type", "start", "end", "hero_score"]
+                    required=["video_index", "scene_type", "start", "end", "hero_score", "stability_score", "hook_score", "luxury_score", "camera_motion", "camera_direction", "shot_size"]
                 )
             )
         },
@@ -249,14 +255,26 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
     )
     
     prompt = f"""Property: '{property_name}'
-Analyze the attached videos.
-For EACH video, extract the most stunning scenes. You can extract multiple scenes from a single video if it contains different rooms or distinct areas.
+Analyze the attached videos. Extract the most stunning, stable cinematic scenes.
+Never select the first 2-3 seconds automatically. Instead, analyze the entire video and choose the most stable cinematic portion. 
+For example: Bad: 0s-3s = adjustment, 3s-8s = stable. Required: select 3s-8s.
+Reject footage with camera shake, autofocus hunting, exposure shifts, drone acceleration, gimbal calibration, or abrupt turns.
+Preferred clip duration: 3-5 seconds. NEVER return clips longer than 6 seconds. Prioritize short, impactful, stable middle portions.
+
 Return an array of 'selected_clips'.
 For each clip:
 - 'video_index': The exact index of the video (0 for the first video in this batch, 1 for the second, etc.)
-- 'scene_type': Standardized label (e.g., 'drone', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities')
-- 'start' and 'end': Timestamps in seconds.
-- 'hero_score': 0-100 score based on visual appeal, lighting, stability, and aesthetic value.
+- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities'). NEVER classify drone footage as interior rooms!
+- 'start' and 'end': Timestamps in seconds. Avoid timestamps near clip start.
+- 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Stable, Premium. 89-70: Good but not exceptional. Below 70: Avoid). Penalize shake, blur, autofocus, exposure flicker, and camera corrections heavily.
+- 'stability_score': 0-100 score for gimbal/camera stability.
+- 'hook_score': 0-100 score for how well the shot works as an opening hook (impressive, eye-catching).
+- 'luxury_score': 0-100 score for how luxurious the shot feels (high-end aesthetics).
+- 'camera_motion': Choose from: static, push_in, push_out, pan, orbit, tilt.
+- 'camera_direction': Choose from: left_to_right, right_to_left, forward, backward, neutral.
+- 'shot_size': Choose from: wide, medium, close.
+
+Avoid selecting visually similar clips. Keep only the strongest angles.
 """
 
     all_selected_clips = []

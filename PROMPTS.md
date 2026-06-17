@@ -177,3 +177,39 @@ If ANY validation fails, silently rebuild the storyboard before responding.
 | Target Duration | Strict budget (e.g. 60s hard cap) | **UNLIMITED. Forced to use all unique clips.** |
 | Clip Usage | Drop clips to hit target time | **DO NOT drop clips. Output is as long as necessary.** |
 | Loop Closure (Backend) | None | **FFmpeg appends 2s snippet of the opening clip to the end of the video.** |
+
+## Prompt 5: Cinematic ReelForge Flow (v8)
+
+### The Prompt
+```text
+Property: '{property_name}'
+Analyze the attached videos. Extract the most stunning, stable cinematic scenes.
+Never select the first 2-3 seconds automatically. Instead, analyze the entire video and choose the most stable cinematic portion. 
+For example: Bad: 0s-3s = adjustment, 3s-8s = stable. Required: select 3s-8s.
+Reject footage with camera shake, autofocus hunting, exposure shifts, drone acceleration, gimbal calibration, or abrupt turns.
+Preferred clip duration: 3-5 seconds. NEVER return clips longer than 6 seconds. Prioritize short, impactful, stable middle portions.
+
+Return an array of 'selected_clips'.
+For each clip:
+- 'video_index': The exact index of the video
+- 'scene_type': Strict labels (e.g., 'drone', 'exterior', 'living_room'). NEVER classify drone footage as interior rooms!
+- 'start' and 'end': Timestamps in seconds. Avoid timestamps near clip start.
+- 'hero_score': 0-100 visual appeal (100-90: Luxury, Stable. 89-70: Good. Below 70: Avoid).
+- 'stability_score': 0-100 gimbal stability
+- 'hook_score': 0-100 opening hook appeal
+- 'luxury_score': 0-100 high-end aesthetics
+- 'camera_motion': static, push_in, push_out, pan, orbit, tilt.
+- 'camera_direction': left_to_right, right_to_left, forward, backward, neutral.
+- 'shot_size': wide, medium, close.
+
+Avoid selecting visually similar clips. Keep only the strongest angles.
+```
+
+### Key Changes from v7 → v8
+
+| Aspect | v7 | v8 (Cinematic Flow & Optimizer) |
+|---|---|---|
+| Camera Continuity | None | **Extracts `camera_motion`, `camera_direction`, and `shot_size` to build smooth contiguous timelines.** |
+| Stability & Aesthetics | Single Score | **Splits scoring into `hero_score`, `stability_score`, `hook_score`, and `luxury_score` for precise filtering.** |
+| Backend Optimization | Python sorting | **New `TimelineOptimizer` strictly filters low-stability shots, removes duplicates, selects the best hooks, and sequences everything using Luxury Flow.** |
+| Clip Trimming | Gemini Start/End | **Backend automatically pads start+2s to avoid gimbal setup jitter.** |
