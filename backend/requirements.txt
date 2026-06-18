@@ -13,3 +13,5 @@ pydantic-settings
 email-validator
 opencv-python-headless
 numpy
+pytest
+pytest-asyncio
