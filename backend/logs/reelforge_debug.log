@@ -1,0 +1,819 @@
+2026-06-18 15:26:38,757 INFO [CRASH GUARD] Starting background task: upload_worker
+2026-06-18 15:26:38,761 INFO [CRASH GUARD] Starting background task: daily_cleanup
+2026-06-18 15:26:38,763 INFO Starting Daily Storage Cleanup Sweep...
+2026-06-18 15:26:38,785 INFO Daily Cleanup Complete. Storage is already optimized.
+2026-06-18 15:51:01,130 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:51:01,826 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+2026-06-18 15:51:01,840 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:51:34,402 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2026-06-18 15:51:34,418 INFO [VARIATION Luxury] custom_seq had 25 clips, var_timeline has 25 clips (timeline has 25)
+2026-06-18 15:51:34,422 ERROR [SKIP] Missing local file for clip: 19_3.0_00:03
+2026-06-18 15:51:34,423 ERROR [SKIP] Missing local file for clip: 13_00:00_00:10
+2026-06-18 15:51:34,423 ERROR [SKIP] Missing local file for clip: 18_3.0_00:03
+2026-06-18 15:51:34,424 ERROR [SKIP] Missing local file for clip: 0_00:00:00.500_00:00:04.500
+2026-06-18 15:51:34,425 ERROR [SKIP] Missing local file for clip: 0_00:00:11.000_00:00:16.000
+2026-06-18 15:51:34,425 ERROR [SKIP] Missing local file for clip: 11_00:00_00:07
+2026-06-18 15:51:34,426 ERROR [SKIP] Missing local file for clip: 10_3.0_00:04
+2026-06-18 15:51:34,426 ERROR [SKIP] Missing local file for clip: 1_9.5_00:00:13.000
+2026-06-18 15:51:34,427 ERROR [SKIP] Missing local file for clip: 3_00:00:00.000_00:00:05.000
+2026-06-18 15:51:34,427 ERROR [SKIP] Missing local file for clip: 1_3.0_00:00:04.500
+2026-06-18 15:51:34,428 ERROR [SKIP] Missing local file for clip: 19_00:03_00:06
+2026-06-18 15:51:34,428 ERROR [SKIP] Missing local file for clip: 20_00:03_00:06
+2026-06-18 15:51:34,429 ERROR [SKIP] Missing local file for clip: 21_00:03_00:06
+2026-06-18 15:51:34,430 ERROR [SKIP] Missing local file for clip: 4_1.0_00:00:05.000
+2026-06-18 15:51:34,430 ERROR [SKIP] Missing local file for clip: 16_00:05_00:08
+2026-06-18 15:51:34,430 ERROR [SKIP] Missing local file for clip: 2_00:00:10.000_00:00:15.000
+2026-06-18 15:51:34,431 ERROR [SKIP] Missing local file for clip: 2_00:00:05.000_00:00:10.000
+2026-06-18 15:51:34,431 ERROR [SKIP] Missing local file for clip: 2_3.0_00:00:04.000
+2026-06-18 15:51:34,431 ERROR [SKIP] Missing local file for clip: 20_00:00_00:03
+2026-06-18 15:51:34,432 ERROR [SKIP] Missing local file for clip: 16_3.0_00:05
+2026-06-18 15:51:34,432 ERROR [SKIP] Missing local file for clip: 17_3.0_00:04
+2026-06-18 15:51:34,432 ERROR [SKIP] Missing local file for clip: 9_3.0_00:03
+2026-06-18 15:51:34,432 ERROR [SKIP] Missing local file for clip: 8_3.0_00:04
+2026-06-18 15:51:34,433 ERROR [SKIP] Missing local file for clip: 12_3.0_00:04
+2026-06-18 15:51:34,433 ERROR [SKIP] Missing local file for clip: 21_3.0_00:03
+2026-06-18 15:51:34,433 ERROR [SKIP] Missing local file for clip: 19_3.0_00:03
+2026-06-18 15:51:34,436 ERROR Generation error: No valid clips generated
+Traceback (most recent call last):
+  File "E:\groovy_task\short_genretor\backend\app\api\generation.py", line 500, in sse_generator
+    result = await build_reel(
+             ^^^^^^^^^^^^^^^^^
+    ...<9 lines>...
+    )
+    ^
+  File "E:\groovy_task\short_genretor\backend\services\video.py", line 245, in build_reel
+    if not clip_paths: raise ValueError("No valid clips generated")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: No valid clips generated
+2026-06-18 15:52:50,877 INFO [CRASH GUARD] Starting background task: upload_worker
+2026-06-18 15:52:50,881 INFO [CRASH GUARD] Starting background task: daily_cleanup
+2026-06-18 15:52:50,881 INFO Starting Daily Storage Cleanup Sweep...
+2026-06-18 15:52:50,905 INFO Daily Cleanup Complete. Storage is already optimized.
+2026-06-18 15:53:04,315 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:53:05,006 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+2026-06-18 15:53:05,014 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:53:17,478 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 503 Service Unavailable"
+2026-06-18 15:53:17,481 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:53:17,728 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent "HTTP/1.1 429 Too Many Requests"
+2026-06-18 15:53:17,731 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 15:53:17,923 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-pro:generateContent "HTTP/1.1 429 Too Many Requests"
+2026-06-18 15:53:17,925 ERROR Failed to generate variations: 429 RESOURCE_EXHAUSTED. {'error': {'code': 429, 'message': 'You exceeded your current quota, please check your plan and billing details. For more information on this error, head to: https://ai.google.dev/gemini-api/docs/rate-limits. To monitor your current usage, head to: https://ai.dev/rate-limit. \n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.5-pro\n* Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_input_token_count, limit: 0, model: gemini-2.5-pro\nPlease retry in 42.959667026s.', 'status': 'RESOURCE_EXHAUSTED', 'details': [{'@type': 'type.googleapis.com/google.rpc.Help', 'links': [{'description': 'Learn more about Gemini API quotas', 'url': 'https://ai.google.dev/gemini-api/docs/rate-limits'}]}, {'@type': 'type.googleapis.com/google.rpc.QuotaFailure', 'violations': [{'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerDayPerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-pro'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_requests', 'quotaId': 'GenerateRequestsPerMinutePerProjectPerModel-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-pro'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerMinute-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-pro'}}, {'quotaMetric': 'generativelanguage.googleapis.com/generate_content_free_tier_input_token_count', 'quotaId': 'GenerateContentInputTokensPerModelPerDay-FreeTier', 'quotaDimensions': {'location': 'global', 'model': 'gemini-2.5-pro'}}]}, {'@type': 'type.googleapis.com/google.rpc.RetryInfo', 'retryDelay': '42s'}]}}
+2026-06-18 15:53:17,926 INFO [VARIATION Luxury] custom_seq had 0 clips, var_timeline has 25 clips (timeline has 25)
+2026-06-18 15:53:18,438 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 9.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778197.mp4
+2026-06-18 15:53:18,891 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6484 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778198.mp4
+2026-06-18 15:53:19,348 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778198.mp4
+2026-06-18 15:53:19,429 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781778199.mp4
+2026-06-18 15:53:19,509 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001788b7f5dc0] moov atom not found
+[in#0 @ 000001788d7c7c00] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:53:19,511 ERROR [SKIP] FFmpeg failed for clip 16_3.0_00:05: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:53:19,611 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781778199.mp4
+2026-06-18 15:53:19,725 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001d0b90e2b80] moov atom not found
+[in#0 @ 000001d0bb0779c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:53:19,726 ERROR [SKIP] FFmpeg failed for clip 17_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:53:20,226 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6457 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778199.mp4
+2026-06-18 15:53:40,332 INFO [HQ PREP] Prepared clip in 21.4s
+2026-06-18 15:53:41,614 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6502 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778199.mp4
+2026-06-18 15:53:41,615 INFO [HQ PREP] Prepared clip in 23.7s
+2026-06-18 15:53:42,184 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6453 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778199.mp4
+2026-06-18 15:53:42,186 INFO [HQ PREP] Prepared clip in 23.7s
+2026-06-18 15:53:42,187 INFO [HQ PREP] Prepared clip in 22.5s
+2026-06-18 15:53:42,277 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781778199.mp4
+2026-06-18 15:53:42,355 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781778199.mp4
+2026-06-18 15:53:42,387 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000024b8ae56400] moov atom not found
+[in#0 @ 0000024b8cef7640] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:53:42,389 ERROR [SKIP] FFmpeg failed for clip 12_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:53:42,463 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 00000249dce53040] moov atom not found
+[in#0 @ 00000249dcf2cd40] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:53:42,898 INFO Running FFmpeg: ffmpeg -y -ss 0.5 -to 6.0 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778199.mp4
+2026-06-18 15:53:42,898 ERROR [SKIP] FFmpeg failed for clip 21_3.0_00:03: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:53:43,624 INFO Running FFmpeg: ffmpeg -y -ss 11.0 -to 16.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778199.mp4
+2026-06-18 15:54:39,874 INFO [HQ PREP] Prepared clip in 57.0s
+2026-06-18 15:54:39,878 INFO [HQ PREP] Prepared clip in 59.5s
+2026-06-18 15:54:40,699 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6465 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781778199.mp4
+2026-06-18 15:54:41,267 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6390 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778199.mp4
+2026-06-18 15:54:41,268 INFO [HQ PREP] Prepared clip in 59.6s
+2026-06-18 15:54:41,815 INFO [HQ PREP] Prepared clip in 59.4s
+2026-06-18 15:54:41,815 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6458 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781778199.mp4
+2026-06-18 15:54:42,392 INFO Running FFmpeg: ffmpeg -y -ss 9.5 -to 13.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778199.mp4
+2026-06-18 15:55:35,703 INFO [HQ PREP] Prepared clip in 55.0s
+2026-06-18 15:55:37,542 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778199.mp4
+2026-06-18 15:55:40,141 INFO [HQ PREP] Prepared clip in 58.3s
+2026-06-18 15:55:40,812 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 10.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778199.mp4
+2026-06-18 15:55:41,189 INFO [HQ PREP] Prepared clip in 59.9s
+2026-06-18 15:55:41,707 INFO Running FFmpeg: ffmpeg -y -ss 10.0 -to 15.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778199.mp4
+2026-06-18 15:55:41,708 INFO [HQ PREP] Prepared clip in 61.8s
+2026-06-18 15:55:42,342 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781778199.mp4
+2026-06-18 15:56:14,874 INFO [HQ PREP] Prepared clip in 38.1s
+2026-06-18 15:56:15,552 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781778199.mp4
+2026-06-18 15:56:27,052 INFO [HQ PREP] Prepared clip in 45.3s
+2026-06-18 15:56:27,680 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 8.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778199.mp4
+2026-06-18 15:56:28,395 INFO [HQ PREP] Prepared clip in 48.2s
+2026-06-18 15:56:28,563 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_22_1781778199.mp4
+2026-06-18 15:56:28,722 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000002853e1f3a80] moov atom not found
+[in#0 @ 000002853e1f5640] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:56:28,731 ERROR [SKIP] FFmpeg failed for clip 21_00:03_00:06: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:56:29,424 INFO Running FFmpeg: ffmpeg -y -ss 1.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6393 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781778199.mp4
+2026-06-18 15:56:33,356 INFO [HQ PREP] Prepared clip in 52.2s
+2026-06-18 15:56:36,129 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 8.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781778199.mp4
+2026-06-18 15:56:36,969 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001f6427e8c40] moov atom not found
+[in#0 @ 000001f6447d7380] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 15:56:36,976 ERROR [SKIP] FFmpeg failed for clip 16_00:05_00:08: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 15:56:37,636 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778199.mp4
+2026-06-18 15:56:47,649 INFO [HQ PREP] Prepared clip in 20.6s
+2026-06-18 15:56:54,163 INFO [HQ PREP] Prepared clip in 39.3s
+2026-06-18 15:57:02,988 INFO [HQ PREP] Prepared clip in 26.0s
+2026-06-18 15:57:04,997 INFO [HQ PREP] Prepared clip in 36.3s
+2026-06-18 15:57:07,412 INFO Executing XFADE Graph with 20 clips...
+2026-06-18 15:57:07,420 INFO Running FFmpeg: ffmpeg -y -i data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778197.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778198.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778198.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781778199.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778199.mp4 -stream_loop -1 -i data/library/music/apalonbeats-real-estate-luxury-music-540580.mp3 -filter_complex [0:v][1:v]xfade=transition=fade:duration=0.5:offset=5.509[v1];[0:a][1:a]acrossfade=d=0.5[a1];[v1][2:v]xfade=transition=fade:duration=0.5:offset=12.509[v2];[a1][2:a]acrossfade=d=0.5[a2];[v2][3:v]xfade=transition=fade:duration=0.5:offset=16.513[v3];[a2][3:a]acrossfade=d=0.5[a3];[v3][4:v]xfade=transition=fade:duration=0.5:offset=19.513[v4];[a3][4:a]acrossfade=d=0.5[a4];[v4][5:v]xfade=transition=fade:duration=0.5:offset=22.513[v5];[a4][5:a]acrossfade=d=0.5[a5];[v5][6:v]xfade=transition=fade:duration=0.5:offset=25.513[v6];[a5][6:a]acrossfade=d=0.5[a6];[v6][7:v]xfade=transition=fade:duration=0.5:offset=30.513[v7];[a6][7:a]acrossfade=d=0.5[a7];[v7][8:v]xfade=transition=fade:duration=0.5:offset=35.513[v8];[a7][8:a]acrossfade=d=0.5[a8];[v8][9:v]xfade=transition=fade:duration=0.5:offset=42.513[v9];[a8][9:a]acrossfade=d=0.5[a9];[v9][10:v]xfade=transition=fade:duration=0.5:offset=47.513[v10];[a9][10:a]acrossfade=d=0.5[a10];[v10][11:v]xfade=transition=fade:duration=0.5:offset=50.513[v11];[a10][11:a]acrossfade=d=0.5[a11];[v11][12:v]xfade=transition=fade:duration=0.5:offset=54.013[v12];[a11][12:a]acrossfade=d=0.5[a12];[v12][13:v]xfade=transition=fade:duration=0.5:offset=57.013[v13];[a12][13:a]acrossfade=d=0.5[a13];[v13][14:v]xfade=transition=fade:duration=0.5:offset=62.013[v14];[a13][14:a]acrossfade=d=0.5[a14];[v14][15:v]xfade=transition=fade:duration=0.5:offset=67.013[v15];[a14][15:a]acrossfade=d=0.5[a15];[v15][16:v]xfade=transition=fade:duration=0.5:offset=70.013[v16];[a15][16:a]acrossfade=d=0.5[a16];[v16][17:v]xfade=transition=fade:duration=0.5:offset=73.013[v17];[a16][17:a]acrossfade=d=0.5[a17];[v17][18:v]xfade=transition=fade:duration=0.5:offset=74.017[v18];[a17][18:a]acrossfade=d=0.5[a18];[v18][19:v]xfade=transition=fade:duration=0.5:offset=78.017[v19];[a18][19:a]acrossfade=d=0.5[a19];[a19]volume=1.0[vo];[20:a]volume=0.2[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a] -map [v19] -map [mixed_a] -c:v libx264 -preset slow -crf 18 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 192k data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Luxury_1781778197.mp4
+2026-06-18 15:58:57,824 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778197.mp4
+2026-06-18 15:58:57,827 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778198.mp4
+2026-06-18 15:58:57,829 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778198.mp4
+2026-06-18 15:58:57,831 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778199.mp4
+2026-06-18 15:58:57,833 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778199.mp4
+2026-06-18 15:58:57,834 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778199.mp4
+2026-06-18 15:58:57,836 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778199.mp4
+2026-06-18 15:58:57,837 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778199.mp4
+2026-06-18 15:58:57,840 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781778199.mp4
+2026-06-18 15:58:57,842 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778199.mp4
+2026-06-18 15:58:57,843 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781778199.mp4
+2026-06-18 15:58:57,845 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778199.mp4
+2026-06-18 15:58:57,847 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778199.mp4
+2026-06-18 15:58:57,849 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778199.mp4
+2026-06-18 15:58:57,851 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778199.mp4
+2026-06-18 15:58:57,853 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781778199.mp4
+2026-06-18 15:58:57,856 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781778199.mp4
+2026-06-18 15:58:57,858 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778199.mp4
+2026-06-18 15:58:57,859 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781778199.mp4
+2026-06-18 15:58:57,861 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778199.mp4
+2026-06-18 15:58:57,968 INFO [PERF] Final Dynamic Reel built with xfade in 339.9s
+2026-06-18 15:58:57,969 INFO [RENDER AUDIT] Selected: 25 clips / 101.5s | Rendered: 20 clips / 80.6s | Duration Coverage: 79.4%
+2026-06-18 15:58:57,970 WARNING [RENDER SKIP] clip_id=16_3.0_00:05 reason=decode_error
+2026-06-18 15:58:57,970 WARNING [RENDER SKIP] clip_id=17_3.0_00:04 reason=decode_error
+2026-06-18 15:58:57,971 WARNING [RENDER SKIP] clip_id=12_3.0_00:04 reason=decode_error
+2026-06-18 15:58:57,971 WARNING [RENDER SKIP] clip_id=21_3.0_00:03 reason=decode_error
+2026-06-18 15:58:57,972 WARNING [RENDER SKIP] clip_id=21_00:03_00:06 reason=decode_error
+2026-06-18 15:58:57,972 WARNING [RENDER SKIP] clip_id=16_00:05_00:08 reason=decode_error
+2026-06-18 15:58:57,976 INFO [RENDERED_COUNT] 20
+2026-06-18 15:58:57,977 INFO [OUTPUT_PATH] data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Luxury_1781778197.mp4
+2026-06-18 16:01:33,432 INFO [CRASH GUARD] Starting background task: upload_worker
+2026-06-18 16:01:33,435 INFO [CRASH GUARD] Starting background task: daily_cleanup
+2026-06-18 16:01:33,437 INFO Starting Daily Storage Cleanup Sweep...
+2026-06-18 16:01:33,464 INFO Daily Cleanup Complete. Storage is already optimized.
+2026-06-18 16:02:32,339 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 16:02:32,936 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent "HTTP/1.1 429 Too Many Requests"
+2026-06-18 16:02:32,944 INFO AFC is enabled with max remote calls: 10.
+2026-06-18 16:03:01,861 INFO HTTP Request: POST https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent "HTTP/1.1 200 OK"
+2026-06-18 16:03:01,871 INFO [VARIATION Luxury] custom_seq had 25 clips, var_timeline has 25 clips (timeline has 25)
+2026-06-18 16:03:02,356 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 9.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778781.mp4
+2026-06-18 16:03:02,856 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6484 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778782.mp4
+2026-06-18 16:03:03,327 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6502 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778782.mp4
+2026-06-18 16:03:03,856 INFO Running FFmpeg: ffmpeg -y -ss 0.5 -to 6.0 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781778783.mp4
+2026-06-18 16:03:53,119 INFO [HQ PREP] Prepared clip in 51.2s
+2026-06-18 16:03:53,843 INFO [HQ PREP] Prepared clip in 51.0s
+2026-06-18 16:03:53,843 INFO Running FFmpeg: ffmpeg -y -ss 11.0 -to 16.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781778783.mp4
+2026-06-18 16:03:54,502 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6465 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778783.mp4
+2026-06-18 16:03:55,950 INFO [HQ PREP] Prepared clip in 52.6s
+2026-06-18 16:03:57,084 INFO [HQ PREP] Prepared clip in 54.7s
+2026-06-18 16:03:57,084 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6458 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778783.mp4
+2026-06-18 16:03:57,792 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6390 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778783.mp4
+2026-06-18 16:04:44,796 INFO [HQ PREP] Prepared clip in 51.7s
+2026-06-18 16:04:45,556 INFO [HQ PREP] Prepared clip in 49.6s
+2026-06-18 16:04:45,556 INFO Running FFmpeg: ffmpeg -y -ss 9.5 -to 13.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781778783.mp4
+2026-06-18 16:04:45,565 INFO [HQ PREP] Prepared clip in 48.5s
+2026-06-18 16:04:46,181 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781778783.mp4
+2026-06-18 16:04:46,677 INFO Running FFmpeg: ffmpeg -y -ss 1.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6393 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778783.mp4
+2026-06-18 16:04:46,678 INFO [HQ PREP] Prepared clip in 52.8s
+2026-06-18 16:04:47,398 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778783.mp4
+2026-06-18 16:04:58,644 INFO [HQ PREP] Prepared clip in 13.8s
+2026-06-18 16:04:59,466 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 8.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781778783.mp4
+2026-06-18 16:05:00,544 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000022226c225c0] moov atom not found
+[in#0 @ 0000022228c51740] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:00,608 ERROR [SKIP] FFmpeg failed for clip 16_00:05_00:08: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:01,584 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 8.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778783.mp4
+2026-06-18 16:05:02,880 INFO [HQ PREP] Prepared clip in 17.3s
+2026-06-18 16:05:02,960 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781778783.mp4
+2026-06-18 16:05:03,053 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000023f82ad7080] moov atom not found
+[in#0 @ 0000023f84b32a40] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:03,054 ERROR [SKIP] FFmpeg failed for clip 21_00:03_00:06: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:03,815 INFO [HQ PREP] Prepared clip in 17.6s
+2026-06-18 16:05:03,816 INFO Running FFmpeg: ffmpeg -y -ss 10.0 -to 15.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778783.mp4
+2026-06-18 16:05:04,950 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 10.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778783.mp4
+2026-06-18 16:05:04,951 INFO [HQ PREP] Prepared clip in 18.3s
+2026-06-18 16:05:05,654 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778783.mp4
+2026-06-18 16:05:09,147 INFO [HQ PREP] Prepared clip in 8.5s
+2026-06-18 16:05:09,836 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778783.mp4
+2026-06-18 16:05:22,146 INFO [HQ PREP] Prepared clip in 19.1s
+2026-06-18 16:05:22,805 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781778783.mp4
+2026-06-18 16:05:24,303 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000002a360f225c0] moov atom not found
+[in#0 @ 000002a362f41600] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:24,309 ERROR [SKIP] FFmpeg failed for clip 16_3.0_00:05: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:24,713 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781778783.mp4
+2026-06-18 16:05:24,804 INFO [HQ PREP] Prepared clip in 21.0s
+2026-06-18 16:05:25,054 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001dca1ca25c0] moov atom not found
+[in#0 @ 000001dca3ce2e80] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:25,537 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6453 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778783.mp4
+2026-06-18 16:05:25,538 ERROR [SKIP] FFmpeg failed for clip 17_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:25,543 INFO [HQ PREP] Prepared clip in 20.6s
+2026-06-18 16:05:25,811 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_22_1781778783.mp4
+2026-06-18 16:05:26,034 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781778783.mp4
+2026-06-18 16:05:26,056 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001d64d9529c0] moov atom not found
+[in#0 @ 000001d64f882e80] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:26,059 ERROR [SKIP] FFmpeg failed for clip 12_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:26,341 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000010bca442980] moov atom not found
+[in#0 @ 0000010bcc3128c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:05:26,653 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6457 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781778783.mp4
+2026-06-18 16:05:26,653 ERROR [SKIP] FFmpeg failed for clip 21_3.0_00:03: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:05:26,656 INFO [HQ PREP] Prepared clip in 17.5s
+2026-06-18 16:05:27,257 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 5.5 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778783.mp4
+2026-06-18 16:05:37,753 INFO [HQ PREP] Prepared clip in 12.9s
+2026-06-18 16:05:38,521 INFO [HQ PREP] Prepared clip in 11.9s
+2026-06-18 16:05:38,769 INFO [HQ PREP] Prepared clip in 12.7s
+2026-06-18 16:05:40,817 INFO Executing XFADE Graph with 20 clips...
+2026-06-18 16:05:40,818 INFO Running FFmpeg: ffmpeg -y -i data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778781.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778782.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778782.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781778783.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778783.mp4 -stream_loop -1 -i data/library/music/apalonbeats-real-estate-luxury-music-540580.mp3 -filter_complex [0:v][1:v]xfade=transition=fade:duration=0.5:offset=5.509[v1];[0:a][1:a]acrossfade=d=0.5[a1];[v1][2:v]xfade=transition=fade:duration=0.5:offset=12.509[v2];[a1][2:a]acrossfade=d=0.5[a2];[v2][3:v]xfade=transition=fade:duration=0.5:offset=15.509[v3];[a2][3:a]acrossfade=d=0.5[a3];[v3][4:v]xfade=transition=fade:duration=0.5:offset=20.509[v4];[a3][4:a]acrossfade=d=0.5[a4];[v4][5:v]xfade=transition=fade:duration=0.5:offset=25.509[v5];[a4][5:a]acrossfade=d=0.5[a5];[v5][6:v]xfade=transition=fade:duration=0.5:offset=32.509[v6];[a5][6:a]acrossfade=d=0.5[a6];[v6][7:v]xfade=transition=fade:duration=0.5:offset=35.509[v7];[a6][7:a]acrossfade=d=0.5[a7];[v7][8:v]xfade=transition=fade:duration=0.5:offset=40.509[v8];[a7][8:a]acrossfade=d=0.5[a8];[v8][9:v]xfade=transition=fade:duration=0.5:offset=44.009[v9];[a8][9:a]acrossfade=d=0.5[a9];[v9][10:v]xfade=transition=fade:duration=0.5:offset=47.009[v10];[a9][10:a]acrossfade=d=0.5[a10];[v10][11:v]xfade=transition=fade:duration=0.5:offset=51.009[v11];[a10][11:a]acrossfade=d=0.5[a11];[v11][12:v]xfade=transition=fade:duration=0.5:offset=54.009[v12];[a11][12:a]acrossfade=d=0.5[a12];[v12][13:v]xfade=transition=fade:duration=0.5:offset=55.013[v13];[a12][13:a]acrossfade=d=0.5[a13];[v13][14:v]xfade=transition=fade:duration=0.5:offset=60.013[v14];[a13][14:a]acrossfade=d=0.5[a14];[v14][15:v]xfade=transition=fade:duration=0.5:offset=65.013[v15];[a14][15:a]acrossfade=d=0.5[a15];[v15][16:v]xfade=transition=fade:duration=0.5:offset=68.013[v16];[a15][16:a]acrossfade=d=0.5[a16];[v16][17:v]xfade=transition=fade:duration=0.5:offset=72.017[v17];[a16][17:a]acrossfade=d=0.5[a17];[v17][18:v]xfade=transition=fade:duration=0.5:offset=75.017[v18];[a17][18:a]acrossfade=d=0.5[a18];[v18][19:v]xfade=transition=fade:duration=0.5:offset=78.017[v19];[a18][19:a]acrossfade=d=0.5[a19];[a19]volume=1.0[vo];[20:a]volume=0.2[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a] -map [v19] -map [mixed_a] -c:v libx264 -preset slow -crf 18 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 192k data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Luxury_1781778781.mp4
+2026-06-18 16:07:32,178 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781778781.mp4
+2026-06-18 16:07:32,197 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781778782.mp4
+2026-06-18 16:07:32,245 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781778782.mp4
+2026-06-18 16:07:32,282 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781778783.mp4
+2026-06-18 16:07:32,323 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781778783.mp4
+2026-06-18 16:07:32,338 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781778783.mp4
+2026-06-18 16:07:32,350 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781778783.mp4
+2026-06-18 16:07:32,392 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781778783.mp4
+2026-06-18 16:07:32,415 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781778783.mp4
+2026-06-18 16:07:32,444 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781778783.mp4
+2026-06-18 16:07:32,447 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781778783.mp4
+2026-06-18 16:07:32,450 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781778783.mp4
+2026-06-18 16:07:32,452 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781778783.mp4
+2026-06-18 16:07:32,454 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781778783.mp4
+2026-06-18 16:07:32,458 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781778783.mp4
+2026-06-18 16:07:32,461 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781778783.mp4
+2026-06-18 16:07:32,463 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781778783.mp4
+2026-06-18 16:07:32,468 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781778783.mp4
+2026-06-18 16:07:32,470 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781778783.mp4
+2026-06-18 16:07:32,473 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781778783.mp4
+2026-06-18 16:07:32,600 INFO [PERF] Final Dynamic Reel built with xfade in 270.6s
+2026-06-18 16:07:32,600 INFO [RENDER AUDIT] Selected: 25 clips / 101.5s | Rendered: 20 clips / 80.6s | Duration Coverage: 79.4%
+2026-06-18 16:07:32,601 WARNING [RENDER SKIP] clip_id=16_00:05_00:08 reason=decode_error
+2026-06-18 16:07:32,601 WARNING [RENDER SKIP] clip_id=21_00:03_00:06 reason=decode_error
+2026-06-18 16:07:32,602 WARNING [RENDER SKIP] clip_id=16_3.0_00:05 reason=decode_error
+2026-06-18 16:07:32,602 WARNING [RENDER SKIP] clip_id=17_3.0_00:04 reason=decode_error
+2026-06-18 16:07:32,603 WARNING [RENDER SKIP] clip_id=12_3.0_00:04 reason=decode_error
+2026-06-18 16:07:32,603 WARNING [RENDER SKIP] clip_id=21_3.0_00:03 reason=decode_error
+2026-06-18 16:07:32,604 INFO [RENDERED_COUNT] 20
+2026-06-18 16:07:32,605 INFO [OUTPUT_PATH] data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Luxury_1781778781.mp4
+2026-06-18 16:07:32,605 ERROR [RENDER AUDIT] FAIL: Luxury (80.0%). Selected 25, Rendered 20. Missing 5 clips — HALTING DELIVERY.
+2026-06-18 16:07:32,608 INFO [VARIATION Instagram Viral] custom_seq had 25 clips, var_timeline has 25 clips (timeline has 25)
+2026-06-18 16:07:33,100 INFO Running FFmpeg: ffmpeg -y -ss 11.0 -to 16.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779052.mp4
+2026-06-18 16:07:33,562 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 9.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779053.mp4
+2026-06-18 16:07:34,063 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6465 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779053.mp4
+2026-06-18 16:07:34,768 INFO Running FFmpeg: ffmpeg -y -ss 9.5 -to 13.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779054.mp4
+2026-06-18 16:08:30,922 INFO [HQ PREP] Prepared clip in 56.9s
+2026-06-18 16:08:31,635 INFO Running FFmpeg: ffmpeg -y -ss 10.0 -to 15.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779054.mp4
+2026-06-18 16:08:34,774 INFO [HQ PREP] Prepared clip in 62.2s
+2026-06-18 16:08:35,415 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779054.mp4
+2026-06-18 16:08:38,216 INFO [HQ PREP] Prepared clip in 65.1s
+2026-06-18 16:08:38,870 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6484 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779054.mp4
+2026-06-18 16:08:44,311 INFO [HQ PREP] Prepared clip in 70.7s
+2026-06-18 16:08:44,994 INFO Running FFmpeg: ffmpeg -y -ss 0.5 -to 5.75 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779054.mp4
+2026-06-18 16:09:16,009 INFO [HQ PREP] Prepared clip in 41.2s
+2026-06-18 16:09:16,713 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6458 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779054.mp4
+2026-06-18 16:09:24,862 INFO [HQ PREP] Prepared clip in 53.9s
+2026-06-18 16:09:25,500 INFO Running FFmpeg: ffmpeg -y -ss 1.0 -to 5.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6393 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779054.mp4
+2026-06-18 16:09:41,321 INFO [HQ PREP] Prepared clip in 57.0s
+2026-06-18 16:09:41,952 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6502 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779054.mp4
+2026-06-18 16:09:43,145 INFO [HQ PREP] Prepared clip in 64.9s
+2026-06-18 16:09:43,760 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779054.mp4
+2026-06-18 16:09:55,584 INFO [HQ PREP] Prepared clip in 39.6s
+2026-06-18 16:09:55,833 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781779054.mp4
+2026-06-18 16:09:56,096 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000029a653a25c0] moov atom not found
+[in#0 @ 0000029a672f2bc0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:09:56,112 ERROR [SKIP] FFmpeg failed for clip 16_3.0_00:05: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:09:56,341 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781779054.mp4
+2026-06-18 16:09:56,510 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 00000159c32764c0] moov atom not found
+[in#0 @ 00000159c335de00] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:09:56,514 ERROR [SKIP] FFmpeg failed for clip 17_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:09:57,113 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6453 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781779054.mp4
+2026-06-18 16:10:09,751 INFO [HQ PREP] Prepared clip in 44.9s
+2026-06-18 16:10:09,891 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781779054.mp4
+2026-06-18 16:10:10,058 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001cf51996740] moov atom not found
+[in#0 @ 000001cf539913c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:10:10,069 ERROR [SKIP] FFmpeg failed for clip 12_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:10:10,216 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781779054.mp4
+2026-06-18 16:10:10,393 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001951af80140] moov atom not found
+[in#0 @ 000001951cf57c80] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:10:10,398 ERROR [SKIP] FFmpeg failed for clip 21_3.0_00:03: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:10:10,987 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6457 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779054.mp4
+2026-06-18 16:10:16,578 INFO [HQ PREP] Prepared clip in 33.4s
+2026-06-18 16:10:17,198 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6390 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779054.mp4
+2026-06-18 16:10:19,360 INFO [HQ PREP] Prepared clip in 38.0s
+2026-06-18 16:10:29,958 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781779054.mp4
+2026-06-18 16:10:32,354 INFO [HQ PREP] Prepared clip in 35.8s
+2026-06-18 16:10:38,458 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 8.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781779054.mp4
+2026-06-18 16:10:38,459 INFO [HQ PREP] Prepared clip in 28.0s
+2026-06-18 16:10:38,563 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781779054.mp4
+2026-06-18 16:10:38,654 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000027862c3fc40] moov atom not found
+[in#0 @ 0000027864cb0740] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:10:38,658 ERROR [SKIP] FFmpeg failed for clip 21_00:03_00:06: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:10:38,753 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 8.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_22_1781779054.mp4
+2026-06-18 16:10:38,881 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000017764b96d40] moov atom not found
+[in#0 @ 0000017764c7d140] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:10:38,885 ERROR [SKIP] FFmpeg failed for clip 16_00:05_00:08: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:10:39,606 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 10.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781779054.mp4
+2026-06-18 16:10:41,377 INFO [HQ PREP] Prepared clip in 24.8s
+2026-06-18 16:10:42,101 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779054.mp4
+2026-06-18 16:10:58,613 INFO [HQ PREP] Prepared clip in 26.3s
+2026-06-18 16:10:59,327 INFO Running FFmpeg: ffmpeg -y -ss 11.0 -to 13.25 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779054.mp4
+2026-06-18 16:11:12,966 INFO [HQ PREP] Prepared clip in 53.6s
+2026-06-18 16:11:18,608 INFO [HQ PREP] Prepared clip in 37.2s
+2026-06-18 16:11:23,008 INFO [HQ PREP] Prepared clip in 44.1s
+2026-06-18 16:11:23,523 INFO [HQ PREP] Prepared clip in 24.9s
+2026-06-18 16:11:25,936 INFO Executing XFADE Graph with 20 clips...
+2026-06-18 16:11:25,937 INFO Running FFmpeg: ffmpeg -y -i data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779052.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779053.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779053.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779054.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779054.mp4 -stream_loop -1 -i data/library/music/apalonbeats-real-estate-luxury-music-540580.mp3 -filter_complex [0:v][1:v]xfade=transition=wipeleft:duration=0.25:offset=5.017[v1];[0:a][1:a]acrossfade=d=0.25[a1];[v1][2:v]xfade=transition=wipeleft:duration=0.25:offset=10.776[v2];[a1][2:a]acrossfade=d=0.25[a2];[v2][3:v]xfade=transition=wipeleft:duration=0.25:offset=17.792[v3];[a2][3:a]acrossfade=d=0.25[a3];[v3][4:v]xfade=transition=wipeleft:duration=0.25:offset=21.309[v4];[a3][4:a]acrossfade=d=0.25[a4];[v4][5:v]xfade=transition=wipeleft:duration=0.25:offset=26.326[v5];[a4][5:a]acrossfade=d=0.25[a5];[v5][6:v]xfade=transition=wipeleft:duration=0.25:offset=29.342[v6];[a5][6:a]acrossfade=d=0.25[a6];[v6][7:v]xfade=transition=wipeleft:duration=0.25:offset=36.359[v7];[a6][7:a]acrossfade=d=0.25[a7];[v7][8:v]xfade=transition=wipeleft:duration=0.25:offset=41.376[v8];[a7][8:a]acrossfade=d=0.25[a8];[v8][9:v]xfade=transition=wipeleft:duration=0.25:offset=44.392[v9];[a8][9:a]acrossfade=d=0.25[a9];[v9][10:v]xfade=transition=wipeleft:duration=0.25:offset=48.408[v10];[a9][10:a]acrossfade=d=0.25[a10];[v10][11:v]xfade=transition=wipeleft:duration=0.25:offset=51.424[v11];[a10][11:a]acrossfade=d=0.25[a11];[v11][12:v]xfade=transition=wipeleft:duration=0.25:offset=55.678[v12];[a11][12:a]acrossfade=d=0.25[a12];[v12][13:v]xfade=transition=wipeleft:duration=0.25:offset=58.695[v13];[a12][13:a]acrossfade=d=0.25[a13];[v13][14:v]xfade=transition=wipeleft:duration=0.25:offset=61.712[v14];[a13][14:a]acrossfade=d=0.25[a14];[v14][15:v]xfade=transition=wipeleft:duration=0.25:offset=66.728[v15];[a14][15:a]acrossfade=d=0.25[a15];[v15][16:v]xfade=transition=wipeleft:duration=0.25:offset=69.745[v16];[a15][16:a]acrossfade=d=0.25[a16];[v16][17:v]xfade=transition=wipeleft:duration=0.25:offset=70.999[v17];[a16][17:a]acrossfade=d=0.25[a17];[v17][18:v]xfade=transition=wipeleft:duration=0.25:offset=76.016[v18];[a17][18:a]acrossfade=d=0.25[a18];[v18][19:v]xfade=transition=wipeleft:duration=0.25:offset=79.032[v19];[a18][19:a]acrossfade=d=0.25[a19];[a19]volume=1.0[vo];[20:a]volume=0.2[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a] -map [v19] -map [mixed_a] -c:v libx264 -preset slow -crf 18 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 192k data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Instagram Viral_1781779052.mp4
+2026-06-18 16:13:07,399 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779052.mp4
+2026-06-18 16:13:07,400 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779053.mp4
+2026-06-18 16:13:07,401 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779053.mp4
+2026-06-18 16:13:07,402 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779054.mp4
+2026-06-18 16:13:07,403 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779054.mp4
+2026-06-18 16:13:07,404 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779054.mp4
+2026-06-18 16:13:07,405 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779054.mp4
+2026-06-18 16:13:07,406 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779054.mp4
+2026-06-18 16:13:07,407 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779054.mp4
+2026-06-18 16:13:07,408 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779054.mp4
+2026-06-18 16:13:07,409 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779054.mp4
+2026-06-18 16:13:07,410 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779054.mp4
+2026-06-18 16:13:07,411 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781779054.mp4
+2026-06-18 16:13:07,412 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779054.mp4
+2026-06-18 16:13:07,413 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779054.mp4
+2026-06-18 16:13:07,414 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781779054.mp4
+2026-06-18 16:13:07,415 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781779054.mp4
+2026-06-18 16:13:07,416 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781779054.mp4
+2026-06-18 16:13:07,417 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779054.mp4
+2026-06-18 16:13:07,418 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779054.mp4
+2026-06-18 16:13:07,509 INFO [PERF] Final Dynamic Reel built with xfade in 334.8s
+2026-06-18 16:13:07,509 INFO [RENDER AUDIT] Selected: 25 clips / 101.5s | Rendered: 20 clips / 81.3s | Duration Coverage: 80.1%
+2026-06-18 16:13:07,509 WARNING [RENDER SKIP] clip_id=16_3.0_00:05 reason=decode_error
+2026-06-18 16:13:07,509 WARNING [RENDER SKIP] clip_id=17_3.0_00:04 reason=decode_error
+2026-06-18 16:13:07,509 WARNING [RENDER SKIP] clip_id=12_3.0_00:04 reason=decode_error
+2026-06-18 16:13:07,510 WARNING [RENDER SKIP] clip_id=21_3.0_00:03 reason=decode_error
+2026-06-18 16:13:07,510 WARNING [RENDER SKIP] clip_id=21_00:03_00:06 reason=decode_error
+2026-06-18 16:13:07,510 WARNING [RENDER SKIP] clip_id=16_00:05_00:08 reason=decode_error
+2026-06-18 16:13:07,510 INFO [RENDERED_COUNT] 20
+2026-06-18 16:13:07,510 INFO [OUTPUT_PATH] data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Instagram Viral_1781779052.mp4
+2026-06-18 16:13:07,510 ERROR [RENDER AUDIT] FAIL: Instagram Viral (80.0%). Selected 25, Rendered 20. Missing 5 clips — HALTING DELIVERY.
+2026-06-18 16:13:07,512 INFO [VARIATION Realtor Style] custom_seq had 25 clips, var_timeline has 25 clips (timeline has 25)
+2026-06-18 16:13:07,988 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6484 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779387.mp4
+2026-06-18 16:13:08,444 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 9.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779387.mp4
+2026-06-18 16:13:08,898 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6502 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779388.mp4
+2026-06-18 16:13:09,506 INFO Running FFmpeg: ffmpeg -y -ss 0.5 -to 5.9 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779388.mp4
+2026-06-18 16:13:49,135 INFO [HQ PREP] Prepared clip in 41.6s
+2026-06-18 16:13:49,660 INFO [HQ PREP] Prepared clip in 41.2s
+2026-06-18 16:13:49,660 INFO Running FFmpeg: ffmpeg -y -ss 11.0 -to 16.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6381 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779389.mp4
+2026-06-18 16:13:50,196 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 7.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6465 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779389.mp4
+2026-06-18 16:13:50,197 INFO [HQ PREP] Prepared clip in 42.2s
+2026-06-18 16:13:50,788 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6458 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779389.mp4
+2026-06-18 16:13:51,846 INFO [HQ PREP] Prepared clip in 42.9s
+2026-06-18 16:13:52,626 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6390 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779389.mp4
+2026-06-18 16:14:45,221 INFO [HQ PREP] Prepared clip in 56.1s
+2026-06-18 16:14:45,773 INFO Running FFmpeg: ffmpeg -y -ss 9.5 -to 13.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779389.mp4
+2026-06-18 16:14:45,774 INFO [HQ PREP] Prepared clip in 55.5s
+2026-06-18 16:14:46,376 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6383 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779389.mp4
+2026-06-18 16:14:50,246 INFO [HQ PREP] Prepared clip in 58.4s
+2026-06-18 16:14:50,843 INFO Running FFmpeg: ffmpeg -y -ss 1.0 -to 5.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6393 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779389.mp4
+2026-06-18 16:14:51,160 INFO [HQ PREP] Prepared clip in 61.5s
+2026-06-18 16:14:51,664 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6510 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779389.mp4
+2026-06-18 16:15:26,648 INFO [HQ PREP] Prepared clip in 40.9s
+2026-06-18 16:15:27,213 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 8.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781779389.mp4
+2026-06-18 16:15:27,414 INFO [HQ PREP] Prepared clip in 42.2s
+2026-06-18 16:15:27,552 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_13_1781779389.mp4
+2026-06-18 16:15:27,672 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000002b2a3746100] moov atom not found
+[in#0 @ 000002b2a5750280] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:15:27,679 ERROR [SKIP] FFmpeg failed for clip 21_00:03_00:06: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:15:27,812 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 8.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_14_1781779389.mp4
+2026-06-18 16:15:27,954 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 00000162acd54f00] moov atom not found
+[in#0 @ 00000162acd506c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:15:27,967 ERROR [SKIP] FFmpeg failed for clip 16_00:05_00:08: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:15:28,549 INFO Running FFmpeg: ffmpeg -y -ss 10.0 -to 15.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781779389.mp4
+2026-06-18 16:15:35,063 INFO [HQ PREP] Prepared clip in 43.9s
+2026-06-18 16:15:35,693 INFO Running FFmpeg: ffmpeg -y -ss 5.0 -to 10.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781779389.mp4
+2026-06-18 16:15:36,696 INFO [HQ PREP] Prepared clip in 46.4s
+2026-06-18 16:15:37,323 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6389 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779389.mp4
+2026-06-18 16:15:42,679 INFO [HQ PREP] Prepared clip in 16.0s
+2026-06-18 16:15:43,815 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 5.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6516 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779389.mp4
+2026-06-18 16:16:07,115 INFO [HQ PREP] Prepared clip in 30.4s
+2026-06-18 16:16:07,317 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_19_1781779389.mp4
+2026-06-18 16:16:07,529 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 00000134fdd90b40] moov atom not found
+[in#0 @ 00000134ffcb1d80] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6497 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:16:07,542 ERROR [SKIP] FFmpeg failed for clip 16_3.0_00:05: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:16:07,715 INFO [HQ PREP] Prepared clip in 39.7s
+2026-06-18 16:16:07,715 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_20_1781779389.mp4
+2026-06-18 16:16:07,903 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 0000024ee90d6540] moov atom not found
+[in#0 @ 0000024eeb181000] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6499 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:16:08,303 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6453 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781779389.mp4
+2026-06-18 16:16:08,304 ERROR [SKIP] FFmpeg failed for clip 17_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:16:08,480 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_22_1781779389.mp4
+2026-06-18 16:16:08,613 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 00000279b3b70480] moov atom not found
+[in#0 @ 00000279b3b698c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\C6479 Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:16:08,616 ERROR [SKIP] FFmpeg failed for clip 12_3.0_00:04: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:16:08,769 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4 -f lavfi -i anullsrc=channel_layout=stereo:sample_rate=44100 -map 0:v:0 -map 1:a:0 -shortest -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_23_1781779389.mp4
+2026-06-18 16:16:08,836 INFO [HQ PREP] Prepared clip in 33.8s
+2026-06-18 16:16:08,897 ERROR FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg developers
+  built with gcc 15.2.0 (crosstool-NG 1.28.0.23_185f348)
+  configuration: --prefix=/ffbuild/prefix --pkg-config-flags=--static --pkg-config=pkg-config --cross-prefix=x86_64-w64-mingw32- --arch=x86_64 --target-os=mingw32 --enable-gpl --enable-version3 --disable-debug --enable-shared --disable-static --disable-w32threads --enable-pthreads --enable-iconv --enable-zlib --enable-libxml2 --enable-libvmaf --enable-fontconfig --enable-libharfbuzz --enable-libfreetype --enable-libfribidi --enable-vulkan --enable-libshaderc --enable-libvorbis --disable-libxcb --disable-xlib --disable-libpulse --enable-opencl --enable-gmp --enable-lzma --enable-liblcevc-dec --enable-amf --enable-libaom --enable-libaribb24 --enable-avisynth --enable-chromaprint --enable-libdav1d --enable-libdavs2 --enable-libdvdread --enable-libdvdnav --disable-libfdk-aac --enable-ffnvcodec --enable-cuda-llvm --enable-frei0r --enable-libgme --enable-libkvazaar --enable-libaribcaption --enable-libass --enable-libbluray --enable-libjxl --enable-libmp3lame --enable-libopus --enable-libplacebo --enable-librist --enable-libssh --enable-libtheora --enable-libvpx --enable-libwebp --enable-libzmq --enable-lv2 --enable-libvpl --enable-openal --enable-liboapv --enable-libopencore-amrnb --enable-libopencore-amrwb --enable-libopenh264 --enable-libopenjpeg --enable-libopenmpt --enable-librav1e --enable-librubberband --enable-schannel --enable-sdl2 --enable-libsnappy --enable-libsoxr --enable-libsrt --enable-libsvtav1 --enable-libtwolame --enable-libuavs3d --disable-libdrm --enable-vaapi --enable-libvidstab --enable-libvvenc --enable-whisper --enable-libx264 --enable-libx265 --enable-libxavs2 --enable-libxvid --enable-libzimg --enable-libzvbi --extra-cflags=-DLIBTWOLAME_STATIC --extra-cxxflags= --extra-libs=-lgomp --extra-ldflags=-pthread --extra-ldexeflags= --cc=x86_64-w64-mingw32-gcc --cxx=x86_64-w64-mingw32-g++ --ar=x86_64-w64-mingw32-gcc-ar --ranlib=x86_64-w64-mingw32-gcc-ranlib --nm=x86_64-w64-mingw32-gcc-nm --extra-version=20260610
+  libavutil      60. 33.100 / 60. 33.100
+  libavcodec     62. 36.101 / 62. 36.101
+  libavformat    62. 19.101 / 62. 19.101
+  libavdevice    62.  4.100 / 62.  4.100
+  libavfilter    11. 17.100 / 11. 17.100
+  libswscale      9.  8.100 /  9.  8.100
+  libswresample   6.  4.100 /  6.  4.100
+[in#0 @ 000001bda22c02c0] moov atom not found
+[in#0 @ 000001bda42624c0] Error opening input: Invalid data found when processing input
+Error opening input file data/6a33b655d4a0591cfa12c39a/downloads\DJI_20260522101614_0014_D Michael Cahn.MP4.
+Error opening input files: Invalid data found when processing input
+
+2026-06-18 16:16:09,372 INFO Running FFmpeg: ffmpeg -y -ss 3.0 -to 6.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6457 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779389.mp4
+2026-06-18 16:16:09,373 ERROR [SKIP] FFmpeg failed for clip 21_3.0_00:03: FFmpeg failed:
+ffmpeg version N-124941-g54749da98a-20260610 Copyright (c) 2000-2026 the FFmpeg devel
+2026-06-18 16:16:10,083 INFO Running FFmpeg: ffmpeg -y -ss 0.0 -to 2.4 -i data/6a33b655d4a0591cfa12c39a/downloads\C6484 Michael Cahn.MP4 -vf fps=30,crop='min(iw,ih*9/16)':'min(ih,iw*16/9)',scale=720:1280,eq=contrast=1.05:brightness=0.01:saturation=1.1,format=yuv420p -c:v libx264 -preset slow -crf 18 -profile:v high -c:a aac -b:a 192k -ar 44100 data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779389.mp4
+2026-06-18 16:16:27,581 INFO [HQ PREP] Prepared clip in 44.9s
+2026-06-18 16:16:31,793 INFO [HQ PREP] Prepared clip in 22.4s
+2026-06-18 16:16:36,082 INFO [HQ PREP] Prepared clip in 28.4s
+2026-06-18 16:16:38,365 INFO [HQ PREP] Prepared clip in 29.5s
+2026-06-18 16:16:40,735 INFO Executing XFADE Graph with 20 clips...
+2026-06-18 16:16:40,736 INFO Running FFmpeg: ffmpeg -y -i data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779387.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779387.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779388.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779388.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779389.mp4 -i data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779389.mp4 -stream_loop -1 -i data/library/music/apalonbeats-real-estate-luxury-music-540580.mp3 -filter_complex [0:v][1:v]xfade=transition=slideleft:duration=0.4:offset=7.000[v1];[0:a][1:a]acrossfade=d=0.4[a1];[v1][2:v]xfade=transition=slideleft:duration=0.4:offset=12.609[v2];[a1][2:a]acrossfade=d=0.4[a2];[v2][3:v]xfade=transition=slideleft:duration=0.4:offset=15.609[v3];[a2][3:a]acrossfade=d=0.4[a3];[v3][4:v]xfade=transition=slideleft:duration=0.4:offset=20.609[v4];[a3][4:a]acrossfade=d=0.4[a4];[v4][5:v]xfade=transition=slideleft:duration=0.4:offset=25.609[v5];[a4][5:a]acrossfade=d=0.4[a5];[v5][6:v]xfade=transition=slideleft:duration=0.4:offset=32.609[v6];[a5][6:a]acrossfade=d=0.4[a6];[v6][7:v]xfade=transition=slideleft:duration=0.4:offset=35.609[v7];[a6][7:a]acrossfade=d=0.4[a7];[v7][8:v]xfade=transition=slideleft:duration=0.4:offset=40.609[v8];[a7][8:a]acrossfade=d=0.4[a8];[v8][9:v]xfade=transition=slideleft:duration=0.4:offset=44.109[v9];[a8][9:a]acrossfade=d=0.4[a9];[v9][10:v]xfade=transition=slideleft:duration=0.4:offset=47.109[v10];[a9][10:a]acrossfade=d=0.4[a10];[v10][11:v]xfade=transition=slideleft:duration=0.4:offset=51.109[v11];[a10][11:a]acrossfade=d=0.4[a11];[v11][12:v]xfade=transition=slideleft:duration=0.4:offset=54.109[v12];[a11][12:a]acrossfade=d=0.4[a12];[v12][13:v]xfade=transition=slideleft:duration=0.4:offset=55.213[v13];[a12][13:a]acrossfade=d=0.4[a13];[v13][14:v]xfade=transition=slideleft:duration=0.4:offset=60.213[v14];[a13][14:a]acrossfade=d=0.4[a14];[v14][15:v]xfade=transition=slideleft:duration=0.4:offset=65.213[v15];[a14][15:a]acrossfade=d=0.4[a15];[v15][16:v]xfade=transition=slideleft:duration=0.4:offset=68.213[v16];[a15][16:a]acrossfade=d=0.4[a16];[v16][17:v]xfade=transition=slideleft:duration=0.4:offset=72.317[v17];[a16][17:a]acrossfade=d=0.4[a17];[v17][18:v]xfade=transition=slideleft:duration=0.4:offset=75.317[v18];[a17][18:a]acrossfade=d=0.4[a18];[v18][19:v]xfade=transition=slideleft:duration=0.4:offset=78.317[v19];[a18][19:a]acrossfade=d=0.4[a19];[a19]volume=1.0[vo];[20:a]volume=0.2[music_vol];[vo][music_vol]amix=inputs=2:duration=first:dropout_transition=2[mixed_a] -map [v19] -map [mixed_a] -c:v libx264 -preset slow -crf 18 -profile:v high -pix_fmt yuv420p -c:a aac -b:a 192k data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Realtor Style_1781779387.mp4
+2026-06-18 16:18:25,063 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_0_1781779387.mp4
+2026-06-18 16:18:25,066 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_1_1781779387.mp4
+2026-06-18 16:18:25,068 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_2_1781779388.mp4
+2026-06-18 16:18:25,070 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_3_1781779388.mp4
+2026-06-18 16:18:25,071 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_4_1781779389.mp4
+2026-06-18 16:18:25,073 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_5_1781779389.mp4
+2026-06-18 16:18:25,075 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_6_1781779389.mp4
+2026-06-18 16:18:25,077 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_7_1781779389.mp4
+2026-06-18 16:18:25,079 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_8_1781779389.mp4
+2026-06-18 16:18:25,081 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_9_1781779389.mp4
+2026-06-18 16:18:25,083 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_10_1781779389.mp4
+2026-06-18 16:18:25,085 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_11_1781779389.mp4
+2026-06-18 16:18:25,087 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_12_1781779389.mp4
+2026-06-18 16:18:25,089 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_15_1781779389.mp4
+2026-06-18 16:18:25,092 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_16_1781779389.mp4
+2026-06-18 16:18:25,095 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_17_1781779389.mp4
+2026-06-18 16:18:25,097 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_18_1781779389.mp4
+2026-06-18 16:18:25,099 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_21_1781779389.mp4
+2026-06-18 16:18:25,100 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_24_1781779389.mp4
+2026-06-18 16:18:25,102 INFO Deleted temp clip: data/6a33b655d4a0591cfa12c39a/outputs\clip_25_1781779389.mp4
+2026-06-18 16:18:25,213 INFO [PERF] Final Dynamic Reel built with xfade in 317.6s
+2026-06-18 16:18:25,214 INFO [RENDER AUDIT] Selected: 25 clips / 101.5s | Rendered: 20 clips / 80.9s | Duration Coverage: 79.7%
+2026-06-18 16:18:25,214 WARNING [RENDER SKIP] clip_id=21_00:03_00:06 reason=decode_error
+2026-06-18 16:18:25,215 WARNING [RENDER SKIP] clip_id=16_00:05_00:08 reason=decode_error
+2026-06-18 16:18:25,215 WARNING [RENDER SKIP] clip_id=16_3.0_00:05 reason=decode_error
+2026-06-18 16:18:25,216 WARNING [RENDER SKIP] clip_id=17_3.0_00:04 reason=decode_error
+2026-06-18 16:18:25,216 WARNING [RENDER SKIP] clip_id=12_3.0_00:04 reason=decode_error
+2026-06-18 16:18:25,217 WARNING [RENDER SKIP] clip_id=21_3.0_00:03 reason=decode_error
+2026-06-18 16:18:25,217 INFO [RENDERED_COUNT] 20
+2026-06-18 16:18:25,217 INFO [OUTPUT_PATH] data/6a33b655d4a0591cfa12c39a/outputs\Untitty_Realtor Style_1781779387.mp4
+2026-06-18 16:18:25,218 ERROR [RENDER AUDIT] FAIL: Realtor Style (80.0%). Selected 25, Rendered 20. Missing 5 clips — HALTING DELIVERY.

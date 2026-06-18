@@ -16,6 +16,16 @@ from services.video import build_reel
 from services.cv_analyzer import analyze_video_segment, detect_camera_adjustments, cv_semaphore
 from services.timeline_optimizer import parse_time, build_highlight_memory
 
+import os
+os.makedirs("logs", exist_ok=True)
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler("logs/reelforge_debug.log", encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/generation", tags=["Generation"])
@@ -156,6 +166,15 @@ async def analyze_project(
             await q.put({"status": "progress", "message": f"Found {len(uploads)} processed clips and intercepted {len(pre_duplicates)} exact duplicates. Uploading to AI..."})
 
             # 2. Upload previews to Gemini sequentially to track progress
+            logger.info(f"[DEBUG] Total uploads: {len(uploads)}")
+            for i, upload in enumerate(uploads):
+                logger.info(
+                    f"[UPLOAD {i}] "
+                    f"id={upload.get('_id')} "
+                    f"path={upload.get('localPath')} "
+                    f"preview={upload.get('previewPath')}"
+                )
+                
             file_infos = [None] * len(uploads)
             total = sum(1 for u in uploads if u.get("previewPath"))
             completed = 0
@@ -196,11 +215,23 @@ async def analyze_project(
             
             # Map the Gemini result to the actual upload objects and Run CV Analysis
             timeline = gemini_result.get("selected_clips", [])
+            
+            logger.info(f"[GEMINI] Selected {len(timeline)} clips")
+            for clip in timeline:
+                logger.info(
+                    f"[GEMINI SCENE] "
+                    f"video_index={clip.get('video_index')} "
+                    f"scene={clip.get('scene_type')} "
+                    f"start={clip.get('start')} "
+                    f"end={clip.get('end')}"
+                )
+                
             mapped_timeline = []
             
             for i, c in enumerate(timeline):
                 idx = c.get("video_index", 0)
                 if idx < len(uploads):
+                    logger.info(f"[MAPPING] video_index={idx} mapped_to_upload={uploads[idx].get('_id')}")
                     c["upload_id"] = str(uploads[idx]["_id"])
                     local_path = uploads[idx].get("localPath")
                     c["localPath"] = local_path
@@ -272,6 +303,19 @@ async def analyze_project(
                 mapped_timeline, ai_removed, style=style, highlight_memory=highlight_memory
             )
             timeline = optimized_timeline
+            
+            logger.info(f"[TIMELINE] Final clips: {len(timeline)}")
+            for clip in timeline:
+                logger.info(
+                    f"[FINAL SCENE] "
+                    f"video_index={clip.get('video_index')} "
+                    f"scene={clip.get('scene_type')}"
+                )
+                logger.warning(
+                    f"[SCENE CHECK] "
+                    f"video_index={clip.get('video_index')} "
+                    f"scene={clip.get('scene_type')}"
+                )
 
             # Update final_order to match the fixed timeline
             gemini_result["final_order"] = [c.get("video_index") for c in timeline]
@@ -410,12 +454,17 @@ async def generate_project(
 
             # Phase 5: RENDER COVERAGE AUDIT setup
             # Populate localPath directly into the timeline blocks
+            import urllib.parse
             for item in timeline:
                 upload_id = item.get("upload_id")
                 if upload_id and not item.get("localPath"):
                     upload = await db.uploads.find_one({"_id": ObjectId(upload_id)})
                     if upload and upload.get("localPath"):
                         item["localPath"] = upload["localPath"]
+                        
+                # Ensure legacy paths with %20 are unquoted to match the new on-disk filenames
+                if item.get("localPath") and "%" in item.get("localPath"):
+                    item["localPath"] = urllib.parse.unquote(item["localPath"])
 
             target_duration = _parse_target_duration(duration)
 
@@ -499,22 +548,22 @@ async def generate_project(
                 
                 if render_success_pct >= 95:
                     audit_status = "PASS"
-                    logger.info(f"[RENDER AUDIT] ✅ {var_style}: PASS ({render_success_pct:.1f}%). "
+                    logger.info(f"[RENDER AUDIT] PASS: {var_style} ({render_success_pct:.1f}%). "
                                 f"Selected {selected_count}, Rendered {rendered_count}.")
                 elif render_success_pct >= 90:
                     audit_status = "WARNING"
                     missing_clips = selected_count - rendered_count
-                    logger.warning(f"[RENDER AUDIT] ⚠️ {var_style}: WARNING ({render_success_pct:.1f}%). "
+                    logger.warning(f"[RENDER AUDIT] WARNING: {var_style} ({render_success_pct:.1f}%). "
                                    f"Selected {selected_count}, Rendered {rendered_count}. "
                                    f"Missing {missing_clips} clips — logging and delivering.")
-                    await q.put({"status": "progress", "message": f"⚠️ Render audit WARNING: {render_success_pct:.1f}% success ({missing_clips} clips dropped)"})
+                    await q.put({"status": "progress", "message": f"Render audit WARNING: {render_success_pct:.1f}% success ({missing_clips} clips dropped)"})
                 else:
                     audit_status = "FAIL"
                     missing_clips = selected_count - rendered_count
-                    logger.error(f"[RENDER AUDIT] ❌ {var_style}: FAIL ({render_success_pct:.1f}%). "
+                    logger.error(f"[RENDER AUDIT] FAIL: {var_style} ({render_success_pct:.1f}%). "
                                  f"Selected {selected_count}, Rendered {rendered_count}. "
                                  f"Missing {missing_clips} clips — HALTING DELIVERY.")
-                    await q.put({"status": "progress", "message": f"❌ Render audit FAIL: only {render_success_pct:.1f}% success. Halting delivery for reprocessing."})
+                    await q.put({"status": "progress", "message": f"Render audit FAIL: only {render_success_pct:.1f}% success. Halting delivery for reprocessing."})
                     # FAIL: Skip this variation — do not deliver
                     continue
 

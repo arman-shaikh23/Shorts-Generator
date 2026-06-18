@@ -81,9 +81,11 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     now = datetime.datetime.utcnow()
 
     # 1. Save File Locally
+    import urllib.parse
+    clean_filename = urllib.parse.unquote(file.filename)
     project_dir = f"data/{project_id}/downloads"
     os.makedirs(project_dir, exist_ok=True)
-    local_path = os.path.join(project_dir, file.filename)
+    local_path = os.path.join(project_dir, clean_filename)
     
     # We use sync file write for simplicity, chunked is better for huge files but this works for demo
     contents = await file.read()
@@ -101,11 +103,11 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     upload = {
         "projectId": project_id,
         "userId": user["_id"],
-        "originalUrl": f"local://{file.filename}",
+        "originalUrl": f"local://{clean_filename}",
         "localPath": local_path,
         "previewPath": None,
         "thumbnailPath": None,
-        "filename": file.filename,
+        "filename": clean_filename,
         "fileSize": len(contents),
         "duration": None,
         "status": "PENDING", # Let the worker handle the preview generation! We just need to modify worker to skip download if localPath exists!

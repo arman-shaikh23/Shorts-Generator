@@ -1,3 +1,6 @@
+*.log
+logs/
+*.out
 # Python
 __pycache__/
 *.py[cod]
@@ -52,6 +55,8 @@ Thumbs.db
 backend/downloads/
 backend/data/
 backend/outputs/
+backend/logs/
+logs/
 outputs/
 
 frontend/public/demo/*.mp4

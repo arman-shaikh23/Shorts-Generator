@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 ANALYSIS_WIDTH = 640       # Downscale target width (keeps aspect ratio)
 FRAME_SAMPLE_INTERVAL = 15 # Analyze every Nth frame
 WINDOW_DURATION_SEC = 1.5  # Seconds to analyze per window (start/mid/end)
-TIMEOUT_SEC = 30           # Hard timeout per video
+TIMEOUT_SEC = 60           # Hard timeout per video
 
 # V4.0: Concurrency throttle for CPU-intensive operations
 cv_semaphore = asyncio.Semaphore(3)
@@ -71,13 +71,17 @@ def _analyze_window(cap, start_frame: int, num_frames: int, sample_interval: int
     frames_read = 0
     
     for i in range(num_frames):
-        success, frame = cap.read()
+        success = cap.grab()
         if not success:
             break
         
         # Only process every Nth frame
         if i % sample_interval != 0:
             continue
+            
+        success, frame = cap.retrieve()
+        if not success:
+            break
         
         # Downscale for speed
         small = _downscale(frame)
@@ -134,7 +138,8 @@ def detect_camera_adjustments(filepath: str, start_sec: float, end_sec: float) -
     }
     
     try:
-        cap = cv2.VideoCapture(filepath)
+        # V4.1 Fix: Force FFMPEG backend to prevent OpenCV from treating '%20' as an image sequence pattern
+        cap = cv2.VideoCapture(filepath, cv2.CAP_FFMPEG)
         if not cap.isOpened():
             logger.warning(f"[CV LK] Cannot open: {filepath}")
             return default_result
@@ -145,7 +150,7 @@ def detect_camera_adjustments(filepath: str, start_sec: float, end_sec: float) -
         
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         start_frame = int(start_sec * fps)
-        end_frame = min(int(end_sec * fps), total_frames)
+        end_frame = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         
         if end_frame - start_frame < MIN_STABLE_FRAMES * 2:
             cap.release()
@@ -173,19 +178,30 @@ def detect_camera_adjustments(filepath: str, start_sec: float, end_sec: float) -
             return default_result
         
         flow_magnitudes = []
-        frame_idx = start_frame + 1
+        frames_read = 0
         sample_step = max(1, int(fps / 10))  # ~10 samples per second
         
-        while frame_idx < analysis_end_frame:
+        while start_frame + frames_read < analysis_end_frame:
             # Check timeout
             if time.perf_counter() - t0 > TIMEOUT_SEC / 2:
                 logger.warning(f"[CV LK TIMEOUT] {filepath}")
                 break
             
-            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_idx)
-            success, frame = cap.read()
+            success = cap.grab()
             if not success:
                 break
+                
+            frames_read += 1
+            
+            # Skip frames to achieve sample_step
+            if frames_read % sample_step != 0:
+                continue
+                
+            success, frame = cap.retrieve()
+            if not success:
+                break
+                
+            frame_idx = start_frame + frames_read
             
             small = _downscale(frame)
             curr_gray = cv2.cvtColor(small, cv2.COLOR_BGR2GRAY)
@@ -202,7 +218,7 @@ def detect_camera_adjustments(filepath: str, start_sec: float, end_sec: float) -
                     
                     if len(good_new) > 0 and len(good_old) > 0:
                         # Calculate flow magnitudes
-                        flow = good_new - good_old
+                        flow = (good_new - good_old).reshape(-1, 2)
                         magnitudes = np.sqrt(flow[:, 0]**2 + flow[:, 1]**2)
                         avg_magnitude = float(np.mean(magnitudes))
                         flow_magnitudes.append({
@@ -222,7 +238,6 @@ def detect_camera_adjustments(filepath: str, start_sec: float, end_sec: float) -
                     prev_pts = cv2.goodFeaturesToTrack(curr_gray, mask=None, **FEATURE_PARAMS)
             
             prev_gray = curr_gray
-            frame_idx += sample_step
         
         cap.release()
         
@@ -314,7 +329,8 @@ def check_media_quality(filepath: str) -> dict:
         }
     """
     try:
-        cap = cv2.VideoCapture(filepath)
+        # V4.1 Fix: Force FFMPEG backend
+        cap = cv2.VideoCapture(filepath, cv2.CAP_FFMPEG)
         if not cap.isOpened():
             return {"is_acceptable": False, "resolution": (0, 0),
                     "blur_score": 0, "rejection_reason": "corrupted_file"}
@@ -374,7 +390,8 @@ def analyze_video_segment(filepath: str, start_sec: float, end_sec: float = None
     default_result = {"stability_score": 50, "motion_quality_score": 50, "blur_score": 50, "lighting_score": 50, "is_unstable": True}
     
     try:
-        cap = cv2.VideoCapture(filepath)
+        # V4.1 Fix: Force FFMPEG backend
+        cap = cv2.VideoCapture(filepath, cv2.CAP_FFMPEG)
         if not cap.isOpened():
             logger.warning(f"[CV] Cannot open: {filepath}")
             return default_result
