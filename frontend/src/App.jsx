@@ -11,6 +11,7 @@ import ProjectsPage from './pages/ProjectsPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
 import HistoryPage from './pages/HistoryPage';
 import SettingsPage from './pages/SettingsPage';
+import ApiDocsPage from './pages/ApiDocsPage';
 
 import { TopNav } from './components/layout/TopNav';
 
@@ -63,6 +64,7 @@ export default function App() {
           <Route path="projects/:id" element={<ProjectDetailPage />} />
           <Route path="history" element={<HistoryPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          <Route path="api-docs" element={<ApiDocsPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

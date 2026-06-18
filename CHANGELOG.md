@@ -2,6 +2,42 @@
 
 All notable changes to this project will be documented in this file.
   
+## [17.0.0] - ReelForge Master Quality Upgrade V4.0
+### Added
+- **Story Arc Engine**: Replaced flat zone-based walkthrough with emotionally-paced 4-phase arc: HOOK (15%) → DISCOVERY (35%) → SHOWCASE (35%) → RESOLUTION (15%). Clips are now mapped to emotional phases for maximum viewer retention.
+- **Property Highlight Memory Module**: Pre-scans all ingested media to cache `hero_pool`, `hero_exterior`, `hero_view`, `hero_living_room` for strategic placement. Hook deploys hero_exterior, mid-reel anchors hero_living_room, climax deploys hero_pool + drone pull-away.
+- **Peak Window Detection**: V4.0 scoring formula: `window_score = (0.30 × luxury) + (0.25 × reveal) + (0.20 × composition) + (0.15 × motion) + (0.10 × lifestyle)`. Replaces flat hybrid scoring.
+- **Repetition Memory Engine**: 5-clip lookback window with -30 point penalty for repeated `scene_type`. Eliminates `Exterior → Exterior → Exterior` and `Pool → Pool` repetition patterns.
+- **Motion Diversity Tracking**: Deducts 30 points for 3+ consecutive identical `camera_motion`, `camera_direction`, or `shot_size`. Enforces kinetic variety.
+- **Quality-First Priority Matrix**: Quality → Story → Coverage operational hierarchy. Clips are never included solely to satisfy an arbitrary coverage metric.
+- **Expanded Hero Protection**: Immutability flag for clips with `hero_score ≥ 90 OR reveal_score ≥ 90 OR luxury_score ≥ 90`. Pacing can adjust duration but cannot drop.
+- **Enhanced Adjacency Scoring**: Bumped natural transition bonuses to +25 (Living Room → Dining) and jarring jump penalties to -50 (Bathroom → Kitchen). Soft Recovery skips missing room types gracefully.
+- **Contextual Clip Duration Rules**: Standard clips: 4-7s, Hero clips: 7-10s, Premium Aerial/Drone: 10-12s.
+- **Premium Closing Shot Architecture**: Mandatory hierarchy: Pool View → Best Exterior → Drone Pull-Away. Strict prohibition on bathroom/closet/kitchen endings.
+- **Multi-Variant Style Profiles**: `luxury_tour` (100% preservation, 1.0 pace), `premium_realtor` (90-100%, 0.85 pace), `instagram_viral` (70-80%, 0.60 pace).
+- **Lucas-Kanade Optical Flow**: `cv2.calcOpticalFlowPyrLK()` detection and trimming of drone takeoff shake, gimbal initialization anomalies, autofocus loops, and exposure hunting.
+- **Intelligent Media Filtering**: Lowered acceptance floor to ≥720p (many premium assets from messaging apps are compressed). Only rejects corrupted files or extreme blur (Laplacian < 20).
+- **OpenCV Multi-Threading**: All CPU-intensive CV operations wrapped in `asyncio.to_thread()` behind `cv_semaphore = asyncio.Semaphore(3)` for non-blocking FastAPI execution.
+- **Fault-Tolerant Render Audit Gate**: 3-tier status matrix: ≥95% → PASS (deliver), 90-94.9% → WARNING (log + deliver), <90% → FAIL (halt delivery for reprocessing).
+- **Gemini V4.0 Prompt**: Added `reveal_score` (0-100) and `lifestyle_score` (0-100) to the Gemini response schema. Rewritten prompt with quality-first hierarchy, peak window detection, and duration rules.
+
+### Changed
+- **Timeline Optimizer**: Complete V4.0 rewrite with Story Arc builder, Repetition Memory, Motion Diversity, and resort-after-penalties pipeline.
+- **CV Analyzer**: Added `detect_camera_adjustments()` and `check_media_quality()` functions alongside existing `analyze_video_segment()`.
+- **Generation API**: Integrated Lucas-Kanade detection, Property Highlight Memory, and CV semaphore throttling into the analysis pipeline.
+- **Render Audit**: Upgraded from simple percentage check to 3-tier PASS/WARNING/FAIL gate with `audit_status` field persisted to MongoDB.
+
+## [16.0.0] - Comprehensive Testing Framework & API Documentation
+### Added
+- **Swagger UI Integration**: Added frontend integration for Swagger UI at `/api-docs` using `swagger-ui-react`, allowing users to explore and test the FastAPI backend directly from the React web app.
+- **Unit Testing**: Isolated testing for individual functions and UI components using Pytest (Backend) and Vitest (Frontend).
+- **Integration Testing**: Verification of data flow between modules, API routes, and React components.
+- **System Testing**: Playwright-based testing covering the complete application as a whole against specified requirements.
+- **User Acceptance Testing (UAT)**: Scenario-based tests mapped to business requirements and real-world Realtor workflows.
+- **Smoke & Sanity Testing**: Fast Playwright verification suites to ensure the core build is stable and recent changes are valid.
+- **Interface & API Testing**: Automated verification of FastAPI interactions, requests, and responses using `httpx`.
+- **Regression Testing**: Protected functionality baselines to ensure future updates don't break the existing timeline optimization engine.
+
 ## [15.0.0] - ReelForge Cinematic Engine v9 (Critical Reel Quality Upgrade)
 ### Added
 - **Strict Walkthrough Mode**: Enforced a hard real-estate walkthrough sequence for Luxury/Realtor styles: Drone → Exterior → Entrance → Lobby → Living Room → Dining → Kitchen → Master Bedroom → Bedroom → Bathroom → Balcony → Pool → Gym → Garden → Amenities → Parking → Closing. Missing scenes are skipped, never reordered backwards.

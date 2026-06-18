@@ -22,19 +22,28 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 ### 1. Premium SaaS Dashboard Experience
 The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboard instantly showcases the platform’s capabilities through a looping demo reel. Users immediately understand the "22 Raw Clips → AI Analysis → Cinematic Reel" workflow without ever needing to read a tutorial.
 
-### 2. Hybrid Cinematic AI Engine v9 (OpenCV + Gemini)
-- **Computer Vision Pre-Processing**: Before hitting the AI, an OpenCV physics layer (`cv_analyzer.py`) mathematically analyzes the footage for motion blur (Variance of Laplacian), exposure spikes, and severe camera shake (MSE). It dynamically scrubs out the first 0-3 seconds *only* if the operator was calibrating the gimbal.
-- **Advanced Contextual Understanding**: The AI views every frame of your raw footage. It categorizes rooms (e.g., distinguishing a kitchen from a living room) and determines the exact camera movement (pan, tilt, drone approach).
-- **Multi-Segment Extraction**: A single uploaded video can contribute up to 3 distinct scenes if it contains multiple rooms (e.g., lobby at 3-7s, entrance at 10-15s). Each segment gets a unique `clip_id` for accurate tracking.
-- **Strict Drone Segregation**: Explicit classification constraints guarantee DJI/Drone footage will never be incorrectly labeled as interior property rooms.
-- **Story Zones Architecture**: Clips are grouped into 4 cinematic zones — OPENING (drone/aerial/exterior), INTERIOR (lobby through bathroom), AMENITIES (pool/gym/garden), CLOSING — ensuring natural real-estate storytelling.
-- **Strict Walkthrough Mode**: For Luxury and Realtor styles, clips follow a hard walkthrough order (Drone → Exterior → Entrance → Lobby → Living Room → Kitchen → Bedroom → Bathroom → Amenities → Closing). For Instagram/Viral, clips are ordered by hero-score impact.
-- **Room Continuity Scoring**: Natural room transitions (e.g., Living Room → Kitchen) receive bonuses, while unnatural jumps (e.g., Kitchen → Pool) are penalized, creating smooth virtual tours.
-- **Hero Clip Protection**: Clips with `hero_score >= 90` are NEVER removed from the timeline regardless of other quality metrics.
+### 2. Hybrid Cinematic AI Engine V4.0 (OpenCV + Gemini + Story Arc)
+- **Story Arc Engine**: Timeline pacing follows an emotionally-paced 4-phase arc: **HOOK** (15% — instant visual impact with hero exteriors/views) → **DISCOVERY** (35% — guided spatial orientation through entrance/lobby/living/dining) → **SHOWCASE** (35% — crown jewels: kitchen/master bedroom/pool/balcony) → **RESOLUTION** (15% — emotional close with drone pull-away). This replaces the flat zone-based walkthrough and significantly improves viewer retention.
+- **Property Highlight Memory Module**: Pre-scans all ingested media to identify the "Crown Jewels" (`hero_pool`, `hero_exterior`, `hero_view`, `hero_living_room`) and strategically deploys them: Hook → hero_exterior, Mid-Reel Anchor → hero_living_room, Climax → hero_pool + drone pull-away.
+- **Peak Window Detection**: Evaluates video streams using a 0.5-second rolling window to isolate the mathematically highest-scoring segment. Formula: `window_score = (0.30 × luxury) + (0.25 × reveal) + (0.20 × composition) + (0.15 × motion) + (0.10 × lifestyle)`.
+- **Repetition Memory**: 5-clip lookback window with -30 point penalty for repeated `scene_type`, eliminating the `Exterior → Exterior → Exterior` repetition pattern even across different source videos.
+- **Motion Diversity Tracking**: Deducts 30 points for 3+ consecutive identical `camera_motion`, `camera_direction`, or `shot_size`. Target flow: `Push In → Pan Left → Static Wide → Drone Top-Down → Orbit`.
+- **Quality-First Priority Matrix**: Quality → Story → Coverage operational hierarchy. Clips are never included solely to satisfy coverage metrics — narrative cohesion always supersedes data volume.
+- **Expanded Hero Protection**: Clips with `hero_score ≥ 90 OR reveal_score ≥ 90 OR luxury_score ≥ 90` are automatically flagged as Immutable. The pacing layer can adjust runtime duration but is strictly prohibited from dropping the asset.
+- **Enhanced Adjacency Scoring**: Natural transitions receive +25 bonus (Living Room → Dining). Jarring jumps receive -50 penalty (Bathroom → Kitchen). Missing room types in the progression sequence are gracefully skipped.
+- **Contextual Clip Duration**: Standard functional clips (hallways, bathrooms) get 4-7s. Hero asset clips (kitchens, pools, living rooms) get 7-10s. Premium aerial/drone sweeps get 10-12s.
+- **Premium Closing Shot Architecture**: Mandatory closing hierarchy: Pool View → Best Exterior → Drone Pull-Away. Never ends on bathroom, closet, secondary bedroom, kitchen island, or unstabilized handheld pan.
+- **Multi-Variant Style Profiles**: `luxury_tour` (100% asset preservation, 1.0 pace), `premium_realtor` (90-100%, 0.85 pace), `instagram_viral` (70-80%, 0.60 pace).
+- **Lucas-Kanade Optical Flow**: `cv2.calcOpticalFlowPyrLK()` detects and trims drone takeoff shake, gimbal initialization, autofocus loops, and exposure hunting — preserving only the clean footage.
+- **Intelligent Media Filtering**: Accepts ≥720p resolution (many premium assets from messaging apps are compressed). Only rejects binary duplicates, corrupted file wrappers, or extreme blur.
+- **OpenCV Multi-Threading**: All CPU-intensive CV operations run via `asyncio.to_thread()` behind a `cv_semaphore = asyncio.Semaphore(3)` to prevent CPU saturation and FastAPI event loop blocking.
+- **Computer Vision Pre-Processing**: OpenCV physics layer (`cv_analyzer.py`) mathematically analyzes footage for motion blur (Variance of Laplacian), exposure spikes, and severe camera shake (MSE).
+- **Multi-Segment Extraction**: A single uploaded video can contribute up to 3 distinct scenes. Each segment gets a unique `clip_id` for accurate tracking.
+- **Strict Drone Segregation**: DJI/Drone footage is never incorrectly labeled as interior property rooms.
+- **Fault-Tolerant Render Audit Gate**: 3-tier status matrix: ≥95% → PASS (deliver), 90-94.9% → WARNING (log, deliver), <90% → FAIL (halt delivery for reprocessing). Tracks `selected_clips`, `rendered_clips`, `missing_clips_indices`, `calculated_target_duration`, `final_compiled_duration`, and `render_success_percentage`.
 - **Sequence Validation**: Post-optimization validation enforces 4 hard rules: no backward movement, max 3 same-type consecutive clips, drone only in opening/closing zones, bathroom never before living room.
-- **Smart Pacing Bounds**: Clips are intelligently trimmed based on their calculated `final_score`. Weak clips bounded to 4-7s, Hero clips to 7-10s, exceptional Drone shots up to 12s.
-- **Full Render Audit**: Every render is tracked with `selected_count`, `rendered_count`, `selected_duration`, `rendered_duration`, `duration_coverage_pct`, and detailed skip reasons (`missing_file`, `ffmpeg_timeout`, `decode_error`).
-- **ALL-Clips Variation Rendering**: All 3 style variations (Luxury, Instagram, Realtor) MUST include every approved timeline clip. `custom_sequence` controls ordering only, never removal.
+- **Full Render Audit**: Every render is tracked with `selected_count`, `rendered_count`, `selected_duration`, `rendered_duration`, `duration_coverage_pct`, `audit_status`, and detailed skip reasons.
+- **ALL-Clips Variation Rendering**: All 3 style variations MUST include every approved timeline clip. `custom_sequence` controls ordering only, never removal.
 
 ### 3. Smart Deduplication & Scene Diversity
 - **Production-Grade AI Selection**: Extracts multiple segments from long videos, applies strict >85% confidence thresholding, and uses a native Semantic Deduplication pipeline to guarantee only the highest-quality unique shots are used.
@@ -61,6 +70,19 @@ The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboar
 - **API 404 Errors**: If `/api/process` returns a 404 on deployment, verify that the static file mount isn't intercepting the root path. Our production build is configured to serve static assets safely without shadowing `/api/*`.
 - **Windows Python 3.13 `NotImplementedError`**: FFmpeg commands are deliberately executed using `subprocess.run` inside `asyncio.to_thread()` instead of `asyncio.create_subprocess_exec`. This is to circumvent a `NotImplementedError` limitation on Windows platforms with the Proactor event loop. 
 - **Missing Videos**: If downloading from Dropbox fails or creates empty files, check the server logs. We have added deep debugging around the download stage to trace HTTP responses, content types, and file sizes.
+
+## Quality Assurance & Testing Strategy
+ReelForge utilizes a comprehensive, multi-layered testing strategy to guarantee stability across its cinematic AI engine and SaaS platform:
+
+- **Unit Testing**: Tests individual functions, methods, or modules in isolation (e.g., verifying the OpenCV motion blur math). It helps identify defects at the earliest stage of development.
+- **Integration Testing**: Verifies that different modules or components work correctly together (e.g., testing the FastAPI integration with MongoDB). It ensures proper data flow and communication between integrated parts.
+- **System Testing**: Tests the complete application as a whole against specified requirements. It validates the overall functionality of the system end-to-end.
+- **User Acceptance Testing (UAT)**: Conducted by end users or clients to verify that the software meets business requirements. It is the final testing phase before deployment.
+- **Smoke Testing**: Checks the basic and critical functionalities of a new build (e.g., does the dashboard load?). It determines whether the build is stable enough for further testing.
+- **Sanity Testing**: Performs a quick validation of specific changes or bug fixes. It ensures that recent modifications work as expected.
+- **Interface Testing**: Tests the interaction between different systems, applications, or APIs. It ensures that data is exchanged correctly across interfaces.
+- **Regression Testing**: Verifies that recent changes or bug fixes have not affected the existing functionality of the application (e.g., ensuring loop closure doesn't break timeline optimization).
+- **API Testing**: Verifies that APIs function correctly by validating requests, responses, data exchange, and business logic between applications. We expose an interactive **Swagger UI** on the frontend at `/api-docs` to facilitate this.
 
 ## Setup Instructions
 

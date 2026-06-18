@@ -267,11 +267,13 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
                         "composition_score": types.Schema(type=types.Type.INTEGER),
                         "hook_score": types.Schema(type=types.Type.INTEGER),
                         "luxury_score": types.Schema(type=types.Type.INTEGER),
+                        "reveal_score": types.Schema(type=types.Type.INTEGER),
+                        "lifestyle_score": types.Schema(type=types.Type.INTEGER),
                         "camera_motion": types.Schema(type=types.Type.STRING),
                         "camera_direction": types.Schema(type=types.Type.STRING),
                         "shot_size": types.Schema(type=types.Type.STRING)
                     },
-                    required=["video_index", "scene_type", "start", "end", "hero_score", "composition_score", "hook_score", "luxury_score", "camera_motion", "camera_direction", "shot_size"]
+                    required=["video_index", "scene_type", "start", "end", "hero_score", "composition_score", "hook_score", "luxury_score", "reveal_score", "lifestyle_score", "camera_motion", "camera_direction", "shot_size"]
                 )
             )
         },
@@ -279,35 +281,51 @@ async def analyze_and_generate(file_infos: list, property_name: str, duration: s
     )
     
     prompt = f"""Property: '{property_name}'
-Analyze the attached videos. Extract the most stunning cinematic scenes.
-Focus purely on aesthetics, framing, and content. (Physical camera shake is handled by an external computer vision pipeline, so assume clips can be trimmed for stability later).
+Analyze the attached videos. Extract the most stunning cinematic scenes for a luxury real estate reel.
 
-Reel Goals:
-- Build the longest high-quality cinematic timeline possible. 
-- NEVER remove a good clip just to make the reel shorter.
-- Select segments between 4 and 12 seconds depending on their aesthetic quality.
+═══ QUALITY-FIRST OPERATIONAL HIERARCHY ═══
+Priority 1 — QUALITY: Visual stability, sharpness, exposure correctness, and frame integrity.
+Priority 2 — STORY: Natural spatial walkthrough progression of the home.
+Priority 3 — COVERAGE: Maximize asset preservation (target 80-100%) WITHOUT compromising quality or story.
+RULE: Low-scoring or structurally redundant clips must NEVER be included solely to satisfy coverage. Narrative cohesion supersedes data volume.
 
-MULTI-SEGMENT EXTRACTION:
-- A single video may contain MULTIPLE usable scenes at different timestamps.
-- Return multiple selected_clips entries with the same video_index but different start/end timestamps if the video contains visually distinct segments (e.g., lobby at 3-7s, entrance at 10-15s, chandelier at 18-23s).
-- LIMIT: Maximum 3 segments per video.
+═══ PEAK WINDOW DETECTION ═══
+Each uploaded video contains a mix of unstable camera adjustments and perfect framings.
+Evaluate continuous video using a 0.5-second rolling window to isolate the mathematically highest-scoring segment (4-7 second default range).
+Physical camera shake is handled by an external OpenCV pipeline — focus purely on aesthetics, framing, and content.
 
-Return an array of 'selected_clips'.
-For each clip:
-- 'video_index': The exact index of the video (0 for the first video in this batch, 1 for the second, etc.)
-- 'scene_type': Strict labels (e.g., 'drone', 'aerial', 'exterior', 'lobby', 'living_room', 'kitchen', 'bedroom', 'bathroom', 'pool', 'gym', 'garden', 'parking', 'amenities', 'home_office', 'conference_room', 'corridor', 'staircase', 'walk_in_closet', 'terrace', 'balcony', 'rooftop'). 
-  CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms (kitchen/bedroom/etc.). It can ONLY be drone, aerial, exterior, pool, garden, or amenities.
-- 'start' and 'end': Timestamps in seconds.
-- 'hero_score': 0-100 score based on visual appeal. (100-90: Luxury, Premium. 89-70: Good but not exceptional. Below 70: Avoid).
-- 'composition_score': 0-100 score evaluating framing, rule of thirds, and architectural lines.
-- 'hook_score': 0-100 score for how well the shot works as an opening hook.
-- 'luxury_score': 0-100 score for how luxurious the shot feels (high-end aesthetics).
-- 'camera_motion': Choose from: static, push_in, push_out, pan, orbit, tilt.
-- 'camera_direction': Choose from: left_to_right, right_to_left, forward, backward, neutral.
-- 'shot_size': Choose from: wide, medium, close.
+═══ MULTI-SEGMENT EXTRACTION ═══
+A single video may contain MULTIPLE usable scenes at different timestamps.
+Return multiple entries with the same video_index but different start/end if visually distinct segments exist.
+LIMIT: Maximum 3 segments per video. Sibling clips from the same file must be structurally distinct.
+
+═══ SCENE CLASSIFICATION ═══
+Scene types: drone, aerial, exterior, entrance, lobby, living_room, dining, kitchen, home_office, conference_room, corridor, staircase, walk_in_closet, master_bedroom, bedroom, bathroom, terrace, balcony, pool, gym, garden, amenities, parking, rooftop.
+CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms. It can ONLY be drone, aerial, exterior, pool, garden, or amenities.
+
+═══ SCORING FIELDS ═══
+For each clip, return:
+- 'video_index': Exact index of the video (0-based within this batch)
+- 'scene_type': Strict label from the list above
+- 'start' and 'end': Timestamps in seconds (peak window of the best segment)
+- 'hero_score': 0-100 visual appeal (90+: Luxury/Premium, 70-89: Good, <70: Avoid)
+- 'composition_score': 0-100 framing, rule of thirds, architectural lines
+- 'hook_score': 0-100 how well the shot works as an opening hook
+- 'luxury_score': 0-100 how luxurious the shot feels (high-end aesthetics)
+- 'reveal_score': 0-100 how dramatic the reveal quality is (wow-factor moment, first glimpse of a space)
+- 'lifestyle_score': 0-100 how strongly the shot evokes an aspirational luxury lifestyle feel
+- 'camera_motion': static, push_in, push_out, pan, orbit, tilt
+- 'camera_direction': left_to_right, right_to_left, forward, backward, neutral
+- 'shot_size': wide, medium, close
+
+═══ DURATION RULES ═══
+Standard clips (hallways, bathrooms, entryways): 4-7 seconds
+Hero clips (kitchens, living rooms, pools, patios): 7-10 seconds
+Premium aerial/drone sweeps: 10-12 seconds
 
 Avoid selecting visually similar clips. Keep only the strongest angles.
 """
+
 
     all_selected_clips = []
     

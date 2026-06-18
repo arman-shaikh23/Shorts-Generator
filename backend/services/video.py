@@ -50,7 +50,12 @@ def has_audio(path: str) -> bool:
 
 def get_direct_url(url: str) -> str:
     if "dropbox.com" in url:
-        return url.replace("?dl=0", "").replace("&dl=0", "") + ("&dl=1" if "?" in url else "?dl=1")
+        if "dl=0" in url:
+            return url.replace("dl=0", "dl=1")
+        elif "?" in url:
+            return url + "&dl=1"
+        else:
+            return url + "?dl=1"
     return url
 
 async def download_video(url: str, filename: str, project_id: str, on_progress: Optional[Callable] = None) -> str:

@@ -13,8 +13,8 @@ from ..core.database import get_db
 from ..core.dependencies import get_current_user
 from services.gemini import upload_and_wait, analyze_and_generate, generate_variations
 from services.video import build_reel
-from services.cv_analyzer import analyze_video_segment
-from services.timeline_optimizer import parse_time
+from services.cv_analyzer import analyze_video_segment, detect_camera_adjustments, cv_semaphore
+from services.timeline_optimizer import parse_time, build_highlight_memory
 
 logger = logging.getLogger(__name__)
 
@@ -190,7 +190,7 @@ async def analyze_project(
 
             gemini_result = await analyze_and_generate(file_infos_clean, project["title"], duration, style, duplicate_sensitivity, yield_callback=yield_message)
 
-            # ── POST-PROCESSING: Cinematic Timeline Optimizer ──
+            # ── V4.0 POST-PROCESSING: Cinematic Timeline Optimizer ──
             from services.timeline_optimizer import TimelineOptimizer
             ai_removed = []
             
@@ -207,20 +207,39 @@ async def analyze_project(
                     
                     await q.put({"status": "progress", "message": f"Computer Vision Analysis ({i+1}/{len(timeline)})..."})
                     
-                    # Run OpenCV Analysis on the selected segment (offloaded to thread to prevent blocking event loop)
                     start_sec = parse_time(c.get("start", "0"))
                     end_sec = parse_time(c.get("end", "5"))
                     
-                    # 1. Dynamic 3s Skip logic
-                    if start_sec < 1.0:
-                        first_3s_analysis = await asyncio.to_thread(analyze_video_segment, local_path, 0.0, 3.0)
+                    # V4.0: Lucas-Kanade camera adjustment detection (throttled)
+                    async with cv_semaphore:
+                        adjustment = await asyncio.to_thread(
+                            detect_camera_adjustments, local_path, start_sec, end_sec
+                        )
+                    
+                    if adjustment.get("has_adjustment"):
+                        adj_type = adjustment.get("adjustment_type", "unknown")
+                        new_start = adjustment.get("trim_start_sec", start_sec)
+                        logger.info(f"[CV LK] Clip {i}: Detected {adj_type}. Trimming {start_sec:.1f}s → {new_start:.1f}s")
+                        start_sec = new_start
+                        c["start"] = str(start_sec)
+                        c["camera_adjustment_detected"] = adj_type
+                    
+                    # Fallback: Dynamic 3s skip if Lucas-Kanade didn't catch it
+                    if start_sec < 1.0 and not adjustment.get("has_adjustment"):
+                        async with cv_semaphore:
+                            first_3s_analysis = await asyncio.to_thread(
+                                analyze_video_segment, local_path, 0.0, 3.0
+                            )
                         if first_3s_analysis.get("is_unstable"):
                             start_sec = 3.0
                             c["start"] = "3.0"
                     
-                    # 2. Get overall segment CV metrics
-                    cv_scores = await asyncio.to_thread(analyze_video_segment, local_path, start_sec, end_sec)
-                    c.update(cv_scores) # Merge OpenCV scores into the clip dict
+                    # Get overall segment CV metrics (throttled)
+                    async with cv_semaphore:
+                        cv_scores = await asyncio.to_thread(
+                            analyze_video_segment, local_path, start_sec, end_sec
+                        )
+                    c.update(cv_scores)
                     
                     mapped_timeline.append(c)
 
@@ -230,7 +249,6 @@ async def analyze_project(
             over_limit = {vid: count for vid, count in seg_counts.items() if count > MAX_SEGMENTS_PER_VIDEO}
             if over_limit:
                 for vid_idx, count in over_limit.items():
-                    # Keep top 3 by hero_score, remove the rest
                     vid_clips = [(i, c) for i, c in enumerate(mapped_timeline) if c.get("video_index") == vid_idx]
                     vid_clips.sort(key=lambda x: int(x[1].get("hero_score", 0)), reverse=True)
                     remove_indices = [i for i, c in vid_clips[MAX_SEGMENTS_PER_VIDEO:]]
@@ -246,7 +264,13 @@ async def analyze_project(
                 end_val = c.get("end", "5")
                 c["clip_id"] = f"{vid_idx}_{start_val}_{end_val}"
 
-            optimized_timeline = TimelineOptimizer.optimize(mapped_timeline, ai_removed, style=style)
+            # V4.0: Build Property Highlight Memory BEFORE optimization
+            await q.put({"status": "progress", "message": "Building Property Highlight Memory..."})
+            highlight_memory = build_highlight_memory(mapped_timeline)
+
+            optimized_timeline = TimelineOptimizer.optimize(
+                mapped_timeline, ai_removed, style=style, highlight_memory=highlight_memory
+            )
             timeline = optimized_timeline
 
             # Update final_order to match the fixed timeline
@@ -470,18 +494,29 @@ async def generate_project(
                 logger.info(f"[RENDERED_COUNT] {rendered_count}")
                 logger.info(f"[OUTPUT_PATH] {output_path}")
                 
-                # --- RENDER COVERAGE AUDIT ---
-                if rendered_count < selected_count:
-                    missing_clips = selected_count - rendered_count
-                    logger.warning(f"[RENDER AUDIT] Variation {var_style}: Selected {selected_count}, Rendered {rendered_count}. Missing {missing_clips} clips.")
-                    await q.put({"status": "progress", "message": f"[Audit] {missing_clips} clips failed to render..."})
-                else:
-                    logger.info(f"[RENDER AUDIT] Variation {var_style}: PERFECT MATCH. Selected {selected_count}, Rendered {rendered_count}.")
+                # --- V4.0 FAULT-TOLERANT RENDER AUDIT GATE ---
+                render_success_pct = (rendered_count / selected_count * 100) if selected_count > 0 else 100
                 
-                # FAIL THRESHOLD: Alert if <90% clips rendered
-                if rendered_count < selected_count * 0.9:
-                    logger.error(f"[RENDER AUDIT FAIL] Only {rendered_count}/{selected_count} clips rendered for {var_style}!")
-                    await q.put({"status": "progress", "message": f"⚠️ Render audit warning: only {rendered_count}/{selected_count} clips rendered"})
+                if render_success_pct >= 95:
+                    audit_status = "PASS"
+                    logger.info(f"[RENDER AUDIT] ✅ {var_style}: PASS ({render_success_pct:.1f}%). "
+                                f"Selected {selected_count}, Rendered {rendered_count}.")
+                elif render_success_pct >= 90:
+                    audit_status = "WARNING"
+                    missing_clips = selected_count - rendered_count
+                    logger.warning(f"[RENDER AUDIT] ⚠️ {var_style}: WARNING ({render_success_pct:.1f}%). "
+                                   f"Selected {selected_count}, Rendered {rendered_count}. "
+                                   f"Missing {missing_clips} clips — logging and delivering.")
+                    await q.put({"status": "progress", "message": f"⚠️ Render audit WARNING: {render_success_pct:.1f}% success ({missing_clips} clips dropped)"})
+                else:
+                    audit_status = "FAIL"
+                    missing_clips = selected_count - rendered_count
+                    logger.error(f"[RENDER AUDIT] ❌ {var_style}: FAIL ({render_success_pct:.1f}%). "
+                                 f"Selected {selected_count}, Rendered {rendered_count}. "
+                                 f"Missing {missing_clips} clips — HALTING DELIVERY.")
+                    await q.put({"status": "progress", "message": f"❌ Render audit FAIL: only {render_success_pct:.1f}% success. Halting delivery for reprocessing."})
+                    # FAIL: Skip this variation — do not deliver
+                    continue
 
                 web_url = "/" + output_path.replace("\\", "/")
                 
@@ -526,6 +561,8 @@ async def generate_project(
                     "selected_duration": round(selected_duration_sec, 1),
                     "rendered_duration": round(rendered_duration_sec, 1),
                     "duration_coverage": round(duration_coverage_pct, 1),
+                    "render_success_percentage": round(render_success_pct, 2),
+                    "audit_status": audit_status,
                     "coverage": round((rendered_count / selected_count * 100) if selected_count > 0 else 100, 1),
                     "skipped_clips": skipped_clips
                 }

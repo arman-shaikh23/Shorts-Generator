@@ -351,3 +351,79 @@ if hero_score >= 90: NEVER REMOVE
 | Hero Protection | None | **hero_score >= 90 clips are NEVER removed** |
 | Continuity | None | **Room-to-room transition bonuses/penalties** |
 | Server Stability | No crash guard | **Background tasks auto-restart, FFmpeg 120s timeout** |
+
+---
+
+## Prompt 8: QA & Testing Engineering (v11)
+
+### The Prompt
+```text
+Project: 'ReelForge Short Generator'
+Goal: Generate a comprehensive, 9-layer testing infrastructure and API documentation framework.
+
+Requirements:
+1. Implement Unit Testing (Pytest/Vitest) for isolated functions.
+2. Implement Integration Testing (Pytest/Vitest) for data flow.
+3. Implement System Testing (Playwright) for complete application state.
+4. Implement User Acceptance Testing (Playwright) mapping to real-world workflows.
+5. Implement Smoke Testing (Playwright) for critical build functionality.
+6. Implement Sanity Testing (Playwright) for specific recent bug fixes.
+7. Implement Interface/API Testing (Pytest+httpx) for FastAPI routing.
+8. Implement Regression Testing (Playwright) to protect baseline functionality.
+9. Integrate Swagger UI (`swagger-ui-react`) into the frontend to visualize the OpenAPI schema.
+
+Output:
+Provide the implementation plan, test framework scaffolding, and integration code across the frontend, backend, and e2e directories.
+```
+
+### Reasoning
+- **Quality Assurance**: As the application matured into an enterprise SaaS platform, regressions and UI breaks became more likely. This prompt explicitly instructs the engineering setup to scaffold a complete test suite covering the 9 essential layers of software QA requested by the user.
+
+## Prompt 9: Master Quality Upgrade V4.0
+
+### The Prompt
+```text
+Property: '{property_name}'
+Analyze the attached videos. Extract the most stunning cinematic scenes for a luxury real estate reel.
+
+═══ QUALITY-FIRST OPERATIONAL HIERARCHY ═══
+Priority 1 — QUALITY: Visual stability, sharpness, exposure correctness, and frame integrity.
+Priority 2 — STORY: Natural spatial walkthrough progression of the home.
+Priority 3 — COVERAGE: Maximize asset preservation (target 80-100%) WITHOUT compromising quality or story.
+RULE: Low-scoring or structurally redundant clips must NEVER be included solely to satisfy coverage. Narrative cohesion supersedes data volume.
+
+═══ PEAK WINDOW DETECTION ═══
+Evaluate continuous video using a 0.5-second rolling window to isolate the mathematically highest-scoring segment (4-7 second default range).
+Formula: window_score = (0.30 × luxury) + (0.25 × reveal) + (0.20 × composition) + (0.15 × motion) + (0.10 × lifestyle)
+
+═══ STORY ARC ENGINE ═══
+Timeline pacing follows emotionally-paced 4-phase structure:
+HOOK (15%) → Hero Exterior, Hero View — instant visual impact
+DISCOVERY (35%) → Entrance, Lobby, Living, Dining — guided spatial orientation
+SHOWCASE (35%) → Kitchen, Master Bedroom, Pool, Balcony — crown jewels and wow-factor
+RESOLUTION (15%) → Best Exterior, Hero View, Drone Pull-Away — emotional close
+
+═══ SCORING FIELDS ═══
+- hero_score: 0-100 (90+ = Immutable)
+- composition_score: 0-100
+- hook_score: 0-100
+- luxury_score: 0-100 (90+ = Immutable)
+- reveal_score: 0-100 (90+ = Immutable) — NEW V4.0
+- lifestyle_score: 0-100 — NEW V4.0
+- camera_motion: static, push_in, push_out, pan, orbit, tilt
+- camera_direction: left_to_right, right_to_left, forward, backward, neutral
+- shot_size: wide, medium, close
+
+═══ DURATION RULES ═══
+Standard clips (hallways, bathrooms): 4-7 seconds
+Hero clips (kitchens, living rooms, pools): 7-10 seconds
+Premium aerial/drone sweeps: 10-12 seconds
+```
+
+### Reasoning
+- **Retention-First Design**: The Story Arc Engine (HOOK → DISCOVERY → SHOWCASE → RESOLUTION) mirrors how professional luxury real estate editors structure their reels. This pacing keeps viewer attention through emotional peaks rather than flat chronological tours.
+- **Property Highlight Memory**: Pre-scanning all assets identifies the "Crown Jewels" before building the timeline, ensuring the most impactful shots are strategically placed at the hook (opening), anchor (mid-reel), and climax (closing).
+- **Repetition Memory**: A 5-clip lookback window with -30 penalty eliminates the common `Exterior → Exterior → Exterior` and `Pool → Pool` repetition problem that makes reels feel amateur.
+- **Motion Diversity Tracking**: Penalizing 3+ consecutive identical camera movements prevents visual boredom and creates the kinetic variety expected in premium real estate content.
+- **Lucas-Kanade Optical Flow**: Automated detection of drone takeoff shake, gimbal initialization, autofocus loops, and exposure hunting ensures only clean footage reaches the final reel.
+- **Fault-Tolerant Render Audit Gate**: The 3-tier PASS/WARNING/FAIL gate prevents corrupt or incomplete renders from reaching clients while allowing minor frame drops through.
