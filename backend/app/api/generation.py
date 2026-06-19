@@ -10,6 +10,10 @@ import json
 from collections import Counter
 
 from ..core.config import get_settings
+from ..core.cache import (
+    invalidate_after_generation_mutation,
+    invalidate_after_project_mutation,
+)
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
 from ..core.mongo_utils import parse_object_id
@@ -480,6 +484,7 @@ async def analyze_project(
                     "aiMetadata": ai_metadata
                 }}
             )
+            await invalidate_after_project_mutation(user["_id"], project_id)
 
             await q.put({"status": "completed", "results": [gemini_result]})
 
@@ -731,6 +736,8 @@ async def generate_project(
                     }
                 )
 
+            if results:
+                await invalidate_after_generation_mutation(user["_id"], project_id)
             await q.put({"status": "completed", "results": results})
 
         except Exception as e:

@@ -1,22 +1,39 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FolderKanban, PlusCircle, Clock } from 'lucide-react';
+import { FolderKanban, PlusCircle, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { formatRelativeTime } from '../lib/utils';
+
+const PAGE_SIZE = 12;
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
   const navigate = useNavigate();
 
   const fetchProjects = async () => {
+    setLoading(true);
+    setError('');
     try {
-      const res = await apiFetch('/projects');
+      const res = await apiFetch(`/projects?page=${page}&limit=${PAGE_SIZE}`);
       if (res.ok) {
         const data = await res.json();
+        if ((data.pages || 0) > 0 && page > data.pages) {
+          setPage(data.pages);
+          return;
+        }
         setProjects(data.projects || []);
+        setTotal(data.total || 0);
+        setPages(data.pages || 0);
+        setHasNext(Boolean(data.has_next));
+        setHasPrev(Boolean(data.has_prev));
       } else {
         setError('Failed to fetch projects');
       }
@@ -33,7 +50,7 @@ export default function ProjectsPage() {
     }, 0);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [page]);
 
   const createProject = async () => {
     try {
@@ -88,31 +105,55 @@ export default function ProjectsPage() {
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((p) => (
-            <Link
-              key={p._id}
-              to={`/dashboard/projects/${p._id}`}
-              className="glass-card rounded-2xl p-6 hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(0,0,0,0.06)] hover:border-[#0EA5E9]/30 transition-all group"
-            >
-              <div className="flex justify-between items-start mb-6">
-                <div className="w-14 h-14 rounded-2xl bg-[#0EA5E9]/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-gradient-aurora group-hover:text-white text-[#0EA5E9] transition-all shadow-sm">
-                  <FolderKanban size={24} />
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {projects.map((p) => (
+              <Link
+                key={p._id}
+                to={`/dashboard/projects/${p._id}`}
+                className="glass-card rounded-2xl p-6 hover:-translate-y-1 hover:shadow-[0_30px_60px_rgba(0,0,0,0.06)] hover:border-[#0EA5E9]/30 transition-all group"
+              >
+                <div className="flex justify-between items-start mb-6">
+                  <div className="w-14 h-14 rounded-2xl bg-[#0EA5E9]/10 flex items-center justify-center group-hover:scale-110 group-hover:bg-gradient-aurora group-hover:text-white text-[#0EA5E9] transition-all shadow-sm">
+                    <FolderKanban size={24} />
+                  </div>
+                  <div className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
+                    {p.status}
+                  </div>
                 </div>
-                <div className="px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-[#F8FAFC] border border-[#E2E8F0] text-[#64748B]">
-                  {p.status}
+                <h3 className="text-xl font-bold text-[#0F172A] truncate mb-2">{p.title}</h3>
+                <p className="text-sm font-medium text-[#64748B] mb-6">{p.uploadCount || 0} raw clips - {p.generatedCount || 0} AI reels</p>
+
+                <div className="flex items-center text-xs font-bold text-[#94a3b8] gap-1.5 mt-auto pt-4 border-t border-[#E2E8F0]">
+                  <Clock size={14} />
+                  Updated {formatRelativeTime(p.updatedAt)}
                 </div>
-              </div>
-              <h3 className="text-xl font-bold text-[#0F172A] truncate mb-2">{p.title}</h3>
-              <p className="text-sm font-medium text-[#64748B] mb-6">{p.uploadCount || 0} raw clips · {p.generatedCount || 0} AI reels</p>
-              
-              <div className="flex items-center text-xs font-bold text-[#94a3b8] gap-1.5 mt-auto pt-4 border-t border-[#E2E8F0]">
-                <Clock size={14} />
-                Updated {formatRelativeTime(p.updatedAt)}
-              </div>
-            </Link>
-          ))}
-        </div>
+              </Link>
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-col sm:flex-row items-center justify-between gap-4 bg-white border border-[#E2E8F0] rounded-2xl px-5 py-4">
+            <p className="text-sm font-bold text-[#64748B]">
+              Page {page} of {Math.max(1, pages)} - {total} total projects
+            </p>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setPage((prev) => Math.max(1, prev - 1))}
+                disabled={!hasPrev || loading}
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F8FAFC]"
+              >
+                <ChevronLeft size={16} /> Prev
+              </button>
+              <button
+                onClick={() => setPage((prev) => prev + 1)}
+                disabled={!hasNext || loading}
+                className="inline-flex items-center gap-1 px-4 py-2 rounded-xl border border-[#E2E8F0] bg-white text-[#0F172A] font-bold text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#F8FAFC]"
+              >
+                Next <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </motion.div>
   );

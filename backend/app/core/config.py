@@ -33,6 +33,21 @@ class Settings(BaseSettings):
     HTTP_WRITE_TIMEOUT_SEC: float = 30.0
     HTTP_POOL_TIMEOUT_SEC: float = 30.0
 
+    # Redis cache (feature-flagged)
+    ENABLE_REDIS_CACHE: bool = False
+    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_MAX_CONNECTIONS: int = 100
+    REDIS_CONNECT_TIMEOUT_SEC: float = 2.0
+    REDIS_READ_TIMEOUT_SEC: float = 2.0
+    CACHE_DEFAULT_TTL_SEC: int = 60
+    CACHE_TTL_PROJECTS_SEC: int = 60
+    CACHE_TTL_PROJECT_DETAIL_SEC: int = 60
+    CACHE_TTL_HISTORY_SEC: int = 90
+    CACHE_TTL_UPLOADS_SEC: int = 30
+    CACHE_TTL_DASHBOARD_STATS_SEC: int = 30
+    CACHE_TTL_MUSIC_LIBRARY_SEC: int = 300
+    CACHE_VERSION_TTL_SEC: int = 2592000
+
     # Reel quality v2 feature flags (safe rollout)
     PIPELINE_SHADOW_MODE: bool = False
     ENABLE_STABILITY_V2: bool = False

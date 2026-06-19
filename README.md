@@ -124,12 +124,100 @@ HTTP_WRITE_TIMEOUT_SEC=30.0
 HTTP_POOL_TIMEOUT_SEC=30.0
 ```
 
+### Pool Observability & Diagnostics
+- **Pool Metrics Collector**: `backend/app/core/pool_observability.py` tracks request latency, timeout classes, Mongo ping/connect metrics, and Mongo checkout wait telemetry.
+- **Read-Only Diagnostics Endpoint**: `GET /api/v1/health/pools` returns current pool status (`ok`/`degraded`), issue flags, and detailed snapshots for HTTP + Mongo pools.
+- **Timeout Visibility**: Pool timeout events are explicitly logged to make saturation visible before it causes user-facing failures.
+
+### Environment Presets
+- `backend/.env.small`: conservative pool sizing for low-concurrency or single-node setups.
+- `backend/.env.large`: higher pool sizing for high concurrency or multi-worker deployments.
+- Both presets keep all V2 quality flags in backward-compatible safe defaults (`false`).
+
 ### Rollout Guidance
 1. Start with defaults.
 2. Measure p95 API latency and upload success rate.
 3. Increase `MONGO_MAX_POOL_SIZE` and `HTTP_POOL_MAX_CONNECTIONS` only if queue waits are visible.
 4. Keep `MONGO_MIN_POOL_SIZE` modest to avoid idle resource waste.
-5. Roll back by restoring previous env values; code remains backward compatible.
+5. Use `/api/v1/health/pools` during load testing to validate timeout and wait behavior.
+6. Roll back by restoring previous env values; code remains backward compatible.
+
+## Pagination (Scalability Layer)
+ReelForge now exposes standardized pagination metadata for list-heavy APIs, while preserving legacy response fields.
+
+### Backend Pagination Coverage
+- `GET /api/v1/projects`
+  - Supports `page`, `skip`, `limit`.
+  - Returns additive metadata: `total`, `page`, `limit`, `skip`, `pages`, `has_next`, `has_prev`, `next_page`, `prev_page`, `next_skip`, `prev_skip`.
+- `GET /api/v1/history`
+  - Supports `page`, `skip`, `limit`.
+  - Returns same standardized metadata fields.
+- `GET /api/v1/projects/{project_id}/uploads`
+  - Backward compatible default: returns full list when no pagination params are sent.
+  - Paginated mode is enabled by passing `paginate=true` or any of `page/skip/limit`.
+
+### Frontend Usage
+- Projects page uses paginated fetch with page controls.
+- History page uses paginated fetch with page controls.
+- Existing project detail upload workflow remains unchanged and backward compatible.
+
+### Why This Helps
+- Faster page rendering on large datasets.
+- Lower memory use and smaller API payloads.
+- Better UX through explicit Prev/Next navigation.
+- Safe migration path because legacy fields and unpaginated upload behavior are preserved.
+
+## Redis Caching (TTL + Invalidation + Cache-Aside)
+ReelForge now includes a feature-flagged Redis caching layer designed for safe rollout and zero contract breakage.
+
+### Cache Pattern Used
+- **Cache-aside**:
+1. Try Redis (`GET`) using deterministic key.
+2. On cache miss, fetch from MongoDB.
+3. Return response and populate Redis (`SET EX ttl`).
+- MongoDB remains source of truth; Redis is an acceleration layer.
+
+### What Is Cached
+- `GET /api/v1/projects` (paginated list)
+- `GET /api/v1/projects/{project_id}` (detail)
+- `GET /api/v1/projects/dashboard/stats`
+- `GET /api/v1/history` (paginated)
+- `GET /api/v1/projects/{project_id}/uploads` (full and paginated modes)
+- `GET /api/v1/music-library`
+
+### TTL Settings
+Configure in `backend/.env`:
+
+```env
+ENABLE_REDIS_CACHE=false
+REDIS_URL=redis://localhost:6379/0
+REDIS_MAX_CONNECTIONS=100
+REDIS_CONNECT_TIMEOUT_SEC=2.0
+REDIS_READ_TIMEOUT_SEC=2.0
+
+CACHE_DEFAULT_TTL_SEC=60
+CACHE_TTL_PROJECTS_SEC=60
+CACHE_TTL_PROJECT_DETAIL_SEC=60
+CACHE_TTL_HISTORY_SEC=90
+CACHE_TTL_UPLOADS_SEC=30
+CACHE_TTL_DASHBOARD_STATS_SEC=30
+CACHE_TTL_MUSIC_LIBRARY_SEC=300
+CACHE_VERSION_TTL_SEC=2592000
+```
+
+### Invalidation Strategy
+- **Versioned namespace keys** are used for O(1) invalidation.
+- Mutation endpoints bump version counters instead of scanning/deleting wildcard keys.
+- Main invalidation groups:
+  - Project mutations: projects list + project detail + stats
+  - Upload mutations: uploads list + project detail + projects list + stats
+  - Generation mutations: history + projects list + project detail + stats
+  - Project delete: projects + history + stats + project detail + uploads
+
+### Rollout Safety
+- Cache is disabled by default (`ENABLE_REDIS_CACHE=false`).
+- If Redis is unavailable or errors occur, the API falls back to MongoDB reads without failing requests.
+- Existing response contracts and workflow behavior remain unchanged.
 
 ## Troubleshooting
 - **Professional Camera Footage (Sony XAVC, etc.)**: High-end footage with `rtmd` metadata streams or 10-bit 4:2:2 chroma subsampling might fail standard FFmpeg extraction. The application automatically normalizes this footage, dropping non-video/audio streams and forcing `yuv420p` pixel format to ensure Gemini AI compatibility.

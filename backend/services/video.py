@@ -6,7 +6,9 @@ import logging
 import math
 from typing import Optional, Callable
 
-from app.core.http_client import get_http_client
+import httpx
+
+from app.core.http_client import stream_with_pool_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -72,13 +74,19 @@ async def download_video(url: str, filename: str, project_id: str, on_progress: 
     direct_url = get_direct_url(url)
     start = time.perf_counter()
 
-    client = get_http_client()
-    async with client.stream("GET", direct_url) as response:
-        if response.status_code != 200:
-            raise RuntimeError(f"Download failed: {response.status_code}")
-        with open(filepath, "wb") as f:
-            async for chunk in response.aiter_bytes(chunk_size=262144):
-                f.write(chunk)
+    try:
+        async with stream_with_pool_metrics("GET", direct_url) as response:
+            if response.status_code != 200:
+                raise RuntimeError(f"Download failed: {response.status_code}")
+            with open(filepath, "wb") as f:
+                async for chunk in response.aiter_bytes(chunk_size=262144):
+                    f.write(chunk)
+    except httpx.PoolTimeout as exc:
+        logger.error("[HTTP POOL] Timeout while waiting for a pooled download connection: %s (%s)", direct_url, exc)
+        raise
+    except httpx.TimeoutException as exc:
+        logger.error("[HTTP POOL] Network timeout while downloading: %s (%s)", direct_url, exc)
+        raise
 
     if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
         raise RuntimeError("Downloaded file is empty or missing")

@@ -1,14 +1,22 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
-from typing import List
+from typing import List, Optional
 import os
 import re
 import uuid
 from pathlib import Path
 import urllib.parse
+from ..core.cache import (
+    build_uploads_cache_key,
+    cache_get,
+    cache_set,
+    invalidate_after_upload_mutation,
+)
+from ..core.config import get_settings
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
 from ..core.mongo_utils import parse_object_id
+from ..core.pagination import build_pagination_meta, normalize_limit, resolve_page_skip
 import datetime
 
 router = APIRouter(prefix="/projects/{project_id}/uploads", tags=["Uploads"])
@@ -85,6 +93,7 @@ async def add_uploads(project_id: str, req: AddUrlsRequest, user=Depends(get_cur
         {"_id": project_oid},
         {"$set": {"uploadCount": count, "updatedAt": now}}
     )
+    await invalidate_after_upload_mutation(user["_id"], project_id)
 
     return {"uploads": created, "total": count}
 
@@ -141,6 +150,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
         {"_id": project_oid},
         {"$set": {"uploadCount": count, "updatedAt": now}}
     )
+    await invalidate_after_upload_mutation(user["_id"], project_id)
 
     return {"uploads": [upload], "total": count}
 
@@ -166,18 +176,67 @@ async def upload_custom_music(project_id: str, file: UploadFile = File(...), use
     return {"message": "Music uploaded successfully", "localPath": local_path, "filename": safe_name}
 
 @router.get("")
-async def list_uploads(project_id: str, user=Depends(get_current_user)):
+async def list_uploads(
+    project_id: str,
+    user=Depends(get_current_user),
+    page: Optional[int] = None,
+    skip: Optional[int] = None,
+    limit: Optional[int] = None,
+    paginate: bool = False,
+):
     """List all uploads for a project, sorted by order."""
     await verify_project_ownership(project_id, user)
     db = get_db()
+    settings = get_settings()
+
+    should_paginate = paginate or page is not None or skip is not None or limit is not None
+    uploads = []
+
+    if should_paginate:
+        safe_limit = normalize_limit(limit, default_limit=20, max_limit=100)
+        safe_page, safe_skip = resolve_page_skip(page=page, skip=skip, limit=safe_limit)
+        cache_key = await build_uploads_cache_key(
+            project_id,
+            mode="paged",
+            page=safe_page,
+            limit=safe_limit,
+            skip=safe_skip,
+        )
+        cached = await cache_get(cache_key)
+        if cached is not None:
+            return cached
+
+        total = await db.uploads.count_documents({"projectId": project_id})
+        cursor = (
+            db.uploads.find({"projectId": project_id})
+            .sort("order", 1)
+            .skip(safe_skip)
+            .limit(safe_limit)
+        )
+        async for doc in cursor:
+            doc["_id"] = str(doc["_id"])
+            uploads.append(doc)
+
+        pagination = build_pagination_meta(total=total, page=safe_page, limit=safe_limit, skip=safe_skip)
+        response = {"uploads": uploads, **pagination}
+        await cache_set(cache_key, response, settings.CACHE_TTL_UPLOADS_SEC)
+        return response
+
+    cache_key = await build_uploads_cache_key(project_id, mode="all", page=1, limit=1, skip=0)
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return cached
 
     cursor = db.uploads.find({"projectId": project_id}).sort("order", 1)
-    uploads = []
     async for doc in cursor:
         doc["_id"] = str(doc["_id"])
         uploads.append(doc)
 
-    return {"uploads": uploads, "total": len(uploads)}
+    total = len(uploads)
+    pagination = build_pagination_meta(total=total, page=1, limit=max(1, total or 1), skip=0)
+    response = {"uploads": uploads, **pagination}
+    await cache_set(cache_key, response, settings.CACHE_TTL_UPLOADS_SEC)
+    return response
 
 
 @router.delete("/{upload_id}")
@@ -199,6 +258,7 @@ async def delete_upload(project_id: str, upload_id: str, user=Depends(get_curren
         {"_id": parse_object_id(project_id, "project_id")},
         {"$set": {"uploadCount": count, "updatedAt": datetime.datetime.utcnow()}}
     )
+    await invalidate_after_upload_mutation(user["_id"], project_id)
 
     return {"message": "Upload deleted", "total": count}
 
@@ -216,4 +276,5 @@ async def reorder_uploads(project_id: str, req: ReorderRequest, user=Depends(get
             {"$set": {"order": i}}
         )
 
+    await invalidate_after_upload_mutation(user["_id"], project_id)
     return {"message": "Reordered", "order": req.upload_ids}

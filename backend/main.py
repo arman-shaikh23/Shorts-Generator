@@ -25,12 +25,15 @@ if sys.platform == "win32":
 
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.http_client import connect_http_client, close_http_client
+from app.core.cache import cache_get, cache_set, connect_cache, close_cache
+from app.core.config import get_settings
 from app.core.worker import process_pending_uploads
 from app.api import auth
 from app.api import projects as projects_api
 from app.api import uploads as uploads_api
 from app.api import generation as generation_api
 from app.api import history as history_api
+from app.api import health as health_api
 
 load_dotenv()
 
@@ -51,6 +54,7 @@ async def safe_background_task(coro_func, name):
 async def lifespan(_: FastAPI):
     await connect_to_mongo()
     await connect_http_client()
+    await connect_cache()
     # Start background workers with crash protection
     upload_task = asyncio.create_task(safe_background_task(process_pending_uploads, "upload_worker"))
     cleanup_task = asyncio.create_task(safe_background_task(run_daily_cleanup, "daily_cleanup"))
@@ -59,6 +63,7 @@ async def lifespan(_: FastAPI):
     finally:
         for task in (upload_task, cleanup_task):
             task.cancel()
+        await close_cache()
         await close_http_client()
         await close_mongo_connection()
 
@@ -69,10 +74,17 @@ app.include_router(projects_api.router, prefix="/api/v1")
 app.include_router(uploads_api.router, prefix="/api/v1")
 app.include_router(generation_api.router, prefix="/api/v1")
 app.include_router(history_api.router, prefix="/api/v1")
+app.include_router(health_api.router, prefix="/api/v1")
 
 @app.get("/api/v1/music-library")
 async def get_music_library():
     """Dynamically scan and return music from the user's library folder."""
+    settings = get_settings()
+    cache_key = "rf:cache:music-library:v1"
+    cached = await cache_get(cache_key)
+    if cached is not None:
+        return cached
+
     library_dir = "data/library/music"
     os.makedirs(library_dir, exist_ok=True)
     tracks = []
@@ -92,7 +104,9 @@ async def get_music_library():
                 "path": f"{library_dir}/{f}",
                 "tag": tag
             })
-    return {"library": tracks}
+    response = {"library": tracks}
+    await cache_set(cache_key, response, settings.CACHE_TTL_MUSIC_LIBRARY_SEC)
+    return response
 
 allowed_origins_env = os.environ.get(
     "ALLOWED_ORIGINS",

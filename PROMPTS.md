@@ -69,6 +69,79 @@ Deliver:
 - Reduces file download bottlenecks during parallel processing.
 - Keeps production behavior stable while scaling traffic safely.
 
+## Prompt 0.2: Pool Observability and Diagnostics Endpoint
+
+### The Prompt
+```text
+You are operating ReelForge in production with pooled MongoDB and pooled outbound HTTP.
+Add observability without changing API contracts or removing existing features.
+
+Rules:
+1) Collect pool telemetry as additive metadata only.
+2) Track HTTP request latency, timeout classes, and error counters.
+3) Track Mongo connect/ping latency plus checkout wait/timeout indicators.
+4) Add a read-only diagnostics endpoint at /api/v1/health/pools.
+5) Do not expose secrets, credentials, or raw connection strings in diagnostics.
+6) Keep endpoint backward compatible and non-breaking.
+7) Add tests for diagnostics payload shape and metrics behavior.
+8) Keep rollback simple: disabling new usage should not affect legacy flow.
+```
+
+### Why This Prompt Exists
+- Makes pool saturation visible before it becomes a user-facing outage.
+- Gives fast feedback during load testing and production tuning.
+- Improves incident response with concrete latency and timeout counters.
+- Preserves existing functionality because diagnostics are additive and read-only.
+
+## Prompt 0.3: Pagination Standardization and Backward-Compatible Rollout
+
+### The Prompt
+```text
+You are a backend/frontend scalability engineer for ReelForge.
+Implement pagination for list endpoints without breaking existing workflows.
+
+Rules:
+1) Keep existing response keys and behavior valid for legacy clients.
+2) Add pagination metadata fields additively: total, page, limit, skip, pages, has_next, has_prev.
+3) Support both page-based and skip-based access where practical.
+4) Clamp limits to safe bounds to prevent oversized queries.
+5) Keep uploads endpoint backward compatible: full-list mode remains available by default.
+6) Update frontend list screens to actively use paginated requests and navigation controls.
+7) Add tests for pagination helpers and metadata behavior.
+8) Update docs and changelog with migration and rollback guidance.
+```
+
+### Why This Prompt Exists
+- Prevents large payload bottlenecks as project and history data grows.
+- Improves perceived speed through smaller responses and explicit navigation.
+- Reduces backend/database load while preserving legacy compatibility.
+- Creates a safe path to future cursor-based pagination if scale increases.
+
+## Prompt 0.4: Redis Cache-Aside with TTL and Versioned Invalidation
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Implement Redis caching with cache-aside pattern, TTL, and safe invalidation.
+
+Rules:
+1) Keep API contracts unchanged and preserve fallback behavior.
+2) Feature-flag Redis (`ENABLE_REDIS_CACHE`) with default OFF.
+3) Apply cache-aside on read-heavy endpoints only.
+4) Use endpoint-specific TTL values, configurable by env.
+5) Use versioned namespace invalidation (INCR keys), not wildcard scans.
+6) On Redis failure, fall back to MongoDB without breaking requests.
+7) Invalidate relevant namespaces on project/upload/generation mutations.
+8) Add tests for cache set/get, TTL behavior, and version bump invalidation.
+9) Update README and CHANGELOG with rollout and rollback instructions.
+```
+
+### Why This Prompt Exists
+- Reduces repeated MongoDB reads for high-traffic list/detail endpoints.
+- Improves response latency while keeping source-of-truth in MongoDB.
+- Provides deterministic invalidation at O(1) cost.
+- Maintains production safety by default-disabled rollout and graceful fallback.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt

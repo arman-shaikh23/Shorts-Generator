@@ -2,6 +2,114 @@
 
 All notable changes to this project will be documented in this file.
   
+## [17.5.0] - Redis Cache-Aside Layer with TTL and Versioned Invalidation
+### Added
+- **Redis cache core module**: `backend/app/core/cache.py`
+  - Feature-flagged cache enablement (`ENABLE_REDIS_CACHE`).
+  - Cache-aside helpers (`cache_get`, `cache_set`) with JSON serialization and TTL.
+  - Versioned namespace key strategy for invalidation (`INCR`) across:
+    - user projects list
+    - user history list
+    - user dashboard stats
+    - project detail
+    - project uploads list
+  - Read-key builders for projects, history, uploads, stats, and music library cache.
+  - Mutation invalidation helpers for project/upload/generation/delete flows.
+- **Redis dependency** in `backend/requirements.txt` (`redis`).
+- **Cache configuration settings** in `backend/app/core/config.py` and env templates:
+  - `ENABLE_REDIS_CACHE`, `REDIS_URL`, `REDIS_MAX_CONNECTIONS`
+  - `REDIS_CONNECT_TIMEOUT_SEC`, `REDIS_READ_TIMEOUT_SEC`
+  - `CACHE_DEFAULT_TTL_SEC`
+  - `CACHE_TTL_PROJECTS_SEC`, `CACHE_TTL_PROJECT_DETAIL_SEC`
+  - `CACHE_TTL_HISTORY_SEC`, `CACHE_TTL_UPLOADS_SEC`
+  - `CACHE_TTL_DASHBOARD_STATS_SEC`, `CACHE_TTL_MUSIC_LIBRARY_SEC`
+  - `CACHE_VERSION_TTL_SEC`
+- **New unit tests**: `backend/tests/unit/test_cache.py`
+  - validates cache set/get behavior
+  - validates TTL propagation
+  - validates version bump invalidation behavior
+
+### Changed
+- **App lifecycle** (`backend/main.py`)
+  - Added Redis cache connect/close in startup/shutdown.
+  - Added cache-aside for `/api/v1/music-library`.
+- **Projects API** (`backend/app/api/projects.py`)
+  - Added cache-aside for list/detail/dashboard stats endpoints.
+  - Added invalidation on create/update/delete mutations.
+- **History API** (`backend/app/api/history.py`)
+  - Added cache-aside for paginated history endpoint.
+- **Uploads API** (`backend/app/api/uploads.py`)
+  - Added cache-aside for full and paginated list modes.
+  - Added invalidation on add/file/delete/reorder mutations.
+- **Generation API** (`backend/app/api/generation.py`)
+  - Added invalidation after analysis timeline update.
+  - Added invalidation after successful reel generation writes.
+
+### Validation
+- Backend tests: `52 passed` after Redis cache integration.
+- Frontend build: passed (`npm run build`).
+
+## [17.4.0] - Pagination Standardization for Projects, History, and Uploads
+### Added
+- **Shared pagination utility**: `backend/app/core/pagination.py`
+  - `normalize_limit(...)` for safe bounded limits.
+  - `resolve_page_skip(...)` for page/skip interoperability.
+  - `build_pagination_meta(...)` for consistent metadata (`total`, `page`, `limit`, `skip`, `pages`, `has_next`, `has_prev`, `next_page`, `prev_page`, `next_skip`, `prev_skip`).
+- **New unit tests**: `backend/tests/unit/test_pagination.py` for pagination helper behavior.
+- **Frontend pagination controls**
+  - Projects page now fetches paginated data and renders Prev/Next controls.
+  - History page now fetches paginated data and renders Prev/Next controls.
+
+### Changed
+- **Projects API** (`backend/app/api/projects.py`)
+  - Added `page` query support while preserving existing `skip` and `limit`.
+  - Response now includes standardized pagination metadata (additive, non-breaking).
+- **History API** (`backend/app/api/history.py`)
+  - Added `skip` query support in addition to `page` and `limit`.
+  - Response now uses shared standardized pagination metadata.
+- **Uploads API** (`backend/app/api/uploads.py`)
+  - Added optional paginated mode (`paginate=true` or `page/skip/limit` supplied).
+  - Preserved backward-compatible full-list behavior when no pagination params are passed.
+  - Added standardized pagination metadata fields in both modes.
+
+### Validation
+- Backend tests: `49 passed` after pagination integration.
+- Frontend build: passed (`npm run build`).
+
+## [17.3.0] - Pool Observability, Diagnostics Endpoint, and Env Presets
+### Added
+- **Pool Observability Module**: `backend/app/core/pool_observability.py`
+  - Tracks pooled HTTP request telemetry (`requests_total`, latency stats, timeout class counters, error counters).
+  - Tracks Mongo telemetry (connect/ping latency, checkout wait metrics, checkout timeout counters, pool lifecycle event counters).
+  - Exposes a combined diagnostics snapshot API for operational health reporting.
+- **Read-only diagnostics endpoint**: `GET /api/v1/health/pools`
+  - Implemented via `backend/app/api/health.py` and router registration in `backend/main.py`.
+  - Returns `status`, `issues`, and detailed `http_pool` / `mongo_pool` snapshots.
+- **Environment sizing presets**
+  - `backend/.env.small` for low-concurrency deployments.
+  - `backend/.env.large` for high-concurrency deployments.
+  - Presets retain safe V2 defaults to preserve current production behavior.
+- **Tests**
+  - Added `backend/tests/unit/test_pool_observability.py`.
+  - Extended `backend/tests/api/test_endpoints.py` with pool diagnostics endpoint coverage.
+
+### Changed
+- **Mongo connection setup** (`backend/app/core/database.py`)
+  - Wired in observability configuration and event listeners when available.
+  - Added startup connect/ping latency capture and failure metrics.
+  - Added explicit pool close state tracking.
+- **HTTP client module** (`backend/app/core/http_client.py`)
+  - Added pooled stream helper with automatic metrics capture (`stream_with_pool_metrics`).
+  - Added lifecycle metrics updates during startup/shutdown.
+- **Download pipeline** (`backend/services/video.py`)
+  - Switched to observability-enabled pooled HTTP streaming helper.
+  - Added explicit timeout logging and failure mapping for pooled/network timeout conditions.
+- **Env template note** (`backend/.env.example`)
+  - Added pointer to `.env.small` and `.env.large` presets.
+
+### Validation
+- Backend tests: `44 passed` after observability + diagnostics integration.
+
 ## [17.2.0] - Connection Pooling for DB and Outbound HTTP
 ### Added
 - **MongoDB Pool Controls** in `backend/app/core/config.py`:
