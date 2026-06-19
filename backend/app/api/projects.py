@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from typing import Optional, List
-from bson import ObjectId
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
+from ..core.mongo_utils import parse_object_id
 import datetime
 
 router = APIRouter(prefix="/projects", tags=["Projects"])
@@ -78,8 +78,9 @@ async def get_dashboard_stats(user=Depends(get_current_user)):
 @router.get("/{project_id}")
 async def get_project(project_id: str, user=Depends(get_current_user)):
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
 
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -97,8 +98,9 @@ async def get_project(project_id: str, user=Depends(get_current_user)):
 @router.patch("/{project_id}")
 async def update_project(project_id: str, req: UpdateProjectRequest, user=Depends(get_current_user)):
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
 
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -108,9 +110,9 @@ async def update_project(project_id: str, req: UpdateProjectRequest, user=Depend
     if req.tags is not None:
         update["tags"] = req.tags
 
-    await db.projects.update_one({"_id": ObjectId(project_id)}, {"$set": update})
+    await db.projects.update_one({"_id": project_oid}, {"$set": update})
 
-    project = await db.projects.find_one({"_id": ObjectId(project_id)})
+    project = await db.projects.find_one({"_id": project_oid})
     project["_id"] = str(project["_id"])
     return project
 
@@ -118,20 +120,24 @@ async def update_project(project_id: str, req: UpdateProjectRequest, user=Depend
 @router.delete("/{project_id}")
 async def delete_project(project_id: str, user=Depends(get_current_user)):
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
 
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
     # Delete associated uploads and shorts
     await db.uploads.delete_many({"projectId": project_id})
     await db.generated_shorts.delete_many({"projectId": project_id})
-    await db.projects.delete_one({"_id": ObjectId(project_id)})
+    await db.projects.delete_one({"_id": project_oid})
 
     # AGGRESSIVE STORAGE CLEANUP: Destroy the entire project data directory
     import shutil
     import os
-    data_dir = f"data/{project_id}"
+    data_dir = os.path.abspath(os.path.join("data", project_id))
+    data_root = os.path.abspath("data")
+    if not data_dir.startswith(data_root + os.sep):
+        raise HTTPException(status_code=400, detail="Invalid project directory path")
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir, ignore_errors=True)
 

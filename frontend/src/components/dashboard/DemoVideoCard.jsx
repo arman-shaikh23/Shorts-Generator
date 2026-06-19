@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Sparkles, Scissors, Clapperboard, Type, TrendingUp, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 
 export default function DemoVideoCard() {

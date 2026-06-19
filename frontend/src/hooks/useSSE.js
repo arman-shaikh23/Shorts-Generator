@@ -25,9 +25,40 @@ export function useSSE() {
   const [currentStep, setCurrentStep] = useState(null);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
-  const sseRef = useRef(null);
+  const abortRef = useRef(null);
 
-  const start = useCallback((url) => {
+  const handlePayload = useCallback((payload) => {
+    let data;
+    try {
+      data = JSON.parse(payload);
+    } catch {
+      return;
+    }
+
+    if (data.status === 'progress') {
+      setProgressLog((prev) => [...prev, data.message]);
+
+      const step = matchStep(data.message || '');
+      if (step) {
+        setCurrentStep(step);
+        setSteps((prev) => {
+          const exists = prev.find((s) => s.label === step.label);
+          if (exists) return prev;
+          return [...prev, { ...step, status: 'active' }];
+        });
+      }
+    } else if (data.status === 'completed') {
+      setResult(data);
+      setIsProcessing(false);
+      setSteps((prev) => prev.map((s) => ({ ...s, status: 'done' })));
+    } else if (data.status === 'error') {
+      setError(data.message || 'Processing failed.');
+      setIsProcessing(false);
+    }
+  }, []);
+
+  const start = useCallback((url, options = {}) => {
+    const token = options.token;
     setIsProcessing(true);
     setProgressLog([]);
     setSteps([]);
@@ -35,46 +66,78 @@ export function useSSE() {
     setResult(null);
     setError('');
 
-    const sse = new EventSource(url);
-    sseRef.current = sse;
+    if (abortRef.current) {
+      abortRef.current.abort();
+    }
 
-    sse.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    const controller = new AbortController();
+    abortRef.current = controller;
 
-      if (data.status === 'progress') {
-        setProgressLog((prev) => [...prev, data.message]);
+    const parseChunk = (buffer) => {
+      const events = [];
+      const parts = buffer.split(/\r?\n\r?\n/);
+      const remainder = parts.pop() || '';
 
-        const step = matchStep(data.message);
-        if (step) {
-          setCurrentStep(step);
-          setSteps((prev) => {
-            const exists = prev.find((s) => s.label === step.label);
-            if (exists) return prev;
-            return [...prev, { ...step, status: 'active' }];
-          });
+      for (const block of parts) {
+        const lines = block.split(/\r?\n/);
+        const payload = lines
+          .filter((line) => line.startsWith('data:'))
+          .map((line) => line.slice(5).trimStart())
+          .join('\n');
+        if (payload) {
+          events.push(payload);
         }
-      } else if (data.status === 'completed') {
-        setResult(data);
-        sse.close();
-        setIsProcessing(false);
-        setSteps((prev) => prev.map((s) => ({ ...s, status: 'done' })));
-      } else if (data.status === 'error') {
-        setError(data.message);
-        sse.close();
-        setIsProcessing(false);
       }
+
+      return { events, remainder };
     };
 
-    sse.onerror = () => {
-      setError('Lost connection to processing server.');
-      sse.close();
-      setIsProcessing(false);
-    };
-  }, []);
+    (async () => {
+      try {
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const response = await fetch(url, {
+          method: 'GET',
+          headers,
+          signal: controller.signal,
+          cache: 'no-store',
+        });
+
+        if (!response.ok || !response.body) {
+          throw new Error(`SSE request failed (${response.status})`);
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const { events, remainder } = parseChunk(buffer);
+          buffer = remainder;
+
+          for (const payload of events) {
+            handlePayload(payload);
+          }
+        }
+      } catch {
+        if (controller.signal.aborted) return;
+        setError('Lost connection to processing server.');
+        setIsProcessing(false);
+      } finally {
+        if (abortRef.current === controller) {
+          abortRef.current = null;
+        }
+      }
+    })();
+  }, [handlePayload]);
 
   const cancel = useCallback(() => {
-    if (sseRef.current) {
-      sseRef.current.close();
+    if (abortRef.current) {
+      abortRef.current.abort();
+      abortRef.current = null;
       setIsProcessing(false);
     }
   }, []);

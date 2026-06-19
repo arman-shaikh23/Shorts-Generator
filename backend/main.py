@@ -1,10 +1,9 @@
 import os
 import signal
-import json
 import asyncio
 import sys
-import time
 import logging
+from contextlib import asynccontextmanager
 
 logger = logging.getLogger(__name__)
 
@@ -15,18 +14,14 @@ def force_exit(*args):
 # Ensure Ctrl+C immediately terminates backend
 signal.signal(signal.SIGINT, force_exit)
 
-from fastapi import FastAPI, Request, Query, HTTPException
+from fastapi import FastAPI
 from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from sse_starlette.sse import EventSourceResponse
 from dotenv import load_dotenv
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-from services.video import download_video, create_preview, build_reel
-from services.gemini import upload_and_wait, analyze_and_generate
 
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.core.worker import process_pending_uploads
@@ -37,8 +32,6 @@ from app.api import generation as generation_api
 from app.api import history as history_api
 
 load_dotenv()
-
-app = FastAPI()
 
 from app.core.cleanup import run_daily_cleanup
 
@@ -53,16 +46,20 @@ async def safe_background_task(coro_func, name):
             logger.error(f"[CRASH GUARD] Restarting '{name}' in 10s...")
             await asyncio.sleep(10)
 
-@app.on_event("startup")
-async def startup_db_client():
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     await connect_to_mongo()
     # Start background workers with crash protection
-    asyncio.create_task(safe_background_task(process_pending_uploads, "upload_worker"))
-    asyncio.create_task(safe_background_task(run_daily_cleanup, "daily_cleanup"))
+    upload_task = asyncio.create_task(safe_background_task(process_pending_uploads, "upload_worker"))
+    cleanup_task = asyncio.create_task(safe_background_task(run_daily_cleanup, "daily_cleanup"))
+    try:
+        yield
+    finally:
+        for task in (upload_task, cleanup_task):
+            task.cancel()
+        await close_mongo_connection()
 
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    await close_mongo_connection()
+app = FastAPI(lifespan=lifespan)
 
 app.include_router(auth.router, prefix="/api/v1")
 app.include_router(projects_api.router, prefix="/api/v1")
@@ -94,10 +91,20 @@ async def get_music_library():
             })
     return {"library": tracks}
 
+allowed_origins_env = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173",
+)
+allowed_origins = [origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()]
+if not allowed_origins:
+    allowed_origins = ["http://localhost:5173", "http://127.0.0.1:5173"]
+
+allow_credentials = "*" not in allowed_origins
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=allow_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )

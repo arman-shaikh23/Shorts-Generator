@@ -175,6 +175,7 @@ async def build_reel(
     if sorted_blocks:
         first_clip_copy = dict(sorted_blocks[0])
         first_clip_copy["clip_duration_sec"] = 2.0
+        first_clip_copy["_loop_closure"] = True
         sorted_blocks.append(first_clip_copy)
 
     # --- STYLE-BASED TRANSITION RULES ---
@@ -198,10 +199,12 @@ async def build_reel(
     async def process_one(i, scene):
         local_path = scene.get("localPath")
         clip_id = scene.get("clip_id", f"{scene.get('video_index', i)}_{scene.get('start', '0')}_{scene.get('end', '5')}")
+        is_loop_closure = bool(scene.get("_loop_closure"))
         
         if not local_path or not os.path.exists(local_path):
             logger.error(f"[SKIP] Missing local file for clip: {clip_id}")
-            skipped_clips.append({"clip_id": clip_id, "reason": "missing_file"})
+            if not is_loop_closure:
+                skipped_clips.append({"clip_id": clip_id, "reason": "missing_file"})
             return None
         
         clip_path = os.path.join(output_dir, f"clip_{i}_{int(time.time())}.mp4")
@@ -222,7 +225,7 @@ async def build_reel(
         try:
             async with ffmpeg_sem:
                 await process_segment(local_path, clip_path, start_t, end_t, aspect_ratio)
-            return clip_path
+            return {"path": clip_path, "is_loop_closure": is_loop_closure}
         except RuntimeError as e:
             err_str = str(e)
             if "timed out" in err_str.lower():
@@ -232,15 +235,17 @@ async def build_reel(
             else:
                 reason = "ffmpeg_error"
             logger.error(f"[SKIP] FFmpeg failed for clip {clip_id}: {err_str[:100]}")
-            skipped_clips.append({"clip_id": clip_id, "reason": reason})
+            if not is_loop_closure:
+                skipped_clips.append({"clip_id": clip_id, "reason": reason})
             return None
 
     tasks = [process_one(i, scene) for i, scene in enumerate(sorted_blocks)]
     results = await asyncio.gather(*tasks)
-    clip_paths = [r for r in results if r]
+    clip_entries = [r for r in results if r]
+    clip_paths = [entry["path"] for entry in clip_entries]
 
-    rendered_count = len(clip_paths)
     selected_count = len(timeline_blocks)
+    rendered_count = sum(1 for entry in clip_entries if not entry["is_loop_closure"])
 
     if not clip_paths: raise ValueError("No valid clips generated")
 
@@ -250,11 +255,14 @@ async def build_reel(
         rendered_duration = get_exact_duration(output_path)
         return {
             "output_path": output_path,
-            "rendered_count": 1,
+            "rendered_count": rendered_count,
             "selected_count": selected_count,
             "selected_duration_sec": selected_duration_sec,
             "rendered_duration_sec": rendered_duration,
-            "duration_coverage_pct": (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100,
+            "duration_coverage_pct": min(
+                100.0,
+                (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100.0,
+            ),
             "skipped_clips": skipped_clips
         }
 
@@ -334,7 +342,10 @@ async def build_reel(
     
     # Get actual rendered duration
     rendered_duration = get_exact_duration(output_path)
-    duration_coverage = (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100
+    duration_coverage = min(
+        100.0,
+        (rendered_duration / selected_duration_sec * 100) if selected_duration_sec > 0 else 100.0,
+    )
     
     logger.info(f"[PERF] Final Dynamic Reel built with xfade in {elapsed:.1f}s")
     logger.info(f"[RENDER AUDIT] Selected: {selected_count} clips / {selected_duration_sec:.1f}s | Rendered: {rendered_count} clips / {rendered_duration:.1f}s | Duration Coverage: {duration_coverage:.1f}%")
@@ -351,4 +362,3 @@ async def build_reel(
         "duration_coverage_pct": round(duration_coverage, 1),
         "skipped_clips": skipped_clips
     }
-

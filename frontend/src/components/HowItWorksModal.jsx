@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { X, Volume2, VolumeX, Play, Pause } from 'lucide-react';
+import { X, Volume2, VolumeX, Play } from 'lucide-react';
 
 export default function HowItWorksModal({ 
   isOpen, 

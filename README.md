@@ -65,6 +65,33 @@ The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboar
 - **Enterprise Reliability & Auth**: Secure RSA-256 Google & Email login, backed by intelligent exponential backoff and model failover (`gemini-2.5-pro` -> `flash`) to ensure 99.9% processing uptime.
 - Direct downloads of fully prepared 4K/1080p clips from the sticky preview player.
 
+## Reel Quality V2 (Safe Rollout)
+ReelForge now includes a **feature-flagged V2 quality layer** that is additive and backward compatible with the current production pipeline.
+
+### What V2 Adds
+- Stability metadata per clip (`stability_score_v2`, `motion_variance`, `optical_flow_consistency`, `rotation_stability`, `translation_stability`).
+- Trim recommendation metadata (`trim_recommendation_v2`) with confidence and reason codes.
+- Optional story ordering layer with confidence-based fallback to existing ordering.
+- Optional near-duplicate perspective penalty layer (no hard clip deletions).
+- Optional scoring extension (`final_score_v2`) that keeps existing `final_score` intact.
+
+### Feature Flags (`backend/.env`)
+- `PIPELINE_SHADOW_MODE=true`: Compute V2 metadata without forcing V2 ordering behavior.
+- `ENABLE_STABILITY_V2=false`: Enable stability metadata capture pipeline.
+- `ENABLE_TRIM_V2=false`: Apply V2 trim recommendations when confidence is high.
+- `ENABLE_STORY_V2=false`: Enable V2 story ordering layer.
+- `ENABLE_SCORING_V2=false`: Enable V2 scoring fields (`final_score_v2`, etc.).
+- `ENABLE_DEDUP_V2=false`: Enable V2 near-duplicate perspective penalties.
+- `ENABLE_TRANSITION_V2=false`: Reserved for stricter transition-policy evolution.
+- `V2_MIN_TRIM_CONFIDENCE=0.6`: Minimum confidence required before applying V2 trim.
+- `V2_MIN_STORY_CONFIDENCE=0.55`: Minimum confidence required before applying V2 story ordering.
+
+### Rollout Pattern
+1. Run with `PIPELINE_SHADOW_MODE=true` and all `ENABLE_*_V2=false` to collect metadata safely.
+2. Enable `ENABLE_STORY_V2=true` for sequence improvements once confidence metrics are stable.
+3. Enable `ENABLE_TRIM_V2=true` for automatic trim promotion in production.
+4. Keep rollback simple by toggling `ENABLE_*_V2=false` (legacy path remains active).
+
 ## Troubleshooting
 - **Professional Camera Footage (Sony XAVC, etc.)**: High-end footage with `rtmd` metadata streams or 10-bit 4:2:2 chroma subsampling might fail standard FFmpeg extraction. The application automatically normalizes this footage, dropping non-video/audio streams and forcing `yuv420p` pixel format to ensure Gemini AI compatibility.
 - **API 404 Errors**: If `/api/process` returns a 404 on deployment, verify that the static file mount isn't intercepting the root path. Our production build is configured to serve static assets safely without shadowing `/api/*`.

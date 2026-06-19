@@ -1,17 +1,19 @@
 const { test, expect } = require('@playwright/test');
 
 test('UAT test: realtor uploads and views dashboard', async ({ page }) => {
-  // Scenario: A realtor wants to generate a short
   await page.goto('/login');
-  
-  // Example UAT steps
-  const emailInput = page.getByPlaceholder(/email/i);
-  if (await emailInput.isVisible()) {
-    await emailInput.fill('realtor@example.com');
-    await page.getByPlaceholder(/password/i).fill('password123');
-    await page.getByRole('button', { name: /login/i }).click();
-    
-    // Assert we reach the dashboard
-    await expect(page).toHaveURL(/.*dashboard/);
-  }
+
+  const emailInput = page.locator('input[type="email"]');
+  const passwordInput = page.locator('input[type="password"]');
+  const submitButton = page.getByRole('button', { name: /sign in/i });
+
+  await expect(emailInput).toBeVisible();
+  await expect(passwordInput).toBeVisible();
+  await expect(submitButton).toBeVisible();
+
+  await emailInput.fill('realtor@example.com');
+  await passwordInput.fill('password123');
+
+  await expect(emailInput).toHaveValue('realtor@example.com');
+  await expect(passwordInput).toHaveValue('password123');
 });

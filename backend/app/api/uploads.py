@@ -1,10 +1,14 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
-from typing import List, Optional
-from bson import ObjectId
+from typing import List
 import os
+import re
+import uuid
+from pathlib import Path
+import urllib.parse
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
+from ..core.mongo_utils import parse_object_id
 import datetime
 
 router = APIRouter(prefix="/projects/{project_id}/uploads", tags=["Uploads"])
@@ -21,10 +25,20 @@ class ReorderRequest(BaseModel):
 
 async def verify_project_ownership(project_id: str, user: dict):
     db = get_db()
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project_oid = parse_object_id(project_id, "project_id")
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     return project
+
+
+def sanitize_filename(filename: str, fallback_ext: str = ".bin") -> str:
+    raw_name = urllib.parse.unquote(filename or "")
+    base_name = Path(raw_name).name
+    cleaned = re.sub(r"[^A-Za-z0-9._-]", "_", base_name).strip("._")
+    if cleaned:
+        return cleaned
+    return f"upload_{uuid.uuid4().hex}{fallback_ext}"
 
 # ── Endpoints ───────────────────────────────────────────
 
@@ -33,6 +47,7 @@ async def add_uploads(project_id: str, req: AddUrlsRequest, user=Depends(get_cur
     """Add video URLs to a project. Creates upload records with PENDING status."""
     await verify_project_ownership(project_id, user)
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
     now = datetime.datetime.utcnow()
 
     # Get current max order
@@ -67,7 +82,7 @@ async def add_uploads(project_id: str, req: AddUrlsRequest, user=Depends(get_cur
     # Update project upload count and timestamp
     count = await db.uploads.count_documents({"projectId": project_id})
     await db.projects.update_one(
-        {"_id": ObjectId(project_id)},
+        {"_id": project_oid},
         {"$set": {"uploadCount": count, "updatedAt": now}}
     )
 
@@ -78,11 +93,12 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     """Handle raw video file uploads directly."""
     await verify_project_ownership(project_id, user)
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
     now = datetime.datetime.utcnow()
 
     # 1. Save File Locally
-    import urllib.parse
-    clean_filename = urllib.parse.unquote(file.filename)
+    extension = Path(file.filename or "").suffix or ".mp4"
+    clean_filename = sanitize_filename(file.filename or "", fallback_ext=extension)
     project_dir = f"data/{project_id}/downloads"
     os.makedirs(project_dir, exist_ok=True)
     local_path = os.path.join(project_dir, clean_filename)
@@ -122,7 +138,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     # Update project upload count
     count = await db.uploads.count_documents({"projectId": project_id})
     await db.projects.update_one(
-        {"_id": ObjectId(project_id)},
+        {"_id": project_oid},
         {"$set": {"uploadCount": count, "updatedAt": now}}
     )
 
@@ -133,17 +149,21 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
 async def upload_custom_music(project_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Handle custom music uploads (.mp3, .wav, .m4a)."""
     await verify_project_ownership(project_id, user)
+    ext = Path(file.filename or "").suffix.lower()
+    if ext not in {".mp3", ".wav", ".m4a"}:
+        raise HTTPException(status_code=400, detail="Unsupported audio format")
     
     # 1. Save File Locally
     music_dir = f"data/{project_id}/music"
     os.makedirs(music_dir, exist_ok=True)
-    local_path = os.path.join(music_dir, file.filename)
+    safe_name = sanitize_filename(file.filename or "", fallback_ext=ext or ".mp3")
+    local_path = os.path.join(music_dir, safe_name)
     
     contents = await file.read()
     with open(local_path, "wb") as f:
         f.write(contents)
         
-    return {"message": "Music uploaded successfully", "localPath": local_path, "filename": file.filename}
+    return {"message": "Music uploaded successfully", "localPath": local_path, "filename": safe_name}
 
 @router.get("")
 async def list_uploads(project_id: str, user=Depends(get_current_user)):
@@ -166,16 +186,17 @@ async def delete_upload(project_id: str, upload_id: str, user=Depends(get_curren
     await verify_project_ownership(project_id, user)
     db = get_db()
 
-    upload = await db.uploads.find_one({"_id": ObjectId(upload_id), "projectId": project_id})
+    upload_oid = parse_object_id(upload_id, "upload_id")
+    upload = await db.uploads.find_one({"_id": upload_oid, "projectId": project_id})
     if not upload:
         raise HTTPException(status_code=404, detail="Upload not found")
 
-    await db.uploads.delete_one({"_id": ObjectId(upload_id)})
+    await db.uploads.delete_one({"_id": upload_oid})
 
     # Update project count
     count = await db.uploads.count_documents({"projectId": project_id})
     await db.projects.update_one(
-        {"_id": ObjectId(project_id)},
+        {"_id": parse_object_id(project_id, "project_id")},
         {"$set": {"uploadCount": count, "updatedAt": datetime.datetime.utcnow()}}
     )
 
@@ -189,8 +210,9 @@ async def reorder_uploads(project_id: str, req: ReorderRequest, user=Depends(get
     db = get_db()
 
     for i, uid in enumerate(req.upload_ids):
+        upload_oid = parse_object_id(uid, "upload_id")
         await db.uploads.update_one(
-            {"_id": ObjectId(uid), "projectId": project_id},
+            {"_id": upload_oid, "projectId": project_id},
             {"$set": {"order": i}}
         )
 

@@ -2,6 +2,47 @@
 
 All notable changes to this project will be documented in this file.
   
+## [17.1.0] - Safe Quality V2 Foundation (Feature-Flagged)
+### Added
+- **Quality V2 Feature Flags** in backend config and `.env.example`:
+  - `PIPELINE_SHADOW_MODE`
+  - `ENABLE_STABILITY_V2`, `ENABLE_TRIM_V2`, `ENABLE_STORY_V2`, `ENABLE_SCORING_V2`, `ENABLE_DEDUP_V2`, `ENABLE_TRANSITION_V2`
+  - `V2_MIN_TRIM_CONFIDENCE`, `V2_MIN_STORY_CONFIDENCE`
+  - V2 score weight controls (`V2_STABILITY_WEIGHT`, `V2_CINEMATIC_WEIGHT`, `V2_STORY_WEIGHT`, `V2_ROOM_UNIQUENESS_WEIGHT`, `V2_TRANSITION_WEIGHT`)
+- **New service module**: `backend/services/quality_v2.py`
+  - Stability analysis metadata: `stability_score_v2`, `motion_variance`, `camera_shake_score`, `optical_flow_consistency`, `rotation_stability`, `translation_stability`
+  - Trim recommendation engine: `recommended_trim_start/end`, `trim_confidence`, `trim_reason_codes`, fallback handling
+  - Story classification and ordering helpers with confidence-gated fallback
+  - Near-duplicate perspective penalty layer (non-destructive)
+  - Extended scoring metadata (`final_score_v2`, `room_uniqueness_score`, `transition_quality_score`, `cinematic_score`)
+
+### Changed
+- **Generation pipeline** (`backend/app/api/generation.py`):
+  - Added V2 metadata capture path (safe additive behavior).
+  - Added optional V2 trim promotion controlled by confidence + feature flag.
+  - Added quality options wiring into `TimelineOptimizer.optimize(...)`.
+  - Added `aiMetadata.quality_v2` summary for observability.
+- **Timeline optimizer** (`backend/services/timeline_optimizer.py`):
+  - Added optional V2 dedup penalty pass.
+  - Added optional V2 story ordering pass with confidence fallback.
+  - Added optional V2 scoring metadata pass.
+  - Preserved existing V4 flow and legacy behavior by default.
+
+### Tests
+- Added `backend/tests/unit/test_quality_v2.py` covering:
+  - story classification
+  - transition quality logic
+  - story ordering fallback behavior
+  - near-duplicate penalties
+  - scoring v2 fields
+  - trim recommendation behavior
+- Extended `backend/tests/unit/test_video_services.py` with optimizer V2 integration assertions.
+- Validation results:
+  - Backend: `40 passed`
+  - Frontend lint: passed
+  - Frontend unit tests: passed
+  - Playwright E2E: passed
+
 ## [17.0.0] - ReelForge Master Quality Upgrade V4.0
 ### Added
 - **Story Arc Engine**: Replaced flat zone-based walkthrough with emotionally-paced 4-phase arc: HOOK (15%) → DISCOVERY (35%) → SHOWCASE (35%) → RESOLUTION (15%). Clips are now mapped to emotional phases for maximum viewer retention.

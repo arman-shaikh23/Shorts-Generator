@@ -1,4 +1,8 @@
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+const isBrowser = typeof window !== 'undefined';
+const isLocalHost = isBrowser && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+const defaultApiOrigin = isLocalHost ? 'http://127.0.0.1:8000' : (isBrowser ? window.location.origin : 'http://127.0.0.1:8000');
+const API_ORIGIN = (import.meta.env.VITE_API_ORIGIN || defaultApiOrigin).replace(/\/+$/, '');
+const API_BASE = `${API_ORIGIN}/api/v1`;
 
 let accessToken = localStorage.getItem('accessToken') || null;
 
@@ -78,4 +82,10 @@ export function getSSEUrl(path, params = {}) {
   return `${API_BASE}${path}${query ? '?' + query : ''}`;
 }
 
-export { API_BASE };
+export function toApiUrl(path = '') {
+  if (!path) return API_ORIGIN;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`;
+}
+
+export { API_BASE, API_ORIGIN };

@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Outlet } from 'react-router-dom';
 import { ProtectedRoute } from './components/layout/ProtectedRoute';
 
@@ -56,6 +56,7 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/api-docs" element={<ApiDocsPage />} />
 
         {/* Authenticated Dashboard */}
         <Route path="/dashboard" element={<DashboardLayout />}>

@@ -4,6 +4,7 @@ import os
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../..')))
 
 from services.timeline_optimizer import (
+    TimelineOptimizer,
     calculate_window_score,
     build_highlight_memory,
     _apply_repetition_penalty,
@@ -243,3 +244,115 @@ class TestAdjacencyScoring:
     def test_no_defined_transition(self):
         score = _get_continuity_score("pool", "gym")
         assert score == 0
+
+
+class TestOptimizerV2Integration:
+    def test_optimizer_emits_story_metadata_when_shadow_mode(self):
+        clips = [
+            {
+                "clip_id": "0_0_6",
+                "video_index": 0,
+                "scene_type": "drone",
+                "start": "0",
+                "end": "6",
+                "hero_score": 80,
+                "reveal_score": 70,
+                "luxury_score": 75,
+                "composition_score": 78,
+                "motion_quality_score": 70,
+                "lighting_score": 72,
+                "camera_motion": "pan",
+                "camera_direction": "left_to_right",
+                "shot_size": "wide",
+                "stability_score": 85,
+                "stability_score_v2": 0.88,
+            },
+            {
+                "clip_id": "1_0_6",
+                "video_index": 1,
+                "scene_type": "kitchen",
+                "start": "0",
+                "end": "6",
+                "hero_score": 76,
+                "reveal_score": 65,
+                "luxury_score": 80,
+                "composition_score": 79,
+                "motion_quality_score": 71,
+                "lighting_score": 74,
+                "camera_motion": "static",
+                "camera_direction": "neutral",
+                "shot_size": "medium",
+                "stability_score": 82,
+                "stability_score_v2": 0.81,
+            },
+        ]
+
+        result = TimelineOptimizer.optimize(
+            clips,
+            ai_removed=[],
+            style="Luxury",
+            highlight_memory=build_highlight_memory(clips),
+            quality_options={"shadow_mode": True},
+        )
+
+        assert result
+        assert "story_category" in result[0]
+        assert "story_position_score" in result[0]
+
+    def test_optimizer_emits_final_score_v2_when_enabled(self):
+        clips = [
+            {
+                "clip_id": "0_0_6",
+                "video_index": 0,
+                "scene_type": "drone",
+                "start": "0",
+                "end": "6",
+                "hero_score": 80,
+                "reveal_score": 70,
+                "luxury_score": 75,
+                "composition_score": 78,
+                "motion_quality_score": 70,
+                "lighting_score": 72,
+                "camera_motion": "pan",
+                "camera_direction": "left_to_right",
+                "shot_size": "wide",
+                "stability_score": 85,
+                "stability_score_v2": 0.88,
+            },
+            {
+                "clip_id": "1_0_6",
+                "video_index": 1,
+                "scene_type": "kitchen",
+                "start": "0",
+                "end": "6",
+                "hero_score": 76,
+                "reveal_score": 65,
+                "luxury_score": 80,
+                "composition_score": 79,
+                "motion_quality_score": 71,
+                "lighting_score": 74,
+                "camera_motion": "static",
+                "camera_direction": "neutral",
+                "shot_size": "medium",
+                "stability_score": 82,
+                "stability_score_v2": 0.81,
+            },
+        ]
+
+        result = TimelineOptimizer.optimize(
+            clips,
+            ai_removed=[],
+            style="Luxury",
+            highlight_memory=build_highlight_memory(clips),
+            quality_options={
+                "enable_scoring_v2": True,
+                "stability_weight": 0.15,
+                "cinematic_weight": 0.15,
+                "story_weight": 0.1,
+                "room_uniqueness_weight": 0.05,
+                "transition_weight": 0.05,
+            },
+        )
+
+        assert result
+        assert "final_score_v2" in result[0]

@@ -1,11 +1,15 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { apiFetch, setAccessToken, clearTokens } from '../api/client';
+import { AuthContext } from './auth-context';
 
-export const AuthContext = createContext(null);
+function hasRefreshToken() {
+  if (typeof window === 'undefined') return false;
+  return Boolean(window.localStorage.getItem('refreshToken'));
+}
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => hasRefreshToken());
 
   const fetchUser = useCallback(async () => {
     try {
@@ -24,12 +28,13 @@ export function AuthProvider({ children }) {
   }, []);
 
   useEffect(() => {
-    const refreshToken = localStorage.getItem('refreshToken');
-    if (refreshToken) {
-      fetchUser();
-    } else {
-      setLoading(false);
-    }
+    if (!hasRefreshToken()) return;
+
+    const timer = setTimeout(() => {
+      void fetchUser();
+    }, 0);
+
+    return () => clearTimeout(timer);
   }, [fetchUser]);
 
   const login = async (email, password) => {

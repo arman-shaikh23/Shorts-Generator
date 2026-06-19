@@ -1,13 +1,10 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Play, Video, LayoutTemplate, Activity, ChevronRight, Plus, FolderKanban, Sparkles } from 'lucide-react';
-import { Card } from '../components/ui/Card';
+import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Play, Video, Activity, ChevronRight, Plus, FolderKanban, Sparkles } from 'lucide-react';
 import { apiFetch } from '../api/client';
-import { useAuth } from '../hooks/useAuth';
 import DemoVideoCard from '../components/dashboard/DemoVideoCard';
 
 export default function DashboardPage() {
-  const { user } = useAuth();
   const [stats, setStats] = useState({
     projects: 0,
     videos: 0,

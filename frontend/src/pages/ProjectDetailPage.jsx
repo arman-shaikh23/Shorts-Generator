@@ -1,14 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   UploadCloud, Download, X, Link2, Plus, Loader2, Play, Sparkles, CheckCircle2, 
-  Film, Activity, Video, Type, Maximize, Smartphone, Square, ChevronRight, Check
+  Activity, Video, Type, Maximize, Smartphone, ChevronRight, Check
 } from 'lucide-react';
-import { Button } from '../components/ui/Button';
 import { ProgressStepper } from '../components/ui/ProgressStepper';
 import { useSSE } from '../hooks/useSSE';
-import { apiFetch, getAccessToken } from '../api/client';
+import { apiFetch, getAccessToken, getSSEUrl, toApiUrl } from '../api/client';
 
 const STEPS = [
   { id: 1, label: 'Upload' },
@@ -22,7 +21,6 @@ const STEPS = [
 
 export default function ProjectDetailPage() {
   const { id } = useParams();
-  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(!!id);
   const [project, setProject] = useState(null);
@@ -32,7 +30,7 @@ export default function ProjectDetailPage() {
 
   const [urlInput, setUrlInput] = useState('');
   const [reelDuration, setReelDuration] = useState('30 sec');
-  const [reelStyle, setReelStyle] = useState('Luxury');
+  const [reelStyle] = useState('Luxury');
   const [aspectRatio, setAspectRatio] = useState('9:16');
 
   // Music States
@@ -49,6 +47,11 @@ export default function ProjectDetailPage() {
   const { isProcessing, steps, currentStep: sseStep, result, error, start } = useSSE();
   const [localError, setLocalError] = useState('');
 
+  const goToStep = useCallback((step) => {
+    setCurrentStep(step);
+    setHighestStep((prev) => Math.max(prev, step));
+  }, []);
+
   const fetchProjectData = useCallback(async (isPolling = false) => {
     if (!id) return;
     try {
@@ -63,8 +66,8 @@ export default function ProjectDetailPage() {
         setUploads(upData.uploads || []);
         
         if (!isPolling && projData.draftTimeline) {
-          if (projData.generatedReels && projData.generatedReels.length > 0) setCurrentStep(7);
-          else setCurrentStep(3);
+          if (projData.generatedReels && projData.generatedReels.length > 0) goToStep(7);
+          else goToStep(3);
         }
       } else if (!isPolling) setLocalError('Failed to load project details.');
     } catch {
@@ -72,27 +75,43 @@ export default function ProjectDetailPage() {
     } finally {
       if (!isPolling) setLoading(false);
     }
-  }, [id]);
+  }, [goToStep, id]);
 
   useEffect(() => {
-    fetchProjectData();
-    const interval = setInterval(() => fetchProjectData(true), 10000);
+    const initialTimer = setTimeout(() => {
+      void fetchProjectData();
+    }, 0);
+    const interval = setInterval(() => {
+      void fetchProjectData(true);
+    }, 10000);
+    let mounted = true;
     
     // Fetch music library
     apiFetch('/music-library')
       .then(res => res.ok ? res.json() : { library: [] })
-      .then(data => setMusicLibrary(data.library || []))
-      .catch(err => console.error("Failed to load music library"));
+      .then(data => {
+        if (mounted) {
+          setMusicLibrary(data.library || []);
+        }
+      })
+      .catch(() => console.error('Failed to load music library'));
 
-    return () => clearInterval(interval);
+    return () => {
+      mounted = false;
+      clearTimeout(initialTimer);
+      clearInterval(interval);
+    };
   }, [fetchProjectData]);
 
   useEffect(() => {
-    if (currentStep === 6 && !isProcessing && result?.results?.length > 0) {
-      setCurrentStep(7);
-    }
-    setHighestStep(prev => Math.max(prev, currentStep));
-  }, [currentStep, isProcessing, result]);
+    if (currentStep !== 6 || isProcessing || (result?.results?.length || 0) === 0) return;
+
+    const timer = setTimeout(() => {
+      goToStep(7);
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, [currentStep, goToStep, isProcessing, result]);
 
   const handleTitleBlur = async (e) => {
     const newTitle = e.target.value;
@@ -127,7 +146,7 @@ export default function ProjectDetailPage() {
       const formData = new FormData();
       formData.append('file', files[i]);
       try { await apiFetch(`/projects/${id}/uploads/file`, { method: 'POST', body: formData }); } 
-      catch (err) { setLocalError(`Failed to upload ${files[i].name}`); }
+      catch { setLocalError(`Failed to upload ${files[i].name}`); }
     }
     await fetchProjectData();
     setIsUploadingFile(false);
@@ -146,49 +165,52 @@ export default function ProjectDetailPage() {
   const goToAnalyze = () => {
     if (!project?.title?.trim()) { setLocalError('Enter a property name.'); return; }
     const readyClips = uploads.filter(u => u.status === 'PROCESSED');
-    if (readyClips.length === 0) { setLocalError('Add at least 1 clip to begin.'); return; }
+    if (readyClips.length < 3) { setLocalError('Add at least 3 processed clips to begin.'); return; }
     setLocalError('');
-    setCurrentStep(2);
+    goToStep(2);
     
     if (!project?.draftTimeline) {
-      const params = new URLSearchParams();
-      params.append('duration', reelDuration);
-      params.append('style', reelStyle);
-      params.append('duplicate_sensitivity', 'Low');
-      start(`http://localhost:8000/api/v1/projects/${id}/generation/analyze?${params.toString()}&token=${getAccessToken() || ''}`);
+      const sseUrl = getSSEUrl(`/projects/${id}/generation/analyze`, {
+        duration: reelDuration,
+        style: reelStyle,
+        duplicate_sensitivity: 'Low',
+      });
+      start(sseUrl, { token: getAccessToken() || '' });
     }
   };
 
   const float_end = (val) => parseFloat(val) || 5.0;
   const float_start = (val) => parseFloat(val) || 0.0;
 
-  const goToStoryboard = () => setCurrentStep(3);
-  const goToStyle = () => setCurrentStep(4);
-  const goToMusic = () => setCurrentStep(5);
+  const goToStoryboard = () => goToStep(3);
+  const goToStyle = () => goToStep(4);
+  const goToMusic = () => goToStep(5);
 
   const handleGenerateReel = () => {
-    setCurrentStep(6);
-    const params = new URLSearchParams();
-    params.append('duration', reelDuration);
-    params.append('style', reelStyle);
-    params.append('aspect_ratio', aspectRatio);
+    goToStep(6);
+    const params = {
+      duration: reelDuration,
+      style: reelStyle,
+      aspect_ratio: aspectRatio,
+    };
     
     // Pass Music Params
     if (musicMode === 'None') {
-      params.append('music_path', '');
-      params.append('music_volume', '0');
+      params.music_path = '';
+      params.music_volume = '0';
     } else if (musicMode === 'Auto Select') {
       const match = musicLibrary.find(t => t.tag === reelStyle) || musicLibrary[0];
-      params.append('music_path', match ? match.path : '');
-      params.append('music_volume', match ? musicVolume : 0);
+      params.music_path = match ? match.path : '';
+      params.music_volume = match ? musicVolume : 0;
     } else {
-      params.append('music_path', selectedMusicPath);
-      params.append('music_volume', musicVolume);
+      params.music_path = selectedMusicPath;
+      params.music_volume = musicVolume;
     }
     
-    params.append('vo_volume', voVolume);
+    params.vo_volume = voVolume;
 
-    start(`http://localhost:8000/api/v1/projects/${id}/generation/generate?${params.toString()}&token=${getAccessToken() || ''}`);
+    const sseUrl = getSSEUrl(`/projects/${id}/generation/generate`, params);
+    start(sseUrl, { token: getAccessToken() || '' });
   };
 
   if (loading) {
@@ -204,8 +226,6 @@ export default function ProjectDetailPage() {
   const resultsData = result?.results || [];
   const readyClips = uploads.filter(u => u.status === 'PROCESSED');
   const hasUploads = uploads.length > 0;
-  const timelineIds = project?.draftTimeline?.map(t => t.upload_id) || [];
-  const stylesList = ['Luxury', 'Modern', 'Cinematic', 'Viral', 'Realtor'];
   const previewRatioClass = aspectRatio === '16:9' ? 'aspect-video' : (aspectRatio === '1:1' ? 'aspect-square' : 'aspect-[9/16]');
 
   return (
@@ -226,7 +246,7 @@ export default function ProjectDetailPage() {
             <React.Fragment key={step.id}>
               <div 
                 className={`flex flex-col items-center relative transition-all ${step.id <= highestStep && !isProcessing ? 'cursor-pointer hover:scale-105' : 'opacity-70 cursor-not-allowed'}`}
-                onClick={() => { if (step.id <= highestStep && !isProcessing) setCurrentStep(step.id); }}
+                onClick={() => { if (step.id <= highestStep && !isProcessing) goToStep(step.id); }}
               >
                 <motion.div animate={{ scale: currentStep === step.id ? 1.1 : 1 }} className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-black transition-all ${currentStep > step.id ? 'bg-[#10B981] text-white' : currentStep === step.id ? 'bg-[#0EA5E9] text-white ring-4 ring-[#0EA5E9]/20' : 'bg-[#F8FAFC] text-[#94a3b8] border border-[#E2E8F0]'}`}>
                   {currentStep > step.id ? <Check size={14} /> : step.id}
@@ -494,7 +514,7 @@ export default function ProjectDetailPage() {
                     {uploads.map((item, idx) => (
                        <div key={item._id} className="shrink-0 w-36 rounded-xl overflow-hidden border border-[#E2E8F0] relative shadow-sm">
                          <div className="h-24 bg-[#F8FAFC]">
-                           {item.previewPath ? <video src={`http://localhost:8000/${item.previewPath.replace(/\\/g, '/')}`} className="w-full h-full object-cover" /> : <Video className="w-full h-full p-6 text-[#cbd5e1]"/>}
+                           {item.previewPath ? <video src={toApiUrl(`/${item.previewPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover" /> : <Video className="w-full h-full p-6 text-[#cbd5e1]"/>}
                          </div>
                          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded text-[10px] font-black px-1.5 py-0.5 text-[#0F172A]">#{idx+1}</div>
                        </div>
@@ -509,7 +529,7 @@ export default function ProjectDetailPage() {
                     {project?.draftTimeline?.map((item, idx) => (
                       <div key={idx} className="shrink-0 w-64 rounded-[1.5rem] bg-white shadow-md border border-[#8B5CF6]/20 overflow-hidden relative group">
                         <div className="h-40 bg-[#F8FAFC] relative">
-                          {item.localPath ? <video src={`http://localhost:8000/${item.localPath.replace(/\\/g, '/')}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <Video className="w-full h-full p-10 text-[#cbd5e1]"/>}
+                          {item.localPath ? <video src={toApiUrl(`/${item.localPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <Video className="w-full h-full p-10 text-[#cbd5e1]"/>}
                           <div className="absolute top-3 left-3 bg-[#8B5CF6] text-white rounded-lg text-sm font-black px-3 py-1 shadow-sm">{idx+1}</div>
                         </div>
                         <div className="p-5">
@@ -640,7 +660,7 @@ export default function ProjectDetailPage() {
                                   <span className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider">{track.tag}</span>
                                 </div>
                               </div>
-                              <audio src={`http://localhost:8000/${track.path}`} controls controlsList="nodownload" className="h-8 w-40" />
+                              <audio src={toApiUrl(`/${track.path}`)} controls controlsList="nodownload" className="h-8 w-40" />
                             </div>
                           ))}
                         </div>
@@ -658,7 +678,7 @@ export default function ProjectDetailPage() {
                           <div className="text-center w-full">
                             <CheckCircle2 size={40} className="text-[#10B981] mx-auto mb-3" />
                             <p className="font-bold text-[#0F172A] mb-4 truncate">{selectedMusicPath.split('/').pop()}</p>
-                            <audio src={`http://localhost:8000/${selectedMusicPath}`} controls className="w-full mb-4" />
+                            <audio src={toApiUrl(`/${selectedMusicPath}`)} controls className="w-full mb-4" />
                             <button onClick={() => setSelectedMusicPath('')} className="text-xs font-bold text-red-500 hover:underline">Remove Track</button>
                           </div>
                         ) : (
@@ -681,7 +701,7 @@ export default function ProjectDetailPage() {
                                   const data = await res.json();
                                   setSelectedMusicPath(data.localPath.replace(/\\/g, '/'));
                                   setMusicMode('Custom');
-                                } catch (err) {
+                                } catch {
                                   setLocalError('Failed to upload custom music.');
                                 } finally {
                                   setIsUploadingMusic(false);
@@ -757,7 +777,7 @@ export default function ProjectDetailPage() {
               {/* Left Video Player */}
               <div className={`bg-[#0F172A] rounded-[2rem] overflow-hidden shadow-2xl border-[#E2E8F0] ${previewRatioClass} lg:w-1/2 flex-shrink-0 flex items-center justify-center`}>
                 {resultsData[0]?.video_url || resultsData[0]?.videoUrl ? (
-                  <video src={`http://localhost:8000${resultsData[0].video_url || resultsData[0].videoUrl}`} controls className="w-full h-full object-contain" autoPlay loop />
+                  <video src={toApiUrl(resultsData[0].video_url || resultsData[0].videoUrl)} controls className="w-full h-full object-contain" autoPlay loop />
                 ) : (
                   <p className="text-white font-medium">Video preview unavailable</p>
                 )}
@@ -787,7 +807,7 @@ export default function ProjectDetailPage() {
                 <div className="space-y-4">
                   <button 
                     onClick={async () => {
-                      const url = `http://localhost:8000${resultsData[0]?.video_url || resultsData[0]?.videoUrl}`;
+                      const url = toApiUrl(resultsData[0]?.video_url || resultsData[0]?.videoUrl);
                       try {
                         const response = await fetch(url);
                         const blob = await response.blob();

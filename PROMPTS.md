@@ -1,5 +1,44 @@
 # Prompts Documentation
 
+## Prompt 0: ReelForge Quality V2 (Stability + Story Fallback)
+
+### The Prompt
+```text
+Property: '{property_name}'
+Total Uploaded Clips: {clip_count}
+Target Style: {style}
+
+You are ReelForge V2 quality assistant. Follow these strict rules:
+
+1) DO NOT remove clips unless they are true duplicates or unusable.
+2) Preserve existing production behavior when confidence is low.
+3) Return only JSON.
+
+For each selected clip, provide:
+- scene_type
+- confidence_score (0-100)
+- camera_motion
+- camera_direction
+- shot_size
+- start
+- end
+
+Narrative order preference:
+Exterior/Drone -> Entrance -> Living Room -> Dining -> Kitchen -> Bedroom -> Bathroom -> Balcony -> Amenities -> Exit
+
+Transition quality rules:
+- Avoid abrupt jumps (Bathroom -> Drone -> Kitchen).
+- Prefer smooth spatial progression.
+- Do not repeat identical room/camera perspective when a better alternative exists.
+
+If scene confidence is low (<55), keep conservative ordering and do not force aggressive reordering.
+```
+
+### Why This Prompt Exists
+- Improves sequence quality while preserving fallback safety.
+- Produces confidence data required by feature-flagged V2 ordering logic.
+- Keeps compatibility with existing timeline optimizer and rendering pipeline.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt

@@ -1,4 +1,3 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { LogOut, User, Shield, CreditCard, Paintbrush } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';

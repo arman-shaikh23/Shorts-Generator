@@ -37,18 +37,18 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode('utf-8'), hashed.encode('utf-8'))
 
-async def issue_tokens(user_id: str) -> dict:
+async def issue_tokens(user_id: str, family: str | None = None) -> dict:
     """Issue a new access + refresh token pair and store the refresh token in DB."""
     db = get_db()
-    family = str(uuid.uuid4())
+    token_family = family or str(uuid.uuid4())
 
     access_token = create_access_token({"sub": user_id})
-    refresh_token = create_refresh_token({"sub": user_id, "family": family})
+    refresh_token = create_refresh_token({"sub": user_id, "family": token_family})
 
     await db.refresh_tokens.insert_one({
         "token": refresh_token,
         "user_id": user_id,
-        "family": family,
+        "family": token_family,
         "expires_at": datetime.datetime.utcnow() + datetime.timedelta(days=7),
         "is_revoked": False,
         "created_at": datetime.datetime.utcnow(),
@@ -141,7 +141,7 @@ async def refresh_token(req: RefreshRequest):
     )
 
     # Issue new pair in the same family
-    return await issue_tokens(stored["user_id"])
+    return await issue_tokens(stored["user_id"], family=stored["family"])
 
 
 @router.post("/logout")

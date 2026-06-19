@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FolderKanban, PlusCircle, Clock } from 'lucide-react';
@@ -11,10 +11,6 @@ export default function ProjectsPage() {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchProjects();
-  }, []);
-
   const fetchProjects = async () => {
     try {
       const res = await apiFetch('/projects');
@@ -24,12 +20,20 @@ export default function ProjectsPage() {
       } else {
         setError('Failed to fetch projects');
       }
-    } catch (err) {
+    } catch {
       setError('Failed to connect to server');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchProjects();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const createProject = async () => {
     try {

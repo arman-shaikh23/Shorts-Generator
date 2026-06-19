@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Play, Bell, Search, LayoutDashboard, FolderKanban, Sparkles, LogOut, Plus, PlayCircle } from 'lucide-react';
+import { Play, LogOut, Plus, PlayCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import HowItWorksModal from '../HowItWorksModal';
+import { apiFetch } from '../../api/client';
 
 export function TopNav() {
   const { user, logout } = useAuth();
@@ -22,12 +23,8 @@ export function TopNav() {
 
   const handleCreateProject = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/v1/projects', {
+      const res = await apiFetch('/projects', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
         body: JSON.stringify({ title: 'Untitled Reel' }),
       });
       if (res.ok) {

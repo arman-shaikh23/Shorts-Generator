@@ -1,17 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Download, Clock, Film } from 'lucide-react';
-import { apiFetch } from '../api/client';
+import { apiFetch, toApiUrl } from '../api/client';
 import { formatRelativeTime } from '../lib/utils';
 
 export default function HistoryPage() {
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    fetchHistory();
-  }, []);
 
   const fetchHistory = async () => {
     try {
@@ -28,6 +24,14 @@ export default function HistoryPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      void fetchHistory();
+    }, 0);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   if (loading) {
     return (
@@ -67,7 +71,7 @@ export default function HistoryPage() {
           {shorts.map((short) => (
             <div key={short._id} className="glass-card rounded-[1.5rem] overflow-hidden hover:shadow-[0_30px_60px_rgba(0,0,0,0.08)] hover:border-[#0EA5E9]/30 transition-all duration-300 group flex flex-col hover:-translate-y-1">
               <div className="aspect-[9/16] bg-[#0F172A] relative flex items-center justify-center overflow-hidden">
-                <video src={`http://localhost:8000${short.videoUrl}`} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-transform duration-700 group-hover:scale-105" controls />
+                <video src={toApiUrl(short.videoUrl)} className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-transform duration-700 group-hover:scale-105" controls />
               </div>
               <div className="p-5 flex-1 flex flex-col bg-white">
                 <h3 className="text-base font-black text-[#0F172A] truncate mb-1">{short.projectTitle}</h3>
@@ -97,7 +101,7 @@ export default function HistoryPage() {
                   </div>
                   <button 
                     onClick={async () => {
-                      const url = `http://localhost:8000${short.videoUrl}`;
+                      const url = toApiUrl(short.videoUrl);
                       try {
                         const response = await fetch(url);
                         const blob = await response.blob();

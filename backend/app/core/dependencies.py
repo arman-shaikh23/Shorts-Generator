@@ -1,4 +1,4 @@
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from .auth import verify_token
 from .database import get_db
@@ -6,13 +6,12 @@ from bson import ObjectId
 
 security = HTTPBearer(auto_error=False)
 
-async def get_current_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
-    """Extract and verify JWT from Authorization header or query param. Returns user dict or None."""
-    token = request.query_params.get("token")
-    if not credentials and not token:
+async def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Extract and verify JWT from Authorization header."""
+    if not credentials:
         raise HTTPException(status_code=401, detail="Not authenticated")
 
-    actual_token = credentials.credentials if credentials else token
+    actual_token = credentials.credentials
 
     try:
         payload = verify_token(actual_token)
@@ -37,9 +36,9 @@ async def get_current_user(request: Request, credentials: HTTPAuthorizationCrede
     except Exception:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
-async def get_optional_user(request: Request, credentials: HTTPAuthorizationCredentials = Depends(security)):
+async def get_optional_user(credentials: HTTPAuthorizationCredentials = Depends(security)):
     """Same as get_current_user but returns None instead of raising on failure."""
     try:
-        return await get_current_user(request, credentials)
+        return await get_current_user(credentials)
     except HTTPException:
         return None

@@ -16,6 +16,8 @@ async def get_history(
 ):
     """Get all generated shorts for the current user."""
     db = get_db()
+    page = max(1, page)
+    limit = max(1, min(limit, 100))
     skip = (page - 1) * limit
     
     cursor = db.generated_shorts.find({"userId": user["_id"]}).sort("createdAt", -1).skip(skip).limit(limit)
@@ -28,7 +30,8 @@ async def get_history(
         doc["_id"] = str(doc["_id"])
         doc["userId"] = str(doc["userId"])
         doc["projectId"] = str(doc["projectId"])
-        project_ids.append(ObjectId(doc["projectId"]))
+        if ObjectId.is_valid(doc["projectId"]):
+            project_ids.append(ObjectId(doc["projectId"]))
         shorts.append(doc)
         
     # Batch fetch projects
@@ -48,5 +51,5 @@ async def get_history(
         "page": page,
         "limit": limit,
         "total": total_docs,
-        "pages": math.ceil(total_docs / limit)
+        "pages": math.ceil(total_docs / limit) if limit else 0
     }

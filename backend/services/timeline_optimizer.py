@@ -2,6 +2,13 @@ import logging
 from typing import List, Dict, Any, Optional
 from collections import Counter
 
+from services.quality_v2 import (
+    annotate_story_metadata,
+    apply_near_duplicate_penalty_v2,
+    apply_scoring_v2,
+    apply_story_ordering_v2,
+)
+
 logger = logging.getLogger(__name__)
 
 # ═══════════════════════════════════════════════════════════════
@@ -550,12 +557,27 @@ def validate_storyline(timeline: List[Dict], strict: bool) -> List[Dict]:
 class TimelineOptimizer:
     @staticmethod
     def optimize(clips: List[Dict[Any, Any]], ai_removed: List[Dict[Any, Any]] = None,
-                 style: str = "Luxury", highlight_memory: Dict = None) -> List[Dict[Any, Any]]:
+                 style: str = "Luxury", highlight_memory: Dict = None,
+                 quality_options: Optional[Dict[str, Any]] = None) -> List[Dict[Any, Any]]:
         if not clips:
             return []
 
         if ai_removed is None:
             ai_removed = []
+
+        quality_options = quality_options or {}
+        shadow_mode = bool(quality_options.get("shadow_mode", False))
+        enable_story_v2 = bool(quality_options.get("enable_story_v2", False))
+        enable_scoring_v2 = bool(quality_options.get("enable_scoring_v2", False))
+        enable_dedup_v2 = bool(quality_options.get("enable_dedup_v2", False))
+        min_story_confidence = float(quality_options.get("min_story_confidence", 0.55))
+        scoring_weights = {
+            "stability_weight": float(quality_options.get("stability_weight", 0.15)),
+            "cinematic_weight": float(quality_options.get("cinematic_weight", 0.15)),
+            "story_weight": float(quality_options.get("story_weight", 0.10)),
+            "room_uniqueness_weight": float(quality_options.get("room_uniqueness_weight", 0.05)),
+            "transition_weight": float(quality_options.get("transition_weight", 0.05)),
+        }
 
         strict = _is_strict_walkthrough(style)
         profile = _get_style_profile(style)
@@ -674,18 +696,60 @@ class TimelineOptimizer:
         # ── Step 6: Apply Repetition Memory ──
         final_timeline = _apply_repetition_penalty(final_timeline)
 
-        # ── Step 7: Apply Motion Diversity ──
+        # Step 7: Apply Motion Diversity
         final_timeline = _apply_motion_diversity(final_timeline)
 
-        # ── Step 8: Re-sort by adjusted scores within phases ──
-        # After penalties, re-sort penalized clips to push them later
+        # Step 8: Optional Dedup V2 penalty layer
+        if enable_dedup_v2 or shadow_mode:
+            dedup_candidate, dedup_hits = apply_near_duplicate_penalty_v2(final_timeline)
+            if enable_dedup_v2:
+                final_timeline = dedup_candidate
+            logger.info(
+                "[TIMELINE OPTIMIZER] Dedup V2 analyzed %d near-duplicate transitions (enabled=%s, shadow=%s).",
+                dedup_hits,
+                enable_dedup_v2,
+                shadow_mode,
+            )
+
+        # Step 9: Re-sort by adjusted scores within phases
         final_timeline = _resort_after_penalties(final_timeline, strict)
 
-        # ── Step 9: Enforce Closing Shot Architecture ──
+        # Step 10: Enforce Closing Shot Architecture
         final_timeline = _enforce_closing_shot(final_timeline, highlight_memory)
 
-        # ── Step 10: Validate Storyline ──
+        # Step 11: Validate Storyline
         final_timeline = validate_storyline(final_timeline, strict)
+
+        # Step 12: Story Ordering V2 (feature-flagged + fallback)
+        if enable_story_v2 or shadow_mode:
+            story_result = apply_story_ordering_v2(
+                final_timeline,
+                min_story_confidence=min_story_confidence,
+            )
+            story_applied = bool(story_result.get("applied", False))
+            if enable_story_v2 and story_applied:
+                final_timeline = story_result["timeline"]
+                final_timeline = validate_storyline(final_timeline, strict)
+            else:
+                final_timeline = annotate_story_metadata(final_timeline)
+            logger.info(
+                "[TIMELINE OPTIMIZER] Story V2 applied=%s fallback=%s avg_conf=%.2f",
+                story_applied,
+                story_result.get("fallback_used", False),
+                story_result.get("avg_confidence", 0.0),
+            )
+        else:
+            final_timeline = annotate_story_metadata(final_timeline)
+
+        # Step 13: Scoring V2 metadata (feature-flagged, keeps ordering stable)
+        if enable_scoring_v2 or shadow_mode:
+            final_timeline = apply_scoring_v2(final_timeline, scoring_weights)
+            logger.info(
+                "[TIMELINE OPTIMIZER] Scoring V2 generated for %d clips (enabled=%s, shadow=%s).",
+                len(final_timeline),
+                enable_scoring_v2,
+                shadow_mode,
+            )
 
         total_dur = sum(c.get("clip_duration_sec", 4.0) for c in final_timeline)
         logger.info(f"[TIMELINE OPTIMIZER V4.0] Final: {len(final_timeline)} clips, {total_dur:.1f}s. "
@@ -886,3 +950,4 @@ def _resort_after_penalties(timeline: List[Dict], strict: bool) -> List[Dict]:
             -x.get("window_score", 0),
             -x.get("final_score", 0)
         ))
+

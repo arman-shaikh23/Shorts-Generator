@@ -9,11 +9,14 @@ import logging
 import json
 from collections import Counter
 
+from ..core.config import get_settings
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
+from ..core.mongo_utils import parse_object_id
 from services.gemini import upload_and_wait, analyze_and_generate, generate_variations
 from services.video import build_reel
 from services.cv_analyzer import analyze_video_segment, detect_camera_adjustments, cv_semaphore
+from services.quality_v2 import analyze_stability_v2, recommend_trim_bounds_v2
 from services.timeline_optimizer import parse_time, build_highlight_memory
 
 import os
@@ -139,10 +142,25 @@ async def analyze_project(
 ):
     """Phase 1: Ask Gemini to propose a sequence using the uploaded previews. Uses SSE for progress."""
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
     
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
+
+    settings = get_settings()
+    quality_options = {
+        "shadow_mode": settings.PIPELINE_SHADOW_MODE,
+        "enable_story_v2": settings.ENABLE_STORY_V2,
+        "enable_scoring_v2": settings.ENABLE_SCORING_V2,
+        "enable_dedup_v2": settings.ENABLE_DEDUP_V2,
+        "min_story_confidence": settings.V2_MIN_STORY_CONFIDENCE,
+        "stability_weight": settings.V2_STABILITY_WEIGHT,
+        "cinematic_weight": settings.V2_CINEMATIC_WEIGHT,
+        "story_weight": settings.V2_STORY_WEIGHT,
+        "room_uniqueness_weight": settings.V2_ROOM_UNIQUENESS_WEIGHT,
+        "transition_weight": settings.V2_TRANSITION_WEIGHT,
+    }
 
     q = asyncio.Queue()
 
@@ -238,8 +256,10 @@ async def analyze_project(
                     
                     await q.put({"status": "progress", "message": f"Computer Vision Analysis ({i+1}/{len(timeline)})..."})
                     
-                    start_sec = parse_time(c.get("start", "0"))
-                    end_sec = parse_time(c.get("end", "5"))
+                    original_start_sec = parse_time(c.get("start", "0"))
+                    original_end_sec = parse_time(c.get("end", "5"))
+                    start_sec = original_start_sec
+                    end_sec = original_end_sec
                     
                     # V4.0: Lucas-Kanade camera adjustment detection (throttled)
                     async with cv_semaphore:
@@ -264,6 +284,62 @@ async def analyze_project(
                         if first_3s_analysis.get("is_unstable"):
                             start_sec = 3.0
                             c["start"] = "3.0"
+
+                    # V2 Stability metadata (safe additive path)
+                    v2_should_analyze = (
+                        settings.ENABLE_STABILITY_V2
+                        or settings.ENABLE_TRIM_V2
+                        or settings.PIPELINE_SHADOW_MODE
+                    )
+                    stability_metrics_v2 = {}
+                    tail_stability_score = None
+                    if v2_should_analyze:
+                        async with cv_semaphore:
+                            stability_metrics_v2 = await asyncio.to_thread(
+                                analyze_stability_v2, local_path, original_start_sec, original_end_sec
+                            )
+                        c.update(stability_metrics_v2)
+
+                        tail_start = max(original_start_sec, original_end_sec - 1.2)
+                        if original_end_sec - tail_start >= 0.6:
+                            async with cv_semaphore:
+                                tail_metrics = await asyncio.to_thread(
+                                    analyze_stability_v2, local_path, tail_start, original_end_sec
+                                )
+                            tail_stability_score = tail_metrics.get("stability_score_v2")
+                            c["tail_stability_score_v2"] = tail_stability_score
+
+                    trim_recommendation_v2 = recommend_trim_bounds_v2(
+                        start_sec=original_start_sec,
+                        end_sec=original_end_sec,
+                        adjustment_result=adjustment,
+                        stability_metrics=stability_metrics_v2,
+                        tail_stability_score=tail_stability_score,
+                    )
+                    c["trim_recommendation_v2"] = trim_recommendation_v2
+                    c["v2_trim_applied"] = False
+
+                    # Promote recommendations only when explicitly enabled and confident.
+                    if (
+                        settings.ENABLE_TRIM_V2
+                        and trim_recommendation_v2.get("trim_confidence", 0.0) >= settings.V2_MIN_TRIM_CONFIDENCE
+                        and not trim_recommendation_v2.get("fallback_to_original", False)
+                    ):
+                        rec_start = float(trim_recommendation_v2.get("recommended_trim_start", start_sec))
+                        rec_end = float(trim_recommendation_v2.get("recommended_trim_end", end_sec))
+                        if rec_end > rec_start:
+                            start_sec = rec_start
+                            end_sec = rec_end
+                            c["start"] = str(start_sec)
+                            c["end"] = str(end_sec)
+                            c["v2_trim_applied"] = True
+                            logger.info(
+                                "[TRIM V2] Clip %s trimmed to %.2fs-%.2fs (confidence=%.2f).",
+                                c.get("clip_id", i),
+                                start_sec,
+                                end_sec,
+                                trim_recommendation_v2.get("trim_confidence", 0.0),
+                            )
                     
                     # Get overall segment CV metrics (throttled)
                     async with cv_semaphore:
@@ -300,7 +376,11 @@ async def analyze_project(
             highlight_memory = build_highlight_memory(mapped_timeline)
 
             optimized_timeline = TimelineOptimizer.optimize(
-                mapped_timeline, ai_removed, style=style, highlight_memory=highlight_memory
+                mapped_timeline,
+                ai_removed,
+                style=style,
+                highlight_memory=highlight_memory,
+                quality_options=quality_options,
             )
             timeline = optimized_timeline
             
@@ -357,11 +437,31 @@ async def analyze_project(
             if unique_videos_used > 0 and coverage_percentage == 0:
                 coverage_percentage = 1.0 # Never show 0% if videos were used
 
+            v2_stability_values = [float(c.get("stability_score_v2")) for c in timeline if c.get("stability_score_v2") is not None]
+            v2_story_conf_values = [float(c.get("story_classification_confidence")) for c in timeline if c.get("story_classification_confidence") is not None]
+            v2_trim_recommendations = sum(1 for c in timeline if c.get("trim_recommendation_v2"))
+            v2_trim_applied = sum(1 for c in timeline if c.get("v2_trim_applied"))
+
             ai_metadata = {
                 "analyzed_sec": gemini_result.get("total_analyzed_duration_sec", 0),
                 "selected_sec": gemini_result.get("total_selected_duration_sec", 0),
                 "duplicates_removed": total_removed,
                 "removed_clips": all_removed,
+                "quality_v2": {
+                    "shadow_mode": settings.PIPELINE_SHADOW_MODE,
+                    "flags": {
+                        "stability": settings.ENABLE_STABILITY_V2,
+                        "trim": settings.ENABLE_TRIM_V2,
+                        "story": settings.ENABLE_STORY_V2,
+                        "scoring": settings.ENABLE_SCORING_V2,
+                        "dedup": settings.ENABLE_DEDUP_V2,
+                        "transition": settings.ENABLE_TRANSITION_V2,
+                    },
+                    "avg_stability_score": round(sum(v2_stability_values) / len(v2_stability_values), 4) if v2_stability_values else None,
+                    "avg_story_confidence": round(sum(v2_story_conf_values) / len(v2_story_conf_values), 4) if v2_story_conf_values else None,
+                    "trim_recommendations_count": v2_trim_recommendations,
+                    "trim_applied_count": v2_trim_applied,
+                },
                 "coverage_analytics": {
                     "uploaded_count": total_uploaded,
                     "pre_processor_duplicates": len(pre_duplicates),
@@ -373,7 +473,7 @@ async def analyze_project(
                 }
             }
             await db.projects.update_one(
-                {"_id": ObjectId(project_id)},
+                {"_id": project_oid},
                 {"$set": {
                     "draftTimeline": timeline, 
                     "status": "ANALYZED",
@@ -421,8 +521,9 @@ async def generate_project(
 ):
     """Phase 2: Render the final reel using the approved timeline."""
     db = get_db()
+    project_oid = parse_object_id(project_id, "project_id")
     
-    project = await db.projects.find_one({"_id": ObjectId(project_id), "userId": user["_id"]})
+    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
@@ -458,7 +559,10 @@ async def generate_project(
             for item in timeline:
                 upload_id = item.get("upload_id")
                 if upload_id and not item.get("localPath"):
-                    upload = await db.uploads.find_one({"_id": ObjectId(upload_id)})
+                    if not ObjectId.is_valid(upload_id):
+                        logger.warning(f"Skipping invalid upload_id in timeline: {upload_id}")
+                        continue
+                    upload = await db.uploads.find_one({"_id": parse_object_id(upload_id, "upload_id")})
                     if upload and upload.get("localPath"):
                         item["localPath"] = upload["localPath"]
                         
@@ -595,9 +699,9 @@ async def generate_project(
                     "hashtags": var.get("hashtags", []),
                     "createdAt": time.time()
                 }
-                await db.generated_shorts.insert_one(short)
+                insert_result = await db.generated_shorts.insert_one(short)
                 
-                short["_id"] = str(short["_id"])
+                short["_id"] = str(insert_result.inserted_id)
                 short["projectId"] = str(short["projectId"])
                 short["userId"] = str(short["userId"])
                 
@@ -617,7 +721,7 @@ async def generate_project(
                 }
                 
                 await db.projects.update_one(
-                    {"_id": ObjectId(project_id)},
+                    {"_id": project_oid},
                     {
                         "$set": {
                             "status": "COMPLETED",
