@@ -2,6 +2,37 @@
 
 All notable changes to this project will be documented in this file.
   
+## [17.2.0] - Connection Pooling for DB and Outbound HTTP
+### Added
+- **MongoDB Pool Controls** in `backend/app/core/config.py`:
+  - `MONGO_MAX_POOL_SIZE`
+  - `MONGO_MIN_POOL_SIZE`
+  - `MONGO_MAX_IDLE_TIME_MS`
+  - `MONGO_WAIT_QUEUE_TIMEOUT_MS`
+  - `MONGO_SERVER_SELECTION_TIMEOUT_MS`
+- **Shared HTTP Client Pool Controls** in `backend/app/core/config.py`:
+  - `HTTP_POOL_MAX_CONNECTIONS`
+  - `HTTP_POOL_MAX_KEEPALIVE_CONNECTIONS`
+  - `HTTP_CONNECT_TIMEOUT_SEC`
+  - `HTTP_READ_TIMEOUT_SEC`
+  - `HTTP_WRITE_TIMEOUT_SEC`
+  - `HTTP_POOL_TIMEOUT_SEC`
+- **App-level pooled HTTP client module**: `backend/app/core/http_client.py`
+  - Single reusable `httpx.AsyncClient` with configured limits and timeout budget.
+
+### Changed
+- **Mongo initialization** (`backend/app/core/database.py`):
+  - `AsyncIOMotorClient` now uses explicit pool settings and logs active pool config at startup.
+- **FastAPI lifespan** (`backend/main.py`):
+  - Added startup initialization and shutdown cleanup for shared HTTP client pool.
+- **Video download path** (`backend/services/video.py`):
+  - Replaced per-call `httpx.AsyncClient(...)` creation with shared pooled client usage.
+- **Environment template** (`backend/.env.example`):
+  - Added Mongo and HTTP pooling tunables with safe defaults.
+
+### Validation
+- Backend tests: `40 passed` after pooling integration.
+
 ## [17.1.0] - Safe Quality V2 Foundation (Feature-Flagged)
 ### Added
 - **Quality V2 Feature Flags** in backend config and `.env.example`:

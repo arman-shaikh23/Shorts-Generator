@@ -24,6 +24,7 @@ if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
 from app.core.database import connect_to_mongo, close_mongo_connection
+from app.core.http_client import connect_http_client, close_http_client
 from app.core.worker import process_pending_uploads
 from app.api import auth
 from app.api import projects as projects_api
@@ -49,6 +50,7 @@ async def safe_background_task(coro_func, name):
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     await connect_to_mongo()
+    await connect_http_client()
     # Start background workers with crash protection
     upload_task = asyncio.create_task(safe_background_task(process_pending_uploads, "upload_worker"))
     cleanup_task = asyncio.create_task(safe_background_task(run_daily_cleanup, "daily_cleanup"))
@@ -57,6 +59,7 @@ async def lifespan(_: FastAPI):
     finally:
         for task in (upload_task, cleanup_task):
             task.cancel()
+        await close_http_client()
         await close_mongo_connection()
 
 app = FastAPI(lifespan=lifespan)

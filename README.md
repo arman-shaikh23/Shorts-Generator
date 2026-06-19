@@ -92,6 +92,45 @@ ReelForge now includes a **feature-flagged V2 quality layer** that is additive a
 3. Enable `ENABLE_TRIM_V2=true` for automatic trim promotion in production.
 4. Keep rollback simple by toggling `ENABLE_*_V2=false` (legacy path remains active).
 
+## Connection Pooling (Performance Layer)
+ReelForge now uses explicit connection pooling for both MongoDB and outbound HTTP downloads.
+
+### Why Connection Pooling Matters
+- Opening a new TCP/TLS connection for every request is expensive.
+- Reusing established connections reduces latency and CPU overhead.
+- Under parallel uploads/processing, pooling stabilizes throughput and lowers connection churn.
+- Pools apply backpressure safely (queueing/waiting) instead of causing burst failures.
+
+### What Is Pooled in ReelForge
+- **MongoDB Driver Pool**: Configured in `backend/app/core/database.py` using Motor's built-in pool controls.
+- **Shared HTTP Client Pool**: Configured in `backend/app/core/http_client.py` with one `httpx.AsyncClient` for the app lifecycle.
+- **FastAPI Lifecycle Wiring**: Pool initialization and cleanup are handled in `backend/main.py` startup/shutdown.
+
+### New Environment Settings
+Add or tune these in `backend/.env`:
+
+```env
+MONGO_MAX_POOL_SIZE=100
+MONGO_MIN_POOL_SIZE=5
+MONGO_MAX_IDLE_TIME_MS=45000
+MONGO_WAIT_QUEUE_TIMEOUT_MS=10000
+MONGO_SERVER_SELECTION_TIMEOUT_MS=5000
+
+HTTP_POOL_MAX_CONNECTIONS=100
+HTTP_POOL_MAX_KEEPALIVE_CONNECTIONS=20
+HTTP_CONNECT_TIMEOUT_SEC=10.0
+HTTP_READ_TIMEOUT_SEC=300.0
+HTTP_WRITE_TIMEOUT_SEC=30.0
+HTTP_POOL_TIMEOUT_SEC=30.0
+```
+
+### Rollout Guidance
+1. Start with defaults.
+2. Measure p95 API latency and upload success rate.
+3. Increase `MONGO_MAX_POOL_SIZE` and `HTTP_POOL_MAX_CONNECTIONS` only if queue waits are visible.
+4. Keep `MONGO_MIN_POOL_SIZE` modest to avoid idle resource waste.
+5. Roll back by restoring previous env values; code remains backward compatible.
+
 ## Troubleshooting
 - **Professional Camera Footage (Sony XAVC, etc.)**: High-end footage with `rtmd` metadata streams or 10-bit 4:2:2 chroma subsampling might fail standard FFmpeg extraction. The application automatically normalizes this footage, dropping non-video/audio streams and forcing `yuv420p` pixel format to ensure Gemini AI compatibility.
 - **API 404 Errors**: If `/api/process` returns a 404 on deployment, verify that the static file mount isn't intercepting the root path. Our production build is configured to serve static assets safely without shadowing `/api/*`.

@@ -39,6 +39,36 @@ If scene confidence is low (<55), keep conservative ordering and do not force ag
 - Produces confidence data required by feature-flagged V2 ordering logic.
 - Keeps compatibility with existing timeline optimizer and rendering pipeline.
 
+## Prompt 0.1: Connection Pooling and Throughput Guardrails
+
+### The Prompt
+```text
+You are a backend performance engineer for ReelForge.
+Optimize throughput with connection pooling and without changing API contracts.
+
+Rules:
+1) Reuse one MongoDB client for app lifecycle.
+2) Reuse one outbound HTTP client for app lifecycle.
+3) Do not create per-request network clients unless isolation is required.
+4) Configure bounded pool limits to prevent resource exhaustion.
+5) Add startup/shutdown hooks for clean init and cleanup.
+6) Keep fallback-safe defaults in env template.
+7) Add logs for pool configuration at startup.
+8) Verify no regressions via full test suite.
+
+Deliver:
+- pool settings added to config
+- lifecycle wiring
+- migration/rollback notes
+- validation results
+```
+
+### Why This Prompt Exists
+- Prevents repeated TCP/TLS setup overhead.
+- Improves request latency and upload stability under concurrency.
+- Reduces file download bottlenecks during parallel processing.
+- Keeps production behavior stable while scaling traffic safely.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt

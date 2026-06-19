@@ -6,6 +6,11 @@ class Settings(BaseSettings):
     # MongoDB
     MONGODB_URL: str = "mongodb://localhost:27017"
     DB_NAME: str = "realestate_shorts"
+    MONGO_MAX_POOL_SIZE: int = 100
+    MONGO_MIN_POOL_SIZE: int = 5
+    MONGO_MAX_IDLE_TIME_MS: int = 45000
+    MONGO_WAIT_QUEUE_TIMEOUT_MS: int = 10000
+    MONGO_SERVER_SELECTION_TIMEOUT_MS: int = 5000
 
     # JWT
     JWT_SECRET: str = "dev_secret_change_in_production"
@@ -19,6 +24,14 @@ class Settings(BaseSettings):
     # File paths
     DOWNLOADS_DIR: str = "downloads"
     OUTPUTS_DIR: str = "outputs"
+
+    # Shared outbound HTTP connection pool
+    HTTP_POOL_MAX_CONNECTIONS: int = 100
+    HTTP_POOL_MAX_KEEPALIVE_CONNECTIONS: int = 20
+    HTTP_CONNECT_TIMEOUT_SEC: float = 10.0
+    HTTP_READ_TIMEOUT_SEC: float = 300.0
+    HTTP_WRITE_TIMEOUT_SEC: float = 30.0
+    HTTP_POOL_TIMEOUT_SEC: float = 30.0
 
     # Reel quality v2 feature flags (safe rollout)
     PIPELINE_SHADOW_MODE: bool = False

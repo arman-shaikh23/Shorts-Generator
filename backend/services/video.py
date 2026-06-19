@@ -1,4 +1,3 @@
-import httpx
 import os
 import asyncio
 import time
@@ -6,6 +5,8 @@ import subprocess
 import logging
 import math
 from typing import Optional, Callable
+
+from app.core.http_client import get_http_client
 
 logger = logging.getLogger(__name__)
 
@@ -71,12 +72,13 @@ async def download_video(url: str, filename: str, project_id: str, on_progress: 
     direct_url = get_direct_url(url)
     start = time.perf_counter()
 
-    async with httpx.AsyncClient(follow_redirects=True, timeout=300.0) as client:
-        async with client.stream("GET", direct_url) as response:
-            if response.status_code != 200: raise RuntimeError(f"Download failed: {response.status_code}")
-            with open(filepath, "wb") as f:
-                async for chunk in response.aiter_bytes(chunk_size=262144):
-                    f.write(chunk)
+    client = get_http_client()
+    async with client.stream("GET", direct_url) as response:
+        if response.status_code != 200:
+            raise RuntimeError(f"Download failed: {response.status_code}")
+        with open(filepath, "wb") as f:
+            async for chunk in response.aiter_bytes(chunk_size=262144):
+                f.write(chunk)
 
     if not os.path.exists(filepath) or os.path.getsize(filepath) == 0:
         raise RuntimeError("Downloaded file is empty or missing")
