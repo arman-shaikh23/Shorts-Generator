@@ -31,6 +31,7 @@ def test_index_health_endpoint(client):
     assert "projects" in collections
     assert "uploads" in collections
     assert "generated_shorts" in collections
+    assert "idempotency_keys" in collections
 
     uploads = collections["uploads"]
     assert "expected_indexes" in uploads

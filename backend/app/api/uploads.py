@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Request
 from pydantic import BaseModel
 from typing import List, Optional
 import asyncio
@@ -19,6 +19,11 @@ from ..core.cache import (
 from ..core.config import get_settings
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
+from ..core.idempotency import (
+    begin_idempotent_operation,
+    complete_idempotent_operation,
+    fail_idempotent_operation,
+)
 from ..core.mongo_utils import parse_object_id
 from ..core.pagination import build_pagination_meta, normalize_limit, resolve_page_skip
 import datetime
@@ -161,140 +166,192 @@ async def stream_upload_to_disk(
 # ── Endpoints ───────────────────────────────────────────
 
 @router.post("")
-async def add_uploads(project_id: str, req: AddUrlsRequest, user=Depends(get_current_user)):
+async def add_uploads(project_id: str, req: AddUrlsRequest, request: Request, user=Depends(get_current_user)):
     """Add video URLs to a project. Creates upload records with PENDING status."""
     await verify_project_ownership(project_id, user)
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
     now = datetime.datetime.utcnow()
-
-    # Get current max order
-    last = await db.uploads.find_one(
-        {"projectId": project_id},
-        sort=[("order", -1)]
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "urls": req.urls,
+        },
     )
-    start_order = (last["order"] + 1) if last else 0
+    if replay is not None:
+        return replay.body
 
-    created = []
-    for i, url in enumerate(req.urls):
-        upload = {
-            "projectId": project_id,
-            "userId": user["_id"],
-            "originalUrl": url,
-            "localPath": None,
-            "previewPath": None,
-            "thumbnailPath": None,
-            "filename": url.split("/")[-1].split("?")[0] or f"video_{start_order + i}.mp4",
-            "fileSize": None,
-            "duration": None,
-            "status": "PENDING",
-            "roomType": None,
-            "qualityScore": None,
-            "order": start_order + i,
-            "uploadedAt": now,
-        }
-        result = await db.uploads.insert_one(upload)
-        upload["_id"] = str(result.inserted_id)
-        created.append(upload)
+    try:
+        # Get current max order
+        last = await db.uploads.find_one(
+            {"projectId": project_id},
+            sort=[("order", -1)]
+        )
+        start_order = (last["order"] + 1) if last else 0
 
-    # Update project upload count and timestamp
-    count = await db.uploads.count_documents({"projectId": project_id})
-    await db.projects.update_one(
-        {"_id": project_oid},
-        {"$set": {"uploadCount": count, "updatedAt": now}}
-    )
-    await invalidate_after_upload_mutation(user["_id"], project_id)
+        created = []
+        for i, url in enumerate(req.urls):
+            upload = {
+                "projectId": project_id,
+                "userId": user["_id"],
+                "originalUrl": url,
+                "localPath": None,
+                "previewPath": None,
+                "thumbnailPath": None,
+                "filename": url.split("/")[-1].split("?")[0] or f"video_{start_order + i}.mp4",
+                "fileSize": None,
+                "duration": None,
+                "status": "PENDING",
+                "roomType": None,
+                "qualityScore": None,
+                "order": start_order + i,
+                "uploadedAt": now,
+            }
+            result = await db.uploads.insert_one(upload)
+            upload["_id"] = str(result.inserted_id)
+            created.append(upload)
 
-    return {"uploads": created, "total": count}
+        # Update project upload count and timestamp
+        count = await db.uploads.count_documents({"projectId": project_id})
+        await db.projects.update_one(
+            {"_id": project_oid},
+            {"$set": {"uploadCount": count, "updatedAt": now}}
+        )
+        await invalidate_after_upload_mutation(user["_id"], project_id)
+
+        response = {"uploads": created, "total": count}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 @router.post("/file")
-async def upload_local_file(project_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_local_file(project_id: str, request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Handle raw video file uploads directly."""
     await verify_project_ownership(project_id, user)
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
     settings = get_settings()
     now = datetime.datetime.utcnow()
-
-    # 1. Save File Locally
-    extension = _validate_video_upload_metadata(file)
-    clean_filename = sanitize_filename(file.filename or "", fallback_ext=extension)
-    project_dir = f"data/{project_id}/downloads"
-    os.makedirs(project_dir, exist_ok=True)
-    local_path = os.path.join(project_dir, clean_filename)
-    
-    file_size = await stream_upload_to_disk(
-        file,
-        local_path,
-        max_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
-        chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "kind": "video_file_upload",
+        },
     )
-    has_video_stream = await asyncio.to_thread(_has_video_stream, local_path)
-    if not has_video_stream:
-        _remove_file_if_exists(local_path)
-        raise HTTPException(status_code=415, detail="Uploaded file is not a valid video stream.")
+    if replay is not None:
+        return replay.body
 
-    # 2. Get order
-    last = await db.uploads.find_one(
-        {"projectId": project_id},
-        sort=[("order", -1)]
-    )
-    start_order = (last["order"] + 1) if last else 0
+    try:
+        # 1. Save File Locally
+        extension = _validate_video_upload_metadata(file)
+        clean_filename = sanitize_filename(file.filename or "", fallback_ext=extension)
+        project_dir = f"data/{project_id}/downloads"
+        os.makedirs(project_dir, exist_ok=True)
+        local_path = os.path.join(project_dir, clean_filename)
+        
+        file_size = await stream_upload_to_disk(
+            file,
+            local_path,
+            max_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
+            chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+        )
+        has_video_stream = await asyncio.to_thread(_has_video_stream, local_path)
+        if not has_video_stream:
+            _remove_file_if_exists(local_path)
+            raise HTTPException(status_code=415, detail="Uploaded file is not a valid video stream.")
 
-    # 3. Create Upload Record (mark as PROCESSING initially)
-    upload = {
-        "projectId": project_id,
-        "userId": user["_id"],
-        "originalUrl": f"local://{clean_filename}",
-        "localPath": local_path,
-        "previewPath": None,
-        "thumbnailPath": None,
-        "filename": clean_filename,
-        "fileSize": file_size,
-        "duration": None,
-        "status": "PENDING", # Let the worker handle the preview generation! We just need to modify worker to skip download if localPath exists!
-        "roomType": None,
-        "qualityScore": None,
-        "order": start_order,
-        "uploadedAt": now,
-    }
-    result = await db.uploads.insert_one(upload)
-    upload["_id"] = str(result.inserted_id)
+        # 2. Get order
+        last = await db.uploads.find_one(
+            {"projectId": project_id},
+            sort=[("order", -1)]
+        )
+        start_order = (last["order"] + 1) if last else 0
 
-    # Update project upload count
-    count = await db.uploads.count_documents({"projectId": project_id})
-    await db.projects.update_one(
-        {"_id": project_oid},
-        {"$set": {"uploadCount": count, "updatedAt": now}}
-    )
-    await invalidate_after_upload_mutation(user["_id"], project_id)
+        # 3. Create Upload Record (mark as PROCESSING initially)
+        upload = {
+            "projectId": project_id,
+            "userId": user["_id"],
+            "originalUrl": f"local://{clean_filename}",
+            "localPath": local_path,
+            "previewPath": None,
+            "thumbnailPath": None,
+            "filename": clean_filename,
+            "fileSize": file_size,
+            "duration": None,
+            "status": "PENDING", # Let the worker handle the preview generation! We just need to modify worker to skip download if localPath exists!
+            "roomType": None,
+            "qualityScore": None,
+            "order": start_order,
+            "uploadedAt": now,
+        }
+        result = await db.uploads.insert_one(upload)
+        upload["_id"] = str(result.inserted_id)
 
-    return {"uploads": [upload], "total": count}
+        # Update project upload count
+        count = await db.uploads.count_documents({"projectId": project_id})
+        await db.projects.update_one(
+            {"_id": project_oid},
+            {"$set": {"uploadCount": count, "updatedAt": now}}
+        )
+        await invalidate_after_upload_mutation(user["_id"], project_id)
+
+        response = {"uploads": [upload], "total": count}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 
 @router.post("/music")
-async def upload_custom_music(project_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
+async def upload_custom_music(project_id: str, request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Handle custom music uploads (.mp3, .wav, .m4a)."""
     await verify_project_ownership(project_id, user)
     settings = get_settings()
-    ext = Path(file.filename or "").suffix.lower()
-    if ext not in {".mp3", ".wav", ".m4a"}:
-        raise HTTPException(status_code=400, detail="Unsupported audio format")
-    
-    # 1. Save File Locally
-    music_dir = f"data/{project_id}/music"
-    os.makedirs(music_dir, exist_ok=True)
-    safe_name = sanitize_filename(file.filename or "", fallback_ext=ext or ".mp3")
-    local_path = os.path.join(music_dir, safe_name)
-    
-    await stream_upload_to_disk(
-        file,
-        local_path,
-        max_bytes=settings.MAX_MUSIC_UPLOAD_BYTES,
-        chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "filename": file.filename,
+            "content_type": file.content_type,
+            "kind": "music_file_upload",
+        },
     )
+    if replay is not None:
+        return replay.body
+
+    ext = Path(file.filename or "").suffix.lower()
+    try:
+        if ext not in {".mp3", ".wav", ".m4a"}:
+            raise HTTPException(status_code=400, detail="Unsupported audio format")
         
-    return {"message": "Music uploaded successfully", "localPath": local_path, "filename": safe_name}
+        # 1. Save File Locally
+        music_dir = f"data/{project_id}/music"
+        os.makedirs(music_dir, exist_ok=True)
+        safe_name = sanitize_filename(file.filename or "", fallback_ext=ext or ".mp3")
+        local_path = os.path.join(music_dir, safe_name)
+        
+        await stream_upload_to_disk(
+            file,
+            local_path,
+            max_bytes=settings.MAX_MUSIC_UPLOAD_BYTES,
+            chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+        )
+        response = {"message": "Music uploaded successfully", "localPath": local_path, "filename": safe_name}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 @router.get("")
 async def list_uploads(
@@ -361,41 +418,73 @@ async def list_uploads(
 
 
 @router.delete("/{upload_id}")
-async def delete_upload(project_id: str, upload_id: str, user=Depends(get_current_user)):
+async def delete_upload(project_id: str, upload_id: str, request: Request, user=Depends(get_current_user)):
     """Remove a single upload from the project."""
     await verify_project_ownership(project_id, user)
     db = get_db()
-
-    upload_oid = parse_object_id(upload_id, "upload_id")
-    upload = await db.uploads.find_one({"_id": upload_oid, "projectId": project_id})
-    if not upload:
-        raise HTTPException(status_code=404, detail="Upload not found")
-
-    await db.uploads.delete_one({"_id": upload_oid})
-
-    # Update project count
-    count = await db.uploads.count_documents({"projectId": project_id})
-    await db.projects.update_one(
-        {"_id": parse_object_id(project_id, "project_id")},
-        {"$set": {"uploadCount": count, "updatedAt": datetime.datetime.utcnow()}}
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "upload_id": upload_id,
+        },
     )
-    await invalidate_after_upload_mutation(user["_id"], project_id)
+    if replay is not None:
+        return replay.body
 
-    return {"message": "Upload deleted", "total": count}
+    try:
+        upload_oid = parse_object_id(upload_id, "upload_id")
+        upload = await db.uploads.find_one({"_id": upload_oid, "projectId": project_id})
+        if not upload:
+            raise HTTPException(status_code=404, detail="Upload not found")
+
+        await db.uploads.delete_one({"_id": upload_oid})
+
+        # Update project count
+        count = await db.uploads.count_documents({"projectId": project_id})
+        await db.projects.update_one(
+            {"_id": parse_object_id(project_id, "project_id")},
+            {"$set": {"uploadCount": count, "updatedAt": datetime.datetime.utcnow()}}
+        )
+        await invalidate_after_upload_mutation(user["_id"], project_id)
+
+        response = {"message": "Upload deleted", "total": count}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 
 @router.patch("/reorder")
-async def reorder_uploads(project_id: str, req: ReorderRequest, user=Depends(get_current_user)):
+async def reorder_uploads(project_id: str, req: ReorderRequest, request: Request, user=Depends(get_current_user)):
     """Reorder uploads by providing an ordered list of upload IDs."""
     await verify_project_ownership(project_id, user)
     db = get_db()
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "upload_ids": req.upload_ids,
+        },
+    )
+    if replay is not None:
+        return replay.body
 
-    for i, uid in enumerate(req.upload_ids):
-        upload_oid = parse_object_id(uid, "upload_id")
-        await db.uploads.update_one(
-            {"_id": upload_oid, "projectId": project_id},
-            {"$set": {"order": i}}
-        )
+    try:
+        for i, uid in enumerate(req.upload_ids):
+            upload_oid = parse_object_id(uid, "upload_id")
+            await db.uploads.update_one(
+                {"_id": upload_oid, "projectId": project_id},
+                {"$set": {"order": i}}
+            )
 
-    await invalidate_after_upload_mutation(user["_id"], project_id)
-    return {"message": "Reordered", "order": req.upload_ids}
+        await invalidate_after_upload_mutation(user["_id"], project_id)
+        response = {"message": "Reordered", "order": req.upload_ids}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise

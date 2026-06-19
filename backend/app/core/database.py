@@ -58,6 +58,11 @@ async def ensure_database_indexes(db):
         # generated_shorts
         (db.generated_shorts, [("userId", ASCENDING), ("createdAt", DESCENDING)], {"name": "shorts_user_createdAt_idx"}),
         (db.generated_shorts, [("projectId", ASCENDING)], {"name": "shorts_project_idx"}),
+
+        # idempotency_keys
+        (db.idempotency_keys, [("user_id", ASCENDING), ("endpoint", ASCENDING), ("key", ASCENDING)], {"name": "idemp_user_endpoint_key_uq", "unique": True}),
+        (db.idempotency_keys, [("expires_at", ASCENDING)], {"name": "idemp_expires_ttl", "expireAfterSeconds": 0}),
+        (db.idempotency_keys, [("status", ASCENDING), ("updated_at", DESCENDING)], {"name": "idemp_status_updated_idx"}),
     ]
 
     success_count = 0

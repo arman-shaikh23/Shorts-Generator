@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel
 from typing import Optional, List
 from ..core.cache import (
@@ -13,6 +13,11 @@ from ..core.cache import (
 from ..core.config import get_settings
 from ..core.database import get_db
 from ..core.dependencies import get_current_user
+from ..core.idempotency import (
+    begin_idempotent_operation,
+    complete_idempotent_operation,
+    fail_idempotent_operation,
+)
 from ..core.mongo_utils import parse_object_id
 from ..core.pagination import build_pagination_meta, normalize_limit, resolve_page_skip
 import datetime
@@ -31,29 +36,41 @@ class UpdateProjectRequest(BaseModel):
 # ── Endpoints ───────────────────────────────────────────
 
 @router.post("")
-async def create_project(req: CreateProjectRequest, user=Depends(get_current_user)):
+async def create_project(req: CreateProjectRequest, request: Request, user=Depends(get_current_user)):
     db = get_db()
     now = datetime.datetime.utcnow()
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload=req.model_dump(),
+    )
+    if replay is not None:
+        return replay.body
 
-    project = {
-        "userId": user["_id"],
-        "title": req.title,
-        "propertyType": None,
-        "status": "DRAFT",
-        "uploadCount": 0,
-        "generatedCount": 0,
-        "thumbnail": None,
-        "tags": [],
-        "createdAt": now,
-        "updatedAt": now,
-    }
+    try:
+        project = {
+            "userId": user["_id"],
+            "title": req.title,
+            "propertyType": None,
+            "status": "DRAFT",
+            "uploadCount": 0,
+            "generatedCount": 0,
+            "thumbnail": None,
+            "tags": [],
+            "createdAt": now,
+            "updatedAt": now,
+        }
 
-    result = await db.projects.insert_one(project)
-    project_id = str(result.inserted_id)
-    project["_id"] = project_id
-    await invalidate_after_project_mutation(user["_id"], project_id)
+        result = await db.projects.insert_one(project)
+        project_id = str(result.inserted_id)
+        project["_id"] = project_id
+        await invalidate_after_project_mutation(user["_id"], project_id)
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=project)
 
-    return project
+        return project
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 
 @router.get("")
@@ -141,51 +158,79 @@ async def get_project(project_id: str, user=Depends(get_current_user)):
 
 
 @router.patch("/{project_id}")
-async def update_project(project_id: str, req: UpdateProjectRequest, user=Depends(get_current_user)):
+async def update_project(project_id: str, req: UpdateProjectRequest, request: Request, user=Depends(get_current_user)):
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={
+            "project_id": project_id,
+            "update": req.model_dump(exclude_none=True),
+        },
+    )
+    if replay is not None:
+        return replay.body
 
-    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    update = {"updatedAt": datetime.datetime.utcnow()}
-    if req.title is not None:
-        update["title"] = req.title
-    if req.tags is not None:
-        update["tags"] = req.tags
+        update = {"updatedAt": datetime.datetime.utcnow()}
+        if req.title is not None:
+            update["title"] = req.title
+        if req.tags is not None:
+            update["tags"] = req.tags
 
-    await db.projects.update_one({"_id": project_oid}, {"$set": update})
+        await db.projects.update_one({"_id": project_oid}, {"$set": update})
 
-    project = await db.projects.find_one({"_id": project_oid})
-    project["_id"] = str(project["_id"])
-    await invalidate_after_project_mutation(user["_id"], project_id)
-    return project
+        project = await db.projects.find_one({"_id": project_oid})
+        project["_id"] = str(project["_id"])
+        await invalidate_after_project_mutation(user["_id"], project_id)
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=project)
+        return project
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise
 
 
 @router.delete("/{project_id}")
-async def delete_project(project_id: str, user=Depends(get_current_user)):
+async def delete_project(project_id: str, request: Request, user=Depends(get_current_user)):
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
+    idempotency_context, replay = await begin_idempotent_operation(
+        request=request,
+        user_id=user["_id"],
+        payload={"project_id": project_id},
+    )
+    if replay is not None:
+        return replay.body
 
-    project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    try:
+        project = await db.projects.find_one({"_id": project_oid, "userId": user["_id"]})
+        if not project:
+            raise HTTPException(status_code=404, detail="Project not found")
 
-    # Delete associated uploads and shorts
-    await db.uploads.delete_many({"projectId": project_id})
-    await db.generated_shorts.delete_many({"projectId": project_id})
-    await db.projects.delete_one({"_id": project_oid})
+        # Delete associated uploads and shorts
+        await db.uploads.delete_many({"projectId": project_id})
+        await db.generated_shorts.delete_many({"projectId": project_id})
+        await db.projects.delete_one({"_id": project_oid})
 
-    # AGGRESSIVE STORAGE CLEANUP: Destroy the entire project data directory
-    import shutil
-    import os
-    data_dir = os.path.abspath(os.path.join("data", project_id))
-    data_root = os.path.abspath("data")
-    if not data_dir.startswith(data_root + os.sep):
-        raise HTTPException(status_code=400, detail="Invalid project directory path")
-    if os.path.exists(data_dir):
-        shutil.rmtree(data_dir, ignore_errors=True)
+        # AGGRESSIVE STORAGE CLEANUP: Destroy the entire project data directory
+        import shutil
+        import os
+        data_dir = os.path.abspath(os.path.join("data", project_id))
+        data_root = os.path.abspath("data")
+        if not data_dir.startswith(data_root + os.sep):
+            raise HTTPException(status_code=400, detail="Invalid project directory path")
+        if os.path.exists(data_dir):
+            shutil.rmtree(data_dir, ignore_errors=True)
 
-    await invalidate_after_project_delete(user["_id"], project_id)
-    return {"message": "Project deleted"}
+        await invalidate_after_project_delete(user["_id"], project_id)
+        response = {"message": "Project deleted"}
+        await complete_idempotent_operation(idempotency_context, status_code=200, response_body=response)
+        return response
+    except Exception as exc:
+        await fail_idempotent_operation(idempotency_context, error_message=str(exc))
+        raise

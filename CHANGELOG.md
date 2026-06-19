@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.10.0] - Idempotency for JSON Write Operations
+### Added
+- **Idempotency core module**: `backend/app/core/idempotency.py`
+  - Supports `Idempotency-Key` and `X-Idempotency-Key` headers.
+  - Canonical request hashing to bind a key to one payload.
+  - Mongo-backed idempotency lifecycle: `IN_PROGRESS`, `COMPLETED`, `FAILED`.
+  - Replay support for completed requests using stored response payload.
+- **Idempotency storage indexes** in `backend/app/core/database.py`:
+  - `idemp_user_endpoint_key_uq` (unique): `(user_id, endpoint, key)`
+  - `idemp_expires_ttl` (TTL): `expires_at`
+  - `idemp_status_updated_idx`: `(status, updated_at)`
+
+### Changed
+- **Projects API idempotency coverage** (`backend/app/api/projects.py`)
+  - `POST /api/v1/projects`
+  - `PATCH /api/v1/projects/{project_id}`
+  - `DELETE /api/v1/projects/{project_id}`
+- **Uploads API idempotency coverage** (`backend/app/api/uploads.py`)
+  - `POST /api/v1/projects/{project_id}/uploads`
+  - `POST /api/v1/projects/{project_id}/uploads/file`
+  - `POST /api/v1/projects/{project_id}/uploads/music`
+  - `PATCH /api/v1/projects/{project_id}/uploads/reorder`
+  - `DELETE /api/v1/projects/{project_id}/uploads/{upload_id}`
+- **Health index diagnostics** (`backend/app/api/health.py`)
+  - Added `idempotency_keys` expected index set to `/api/v1/health/indexes` report.
+- **API tests**
+  - Updated `backend/tests/api/test_endpoints.py` to assert `idempotency_keys` in index diagnostics collections.
+- **Documentation updates**
+  - `README.md`: added full idempotency usage guide for write retries.
+  - `PROMPTS.md`: added Prompt 0.8 for idempotency implementation policy.
+
+### Validation
+- Backend tests: `53 passed` after idempotency integration.
+
 ## [17.9.0] - Index Diagnostics Endpoint (`/api/v1/health/indexes`)
 ### Added
 - **Read-only index diagnostics endpoint** in `backend/app/api/health.py`:

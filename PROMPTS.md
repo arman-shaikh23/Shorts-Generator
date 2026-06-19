@@ -216,6 +216,31 @@ Rules:
 - Speeds up production validation by avoiding manual shell checks.
 - Helps verify startup index bootstrap behavior without direct database access.
 
+## Prompt 0.8: Idempotency for Write Operations
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Implement idempotency for write operations to make client retries safe.
+
+Rules:
+1) Support `Idempotency-Key` header (and optional alias `X-Idempotency-Key`).
+2) Scope idempotency by authenticated user + endpoint + key.
+3) Hash request payload and reject same key used with different payload (`409`).
+4) Persist idempotency state in Mongo with statuses (`IN_PROGRESS`, `COMPLETED`, `FAILED`).
+5) Replay stored response when same key + same payload is retried.
+6) Add TTL cleanup for stale idempotency records.
+7) Keep behavior backward compatible when no idempotency key is provided.
+8) Apply first to high-impact project/uploads mutations; include multipart upload endpoints using safe metadata-based hashing when full body hashing is impractical.
+9) Update docs and changelog with client usage guidance.
+```
+
+### Why This Prompt Exists
+- Prevents duplicate writes caused by retries/timeouts.
+- Makes API behavior deterministic under unstable network conditions.
+- Protects data consistency for create/update/delete flows.
+- Preserves existing clients by making idempotency opt-in.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt

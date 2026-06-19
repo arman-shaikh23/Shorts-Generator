@@ -166,12 +166,50 @@ Implemented in `backend/app/core/database.py` during Mongo connection bootstrap.
 - `uploads.userId + status` for user-level upload/status counts.
 - `generated_shorts.userId + createdAt(desc)` for history listing and sort.
 - `generated_shorts.projectId` for project-level generated count and cleanup queries.
+- `idempotency_keys.user_id + endpoint + key` (unique) for retry deduplication scope.
+- `idempotency_keys.expires_at` (TTL) for automatic key cleanup.
+- `idempotency_keys.status + updated_at` for idempotency state diagnostics.
 
 ### Operational Notes
 - Index creation runs on every startup and is idempotent.
 - Startup does not crash if an index creation fails; failures are logged with `[MONGO INDEX]`.
 - Read-only diagnostics endpoint: `GET /api/v1/health/indexes` lists expected/actual/missing indexes per critical collection.
 - Validate usage with Mongo `explain()` and ensure winning plans use `IXSCAN`.
+
+## Idempotency for Write Operations (Retry Safety Layer)
+ReelForge now supports optional idempotency keys for critical JSON write endpoints so network retries do not duplicate writes.
+
+### Header Contract
+- Request header: `Idempotency-Key: <client_generated_unique_key>`
+- Alias header also accepted: `X-Idempotency-Key`
+- No key provided: endpoint behaves normally (backward compatible).
+
+### Write Endpoints Covered
+- `POST /api/v1/projects`
+- `PATCH /api/v1/projects/{project_id}`
+- `DELETE /api/v1/projects/{project_id}`
+- `POST /api/v1/projects/{project_id}/uploads`
+- `POST /api/v1/projects/{project_id}/uploads/file`
+- `POST /api/v1/projects/{project_id}/uploads/music`
+- `PATCH /api/v1/projects/{project_id}/uploads/reorder`
+- `DELETE /api/v1/projects/{project_id}/uploads/{upload_id}`
+
+### Behavior
+- First request with a new key: operation executes normally and response is stored.
+- Retry with same key + same payload: stored response is replayed (no duplicate write).
+- Same key + different payload: `409` conflict (`Idempotency-Key already used with a different request payload`).
+- Same key while first request is still processing: `409` conflict.
+
+### Storage Model
+- Collection: `idempotency_keys`
+- Unique index: `(user_id, endpoint, key)`
+- TTL index on `expires_at` (automatic cleanup)
+- Key status lifecycle: `IN_PROGRESS -> COMPLETED` (or `FAILED` on error)
+
+### Operational Notes
+- Designed for client retries after timeout/connection drops.
+- Use a fresh key for a new business action.
+- Reuse the exact same key only when retrying the same action.
 
 ## Streaming Uploads (Large Files)
 ReelForge now streams incoming file uploads in chunks and never loads the full upload into memory.

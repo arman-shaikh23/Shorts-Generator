@@ -21,6 +21,11 @@ EXPECTED_INDEXES = {
         "uploads_user_status_idx",
     },
     "generated_shorts": {"shorts_user_createdAt_idx", "shorts_project_idx"},
+    "idempotency_keys": {
+        "idemp_user_endpoint_key_uq",
+        "idemp_expires_ttl",
+        "idemp_status_updated_idx",
+    },
 }
 
 
