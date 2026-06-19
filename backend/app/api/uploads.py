@@ -4,6 +4,7 @@ from typing import List, Optional
 import os
 import re
 import uuid
+import aiofiles
 from pathlib import Path
 import urllib.parse
 from ..core.cache import (
@@ -47,6 +48,54 @@ def sanitize_filename(filename: str, fallback_ext: str = ".bin") -> str:
     if cleaned:
         return cleaned
     return f"upload_{uuid.uuid4().hex}{fallback_ext}"
+
+
+def _remove_file_if_exists(path: str) -> None:
+    if os.path.exists(path):
+        try:
+            os.remove(path)
+        except OSError:
+            pass
+
+
+async def stream_upload_to_disk(
+    file: UploadFile,
+    destination_path: str,
+    *,
+    max_bytes: int,
+    chunk_size: int,
+) -> int:
+    total_bytes = 0
+    max_megabytes = max(1, max_bytes // (1024 * 1024))
+
+    try:
+        async with aiofiles.open(destination_path, "wb") as output_file:
+            while True:
+                chunk = await file.read(chunk_size)
+                if not chunk:
+                    break
+
+                total_bytes += len(chunk)
+                if total_bytes > max_bytes:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"File too large. Maximum allowed size is {max_megabytes} MB.",
+                    )
+                await output_file.write(chunk)
+    except HTTPException:
+        _remove_file_if_exists(destination_path)
+        raise
+    except Exception:
+        _remove_file_if_exists(destination_path)
+        raise
+    finally:
+        await file.close()
+
+    if total_bytes == 0:
+        _remove_file_if_exists(destination_path)
+        raise HTTPException(status_code=400, detail="Uploaded file is empty")
+
+    return total_bytes
 
 # ── Endpoints ───────────────────────────────────────────
 
@@ -103,6 +152,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     await verify_project_ownership(project_id, user)
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
+    settings = get_settings()
     now = datetime.datetime.utcnow()
 
     # 1. Save File Locally
@@ -112,10 +162,12 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     os.makedirs(project_dir, exist_ok=True)
     local_path = os.path.join(project_dir, clean_filename)
     
-    # We use sync file write for simplicity, chunked is better for huge files but this works for demo
-    contents = await file.read()
-    with open(local_path, "wb") as f:
-        f.write(contents)
+    file_size = await stream_upload_to_disk(
+        file,
+        local_path,
+        max_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
+        chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+    )
 
     # 2. Get order
     last = await db.uploads.find_one(
@@ -133,7 +185,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
         "previewPath": None,
         "thumbnailPath": None,
         "filename": clean_filename,
-        "fileSize": len(contents),
+        "fileSize": file_size,
         "duration": None,
         "status": "PENDING", # Let the worker handle the preview generation! We just need to modify worker to skip download if localPath exists!
         "roomType": None,
@@ -159,6 +211,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
 async def upload_custom_music(project_id: str, file: UploadFile = File(...), user=Depends(get_current_user)):
     """Handle custom music uploads (.mp3, .wav, .m4a)."""
     await verify_project_ownership(project_id, user)
+    settings = get_settings()
     ext = Path(file.filename or "").suffix.lower()
     if ext not in {".mp3", ".wav", ".m4a"}:
         raise HTTPException(status_code=400, detail="Unsupported audio format")
@@ -169,9 +222,12 @@ async def upload_custom_music(project_id: str, file: UploadFile = File(...), use
     safe_name = sanitize_filename(file.filename or "", fallback_ext=ext or ".mp3")
     local_path = os.path.join(music_dir, safe_name)
     
-    contents = await file.read()
-    with open(local_path, "wb") as f:
-        f.write(contents)
+    await stream_upload_to_disk(
+        file,
+        local_path,
+        max_bytes=settings.MAX_MUSIC_UPLOAD_BYTES,
+        chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
+    )
         
     return {"message": "Music uploaded successfully", "localPath": local_path, "filename": safe_name}
 

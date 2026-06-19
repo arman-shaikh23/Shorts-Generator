@@ -142,6 +142,33 @@ HTTP_POOL_TIMEOUT_SEC=30.0
 5. Use `/api/v1/health/pools` during load testing to validate timeout and wait behavior.
 6. Roll back by restoring previous env values; code remains backward compatible.
 
+## Streaming Uploads (Large Files)
+ReelForge now streams incoming file uploads in chunks and never loads the full upload into memory.
+
+### Where Streaming Is Applied
+- `POST /api/v1/projects/{project_id}/uploads/file` (video upload)
+- `POST /api/v1/projects/{project_id}/uploads/music` (custom music upload)
+- Internal write loop: reads chunk -> writes chunk -> repeats until EOF.
+
+### Why This Matters
+- Prevents RAM spikes when uploading large videos.
+- Improves multi-user upload stability under concurrency.
+- Allows deterministic API-level size enforcement with `413 Payload Too Large`.
+- Removes partial files automatically when upload fails or exceeds limits.
+
+### Streaming Upload Environment Settings
+Configure these in `backend/.env` if needed:
+
+```env
+UPLOAD_STREAM_CHUNK_SIZE=1048576
+MAX_VIDEO_UPLOAD_BYTES=2147483648
+MAX_MUSIC_UPLOAD_BYTES=104857600
+```
+
+- `UPLOAD_STREAM_CHUNK_SIZE`: bytes per read/write chunk (default 1MB).
+- `MAX_VIDEO_UPLOAD_BYTES`: max allowed size for `/uploads/file` requests.
+- `MAX_MUSIC_UPLOAD_BYTES`: max allowed size for `/uploads/music` requests.
+
 ## Pagination (Scalability Layer)
 ReelForge now exposes standardized pagination metadata for list-heavy APIs, while preserving legacy response fields.
 

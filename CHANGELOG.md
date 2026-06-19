@@ -1,6 +1,34 @@
 # Changelog
 
 All notable changes to this project will be documented in this file.
+
+## [17.6.0] - Streaming Large Uploads (Chunked, Memory-Safe API Boundaries)
+### Added
+- **Streaming upload controls in config** (`backend/app/core/config.py`)
+  - `UPLOAD_STREAM_CHUNK_SIZE`
+  - `MAX_VIDEO_UPLOAD_BYTES`
+  - `MAX_MUSIC_UPLOAD_BYTES`
+- **Reusable streaming helper** in `backend/app/api/uploads.py`
+  - `stream_upload_to_disk(...)` writes uploads chunk-by-chunk using async file I/O.
+  - Enforces endpoint-level max size limits with explicit `413` responses.
+  - Cleans up partial files on error and rejects empty uploads.
+- **Environment template updates**
+  - Added streaming upload settings to:
+    - `backend/.env.example`
+    - `backend/.env.small`
+    - `backend/.env.large`
+
+### Changed
+- **Uploads API** (`backend/app/api/uploads.py`)
+  - `POST /api/v1/projects/{project_id}/uploads/file` no longer uses full in-memory reads.
+  - `POST /api/v1/projects/{project_id}/uploads/music` no longer uses full in-memory reads.
+  - Both endpoints now stream chunks directly to disk and rely on configurable limits.
+- **Documentation**
+  - `README.md`: Added a dedicated "Streaming Uploads (Large Files)" section with behavior and env settings.
+  - `PROMPTS.md`: Added Prompt 0.5 for memory-safe, chunked upload boundary design.
+
+### Validation
+- Backend tests: `52 passed` after streaming-upload refactor.
   
 ## [17.5.0] - Redis Cache-Aside Layer with TTL and Versioned Invalidation
 ### Added

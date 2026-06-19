@@ -142,6 +142,30 @@ Rules:
 - Provides deterministic invalidation at O(1) cost.
 - Maintains production safety by default-disabled rollout and graceful fallback.
 
+## Prompt 0.5: Streaming Large Uploads at API Boundaries
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Refactor upload endpoints so large files are streamed to disk and never read fully into memory.
+
+Rules:
+1) Replace full-file reads (`await file.read()`) with chunked streaming loops.
+2) Write chunks incrementally to disk with async file I/O.
+3) Enforce max upload sizes for video and music endpoints.
+4) Return 413 when limits are exceeded.
+5) Clean up partial files on any error path.
+6) Keep API contracts backward compatible where possible.
+7) Make chunk size and limits configurable in environment settings.
+8) Update README and CHANGELOG with operational guidance.
+```
+
+### Why This Prompt Exists
+- Prevents memory pressure and process instability during large uploads.
+- Improves throughput under concurrent uploads.
+- Makes upload failure behavior deterministic and safe (no partial file leftovers).
+- Supports production tuning via environment-based chunk and size controls.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt
