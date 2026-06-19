@@ -142,6 +142,37 @@ HTTP_POOL_TIMEOUT_SEC=30.0
 5. Use `/api/v1/health/pools` during load testing to validate timeout and wait behavior.
 6. Roll back by restoring previous env values; code remains backward compatible.
 
+## Database Indexing (Query Performance Layer)
+ReelForge now ensures critical MongoDB indexes at startup to accelerate hot query paths.
+
+### Why Indexing Matters
+- Replaces expensive collection scans with index scans on high-traffic endpoints.
+- Improves response latency for paginated lists and sorted reads.
+- Stabilizes worker throughput for pending-upload polling and status transitions.
+- Supports refresh-token lifecycle with TTL-based automatic cleanup.
+
+### Indexes Ensured at Startup
+Implemented in `backend/app/core/database.py` during Mongo connection bootstrap.
+
+- `users.email` (unique) for signup/login lookups.
+- `refresh_tokens.token` (unique) for refresh token lookup.
+- `refresh_tokens.expires_at` (TTL) for automatic expired-token deletion.
+- `refresh_tokens.family + is_revoked` for family-wide revocation checks.
+- `refresh_tokens.user_id + is_revoked` for logout/session revocation.
+- `projects.userId + updatedAt(desc)` for project listing and sort.
+- `uploads.projectId + order` for ordered upload listing and tail lookup.
+- `uploads.projectId + status + order` for analyzed/duplicate/status-specific project upload reads.
+- `uploads.status + uploadedAt` for pending worker polling/query progression.
+- `uploads.userId + status` for user-level upload/status counts.
+- `generated_shorts.userId + createdAt(desc)` for history listing and sort.
+- `generated_shorts.projectId` for project-level generated count and cleanup queries.
+
+### Operational Notes
+- Index creation runs on every startup and is idempotent.
+- Startup does not crash if an index creation fails; failures are logged with `[MONGO INDEX]`.
+- Read-only diagnostics endpoint: `GET /api/v1/health/indexes` lists expected/actual/missing indexes per critical collection.
+- Validate usage with Mongo `explain()` and ensure winning plans use `IXSCAN`.
+
 ## Streaming Uploads (Large Files)
 ReelForge now streams incoming file uploads in chunks and never loads the full upload into memory.
 
@@ -155,19 +186,26 @@ ReelForge now streams incoming file uploads in chunks and never loads the full u
 - Improves multi-user upload stability under concurrency.
 - Allows deterministic API-level size enforcement with `413 Payload Too Large`.
 - Removes partial files automatically when upload fails or exceeds limits.
+- Rejects non-video payloads (for example `.jpg`) on the video upload endpoint.
 
 ### Streaming Upload Environment Settings
 Configure these in `backend/.env` if needed:
 
 ```env
 UPLOAD_STREAM_CHUNK_SIZE=1048576
-MAX_VIDEO_UPLOAD_BYTES=2147483648
+MAX_VIDEO_UPLOAD_BYTES=10737418240
 MAX_MUSIC_UPLOAD_BYTES=104857600
 ```
 
 - `UPLOAD_STREAM_CHUNK_SIZE`: bytes per read/write chunk (default 1MB).
-- `MAX_VIDEO_UPLOAD_BYTES`: max allowed size for `/uploads/file` requests.
+- `MAX_VIDEO_UPLOAD_BYTES`: max allowed size for a **single** `/uploads/file` request (10GB default).
 - `MAX_MUSIC_UPLOAD_BYTES`: max allowed size for `/uploads/music` requests.
+
+### Video Input Validation Rules (`/uploads/file`)
+- File extension must be a supported video type (`.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.m4v`).
+- Image MIME types are rejected (`image/*`), so `.jpg`/`.jpeg`/`.png` uploads are blocked.
+- Uploaded file is verified with `ffprobe` to confirm it contains a real video stream.
+- If validation fails, the API returns `415 Unsupported Media Type`.
 
 ## Pagination (Scalability Layer)
 ReelForge now exposes standardized pagination metadata for list-heavy APIs, while preserving legacy response fields.

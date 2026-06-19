@@ -1,10 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from pydantic import BaseModel
 from typing import List, Optional
+import asyncio
 import os
 import re
+import json
 import uuid
 import aiofiles
+import subprocess
 from pathlib import Path
 import urllib.parse
 from ..core.cache import (
@@ -21,6 +24,16 @@ from ..core.pagination import build_pagination_meta, normalize_limit, resolve_pa
 import datetime
 
 router = APIRouter(prefix="/projects/{project_id}/uploads", tags=["Uploads"])
+
+ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
+ALLOWED_VIDEO_CONTENT_TYPES = {
+    "video/mp4",
+    "video/quicktime",
+    "video/x-matroska",
+    "video/x-msvideo",
+    "video/webm",
+    "application/octet-stream",
+}
 
 # ── Request Models ──────────────────────────────────────
 
@@ -56,6 +69,54 @@ def _remove_file_if_exists(path: str) -> None:
             os.remove(path)
         except OSError:
             pass
+
+
+def _has_video_stream(path: str) -> bool:
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=codec_type",
+        "-of",
+        "json",
+        path,
+    ]
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    except Exception:
+        return False
+
+    if result.returncode != 0:
+        return False
+    try:
+        parsed = json.loads(result.stdout or "{}")
+    except json.JSONDecodeError:
+        return False
+    return bool(parsed.get("streams"))
+
+
+def _validate_video_upload_metadata(file: UploadFile) -> str:
+    extension = Path(file.filename or "").suffix.lower()
+    if extension not in ALLOWED_VIDEO_EXTENSIONS:
+        allowed = ", ".join(sorted(ALLOWED_VIDEO_EXTENSIONS))
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported file extension for video upload. Allowed: {allowed}.",
+        )
+
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    if content_type.startswith("image/"):
+        raise HTTPException(status_code=415, detail="Image files are not allowed on video upload endpoint.")
+    if content_type and content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_VIDEO_CONTENT_TYPES))
+        raise HTTPException(
+            status_code=415,
+            detail=f"Unsupported content type for video upload. Allowed: {allowed_types}.",
+        )
+    return extension
 
 
 async def stream_upload_to_disk(
@@ -156,7 +217,7 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
     now = datetime.datetime.utcnow()
 
     # 1. Save File Locally
-    extension = Path(file.filename or "").suffix or ".mp4"
+    extension = _validate_video_upload_metadata(file)
     clean_filename = sanitize_filename(file.filename or "", fallback_ext=extension)
     project_dir = f"data/{project_id}/downloads"
     os.makedirs(project_dir, exist_ok=True)
@@ -168,6 +229,10 @@ async def upload_local_file(project_id: str, file: UploadFile = File(...), user=
         max_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
         chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
     )
+    has_video_stream = await asyncio.to_thread(_has_video_stream, local_path)
+    if not has_video_stream:
+        _remove_file_if_exists(local_path)
+        raise HTTPException(status_code=415, detail="Uploaded file is not a valid video stream.")
 
     # 2. Get order
     last = await db.uploads.find_one(

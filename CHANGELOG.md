@@ -2,6 +2,69 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.9.0] - Index Diagnostics Endpoint (`/api/v1/health/indexes`)
+### Added
+- **Read-only index diagnostics endpoint** in `backend/app/api/health.py`:
+  - `GET /api/v1/health/indexes`
+  - Returns per-collection `expected_indexes`, `actual_indexes`, and `missing_indexes`.
+  - Returns aggregate status (`ok` / `degraded`) and `missing_total`.
+  - Covers critical collections: `users`, `refresh_tokens`, `projects`, `uploads`, `generated_shorts`.
+- **API test coverage**
+  - Added `test_index_health_endpoint` in `backend/tests/api/test_endpoints.py`.
+  - Verifies response payload shape and critical collection presence.
+
+### Changed
+- **Documentation updates**
+  - `README.md`: Database Indexing section now includes diagnostics endpoint usage.
+  - `PROMPTS.md`: added Prompt 0.7 for index health visibility and verification workflow.
+
+### Validation
+- Backend tests: `53 passed` after index diagnostics endpoint integration.
+
+## [17.8.0] - MongoDB Indexing for Hot Query Paths
+### Added
+- **Startup index bootstrap** in `backend/app/core/database.py`
+  - Added `ensure_database_indexes(...)` to create indexes during Mongo connection startup.
+  - Added safe index creation helper with structured warning logs (`[MONGO INDEX]`) on failures.
+- **Indexes for core query patterns**
+  - `users.email` unique index for auth lookup.
+  - `refresh_tokens.token` unique index for token lookup.
+  - `refresh_tokens.expires_at` TTL index for automatic expired-token cleanup.
+  - `refresh_tokens.family + is_revoked` and `refresh_tokens.user_id + is_revoked` for revocation flows.
+  - `projects.userId + updatedAt(desc)` for projects listing.
+  - `uploads.projectId + order` for ordered upload list/tail queries.
+  - `uploads.projectId + status + order`, `uploads.status + uploadedAt`, `uploads.userId + status` for worker and status/count paths.
+  - `generated_shorts.userId + createdAt(desc)` and `generated_shorts.projectId` for history and project-level generated queries.
+
+### Changed
+- **Mongo connection startup flow**
+  - `connect_to_mongo()` now ensures indexes immediately after successful DB initialization.
+- **Documentation updates**
+  - `README.md`: added "Database Indexing (Query Performance Layer)" with strategy and operational notes.
+  - `PROMPTS.md`: added Prompt 0.6 for index-driven performance hardening.
+
+### Validation
+- Backend tests: `52 passed` after index bootstrap integration.
+
+## [17.7.0] - Strict Video Upload Validation (10GB Single File + Non-Video Rejection)
+### Added
+- **Video input validation layer** in `backend/app/api/uploads.py` for `POST /api/v1/projects/{project_id}/uploads/file`:
+  - Extension allowlist (`.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.m4v`).
+  - Content-Type guard rejecting image payloads (`image/*`) so `.jpg/.jpeg/.png` cannot be uploaded as videos.
+  - Post-save media verification via `ffprobe` to ensure uploaded payload contains a real video stream.
+  - Explicit `415 Unsupported Media Type` errors for invalid media types.
+
+### Changed
+- **Single video size cap default**:
+  - `MAX_VIDEO_UPLOAD_BYTES` changed to `10737418240` (10GB) in:
+    - `backend/app/core/config.py`
+    - `backend/.env.example`
+    - `backend/.env.small`
+    - `backend/.env.large`
+- **Documentation updates**:
+  - `README.md`: clarified single-file 10GB cap and video validation/rejection behavior.
+  - `PROMPTS.md`: strengthened Prompt 0.5 with 10GB single-file and non-video rejection requirements.
+
 ## [17.6.0] - Streaming Large Uploads (Chunked, Memory-Safe API Boundaries)
 ### Added
 - **Streaming upload controls in config** (`backend/app/core/config.py`)

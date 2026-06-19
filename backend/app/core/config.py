@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     OUTPUTS_DIR: str = "outputs"
     # Streaming upload controls
     UPLOAD_STREAM_CHUNK_SIZE: int = 1048576
-    MAX_VIDEO_UPLOAD_BYTES: int = 2147483648
+    MAX_VIDEO_UPLOAD_BYTES: int = 10737418240
     MAX_MUSIC_UPLOAD_BYTES: int = 104857600
 
     # Shared outbound HTTP connection pool

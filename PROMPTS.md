@@ -153,18 +153,68 @@ Rules:
 1) Replace full-file reads (`await file.read()`) with chunked streaming loops.
 2) Write chunks incrementally to disk with async file I/O.
 3) Enforce max upload sizes for video and music endpoints.
-4) Return 413 when limits are exceeded.
-5) Clean up partial files on any error path.
-6) Keep API contracts backward compatible where possible.
-7) Make chunk size and limits configurable in environment settings.
-8) Update README and CHANGELOG with operational guidance.
+4) Keep single-video upload cap at 10GB (`MAX_VIDEO_UPLOAD_BYTES=10737418240`) unless explicitly changed.
+5) Reject non-video uploads on `/uploads/file` (including `.jpg/.jpeg/.png`) with `415`.
+6) Validate uploaded media is an actual video stream (not just file extension).
+7) Return `413` when size limits are exceeded.
+8) Clean up partial files on any error path.
+9) Keep API contracts backward compatible where possible.
+10) Make chunk size and limits configurable in environment settings.
+11) Update README and CHANGELOG with operational guidance.
 ```
 
 ### Why This Prompt Exists
 - Prevents memory pressure and process instability during large uploads.
 - Improves throughput under concurrent uploads.
 - Makes upload failure behavior deterministic and safe (no partial file leftovers).
+- Prevents incorrect media types (like images) from entering the video pipeline.
 - Supports production tuning via environment-based chunk and size controls.
+
+## Prompt 0.6: MongoDB Indexing for Hot Query Paths
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Add database indexing for real query patterns without changing API contracts.
+
+Rules:
+1) Identify high-frequency query filters and sort fields from API and worker code.
+2) Create indexes during startup in the Mongo connection bootstrap path.
+3) Cover auth lookups, project/history pagination sorts, upload ordering/status flows, and token lifecycle operations.
+4) Add TTL index for refresh token expiration cleanup.
+5) Keep index creation idempotent and safe across restarts.
+6) Log index creation outcomes for observability.
+7) Keep startup resilient: index failures should be visible in logs.
+8) Update README and CHANGELOG with index strategy and operational notes.
+```
+
+### Why This Prompt Exists
+- Reduces query latency by avoiding collection scans on list and worker paths.
+- Improves scalability for user/project growth without API contract changes.
+- Keeps auth/session operations predictable under load.
+- Adds automatic cleanup for expired refresh tokens through TTL indexing.
+
+## Prompt 0.7: Index Diagnostics Endpoint (Read-Only Health Visibility)
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Add a read-only health endpoint that reports Mongo index readiness.
+
+Rules:
+1) Add endpoint at `/api/v1/health/indexes`.
+2) Return expected indexes, actual indexes, and missing indexes per critical collection.
+3) Report aggregate status (`ok` or `degraded`) and total missing count.
+4) Do not expose secrets, credentials, or connection URIs.
+5) Keep endpoint additive and backward compatible.
+6) Add API test coverage for payload shape and core collection presence.
+7) Update README and CHANGELOG with usage notes.
+```
+
+### Why This Prompt Exists
+- Makes index drift visible in environments after migrations or manual DB changes.
+- Speeds up production validation by avoiding manual shell checks.
+- Helps verify startup index bootstrap behavior without direct database access.
 
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
