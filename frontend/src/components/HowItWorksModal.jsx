@@ -11,6 +11,7 @@ export default function HowItWorksModal({
 }) {
   const modalRef = useRef(null);
   const videoRef = useRef(null);
+  const closeBtnRef = useRef(null);
   const [isMuted, setIsMuted] = useState(true);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -29,19 +30,42 @@ export default function HowItWorksModal({
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+
+      if (e.key !== 'Tab' || !modalRef.current) return;
+
+      const focusable = modalRef.current.querySelectorAll(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusable.length) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
 
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      // Prevent body scrolling when modal is open
       document.body.style.overflow = 'hidden';
-    }
+      const focusTimer = window.setTimeout(() => closeBtnRef.current?.focus(), 0);
 
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-      document.body.style.overflow = 'unset';
-    };
+      return () => {
+        window.clearTimeout(focusTimer);
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = 'unset';
+      };
+    }
+    return undefined;
   }, [isOpen, onClose]);
 
   if (!isOpen) return null;
@@ -58,15 +82,22 @@ export default function HowItWorksModal({
       onClick={handleBackdropClick}
     >
       <div 
-        ref={modalRef} 
+        ref={modalRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="how-it-works-title"
+        aria-describedby="how-it-works-description"
+        tabIndex={-1}
         className="relative w-full max-w-4xl max-h-[90vh] bg-white dark:bg-[#0F172A] rounded-2xl shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in-95 duration-200"
       >
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+          <h2 id="how-it-works-title" className="text-xl font-semibold text-gray-900 dark:text-white">
             {title}
           </h2>
           <button 
+            ref={closeBtnRef}
+            type="button"
             onClick={onClose}
             className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
             aria-label="Close modal"
@@ -77,7 +108,7 @@ export default function HowItWorksModal({
 
         {/* Description / Content */}
         <div className="px-5 py-3 flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/30">
-          <p className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-snug">
+          <p id="how-it-works-description" className="text-gray-600 dark:text-gray-300 text-xs md:text-sm leading-snug">
             {description}
           </p>
           <div className="mt-2.5 grid grid-cols-2 sm:grid-cols-4 gap-2 text-[11px] md:text-xs font-medium text-gray-700 dark:text-gray-300">
@@ -130,6 +161,7 @@ export default function HowItWorksModal({
 
           {/* Custom Audio Toggle */}
           <button 
+            type="button"
             onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
             className="absolute top-4 right-4 p-2.5 bg-black/60 hover:bg-black/80 backdrop-blur-md text-white rounded-full transition-colors shadow-lg z-20"
             aria-label={isMuted ? "Unmute video" : "Mute video"}

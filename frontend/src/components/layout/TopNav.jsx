@@ -37,39 +37,40 @@ export function TopNav() {
   };
 
   return (
-    <header className="sticky top-0 z-50 h-[80px] w-full bg-white/80 backdrop-blur-[20px] border-b border-[#E2E8F0] shadow-sm flex items-center px-8">
-      {/* Left: Logo */}
-      <Link to="/dashboard" className="flex items-center gap-3 shrink-0 mr-12">
-        <div className="w-10 h-10 rounded-xl bg-gradient-aurora flex items-center justify-center shadow-lg shadow-[#0EA5E9]/20">
-          <Play size={18} fill="white" className="ml-0.5 text-white" />
-        </div>
-        <span className="text-2xl font-bold tracking-tight text-[#0F172A]">ReelForge</span>
-      </Link>
+    <header className="sticky top-0 z-50 w-full border-b border-[#E2E8F0] bg-white/85 shadow-[0_8px_24px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+      <div className="mx-auto flex h-[76px] w-full max-w-[1600px] items-center px-4 md:px-8">
+        {/* Left: Logo */}
+        <Link to="/dashboard" className="mr-8 flex shrink-0 items-center gap-3 rounded-xl px-1 py-1">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-aurora shadow-lg shadow-[#0EA5E9]/20">
+            <Play size={18} fill="white" className="ml-0.5 text-white" />
+          </div>
+          <span className="text-2xl font-bold tracking-tight text-[#0F172A]">ReelForge</span>
+        </Link>
 
-      {/* Center: Navigation Links */}
-      <nav className="flex items-center gap-8 flex-1">
-        {navItems.map((item) => {
-          const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
-          return (
-            <Link
-              key={item.to}
-              to={item.to}
-              className={cn(
-                'text-sm font-medium transition-colors relative py-2',
-                isActive ? 'text-[#0F172A]' : 'text-[#64748B] hover:text-[#0EA5E9]'
-              )}
-            >
-              {item.label}
-              {isActive && (
-                <span className="absolute bottom-[-1px] left-0 w-full h-[2px] bg-[#0EA5E9] rounded-t-full" />
-              )}
-            </Link>
-          );
-        })}
-      </nav>
+        {/* Center: Navigation Links */}
+        <nav className="flex flex-1 items-center gap-2 md:gap-3">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.to || (item.to !== '/dashboard' && location.pathname.startsWith(item.to));
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'rounded-xl px-3 py-2 text-sm font-semibold transition-colors',
+                  isActive
+                    ? 'bg-[#EFF6FF] text-[#0369A1] shadow-[inset_0_0_0_1px_rgba(14,165,233,0.18)]'
+                    : 'text-[#64748B] hover:bg-[#F8FAFC] hover:text-[#0EA5E9]'
+                )}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
 
-      {/* Right: Actions */}
-      <div className="flex items-center gap-5 shrink-0">
+        {/* Right: Actions */}
+        <div className="flex shrink-0 items-center gap-4">
         {/* <button className="text-[#64748B] hover:text-[#0F172A] transition">
           <Search size={20} />
         </button> */}
@@ -78,33 +79,42 @@ export function TopNav() {
           <span className="absolute top-0 right-0 w-2 h-2 bg-red-500 rounded-full border-2 border-white"></span>
         </button> */}
         
-        <div className="w-px h-6 bg-[#E2E8F0] mx-1"></div>
+          <div className="mx-1 h-6 w-px bg-[#E2E8F0]" />
         
-        {/* How It Works Button */}
-        <button 
-          onClick={() => setShowHowItWorks(true)}
-          className="flex items-center gap-1.5 text-sm font-medium text-[#64748B] hover:text-[#0EA5E9] hover:scale-105 transition-all duration-200"
-        >
-          <PlayCircle size={16} className="text-[#0EA5E9]" />
-          How It Works
-        </button>
+          {/* How It Works Button */}
+          <button
+            onClick={() => setShowHowItWorks(true)}
+            className="inline-flex items-center gap-1.5 rounded-xl px-2 py-2 text-sm font-semibold text-[#64748B] transition hover:bg-[#F8FAFC] hover:text-[#0EA5E9]"
+          >
+            <PlayCircle size={16} className="text-[#0EA5E9]" />
+            How It Works
+          </button>
 
-        <div className="w-px h-6 bg-[#E2E8F0] mx-1"></div>
+          <div className="mx-1 h-6 w-px bg-[#E2E8F0]" />
 
-        {/* Profile Dropdown (Simplified) */}
-        <div className="flex items-center gap-3 cursor-pointer group">
-          <div className="w-9 h-9 rounded-full bg-gradient-aurora text-white flex items-center justify-center text-xs font-bold shadow-md">
-            {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+          {/* Profile Dropdown (Simplified) */}
+          <div className="flex cursor-pointer items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-aurora text-xs font-bold text-white shadow-md">
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </div>
           </div>
+
+          <button
+            onClick={logout}
+            className="rounded-lg p-1 text-[#64748B] transition hover:text-red-500"
+            title="Log out"
+            aria-label="Log out"
+          >
+            <LogOut size={18} />
+          </button>
+
+          <button
+            onClick={handleCreateProject}
+            className="ml-1 inline-flex items-center gap-2 rounded-xl bg-gradient-aurora px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-[#0EA5E9]/20 transition hover:-translate-y-0.5 active:translate-y-0"
+          >
+            <Plus size={16} /> Create Reel
+          </button>
         </div>
-
-        <button onClick={logout} className="text-[#64748B] hover:text-red-500 transition" title="Log out">
-          <LogOut size={18} />
-        </button>
-
-        <button onClick={handleCreateProject} className="ml-2 bg-gradient-aurora text-white px-5 py-2.5 rounded-xl text-sm font-bold shadow-lg shadow-[#0EA5E9]/20 hover:scale-105 transition-transform active:scale-95 flex items-center gap-2">
-          <Plus size={16} /> Create Reel
-        </button>
       </div>
 
       <HowItWorksModal 
