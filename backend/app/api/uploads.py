@@ -31,6 +31,9 @@ import datetime
 router = APIRouter(prefix="/projects/{project_id}/uploads", tags=["Uploads"])
 
 ALLOWED_VIDEO_EXTENSIONS = {".mp4", ".mov", ".mkv", ".avi", ".webm", ".m4v"}
+ALLOWED_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".gif"}
+ALLOWED_MEDIA_EXTENSIONS = ALLOWED_VIDEO_EXTENSIONS | ALLOWED_IMAGE_EXTENSIONS
+
 ALLOWED_VIDEO_CONTENT_TYPES = {
     "video/mp4",
     "video/quicktime",
@@ -39,6 +42,15 @@ ALLOWED_VIDEO_CONTENT_TYPES = {
     "video/webm",
     "application/octet-stream",
 }
+ALLOWED_IMAGE_CONTENT_TYPES = {
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/bmp",
+    "image/tiff",
+    "image/gif",
+}
+ALLOWED_MEDIA_CONTENT_TYPES = ALLOWED_VIDEO_CONTENT_TYPES | ALLOWED_IMAGE_CONTENT_TYPES
 
 # ── Request Models ──────────────────────────────────────
 
@@ -66,6 +78,57 @@ def sanitize_filename(filename: str, fallback_ext: str = ".bin") -> str:
     if cleaned:
         return cleaned
     return f"upload_{uuid.uuid4().hex}{fallback_ext}"
+
+
+def _is_youtube_host(host: str) -> bool:
+    h = (host or "").lower().split(":")[0]
+    if h in {"youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com", "youtu.be"}:
+        return True
+    return h.endswith(".youtube.com")
+
+
+def _validate_remote_url(url: str) -> urllib.parse.ParseResult:
+    parsed = urllib.parse.urlparse((url or "").strip())
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise HTTPException(
+            status_code=422,
+            detail="Invalid URL. Please provide a full http(s) link.",
+        )
+    return parsed
+
+
+def _extract_youtube_video_id(parsed: urllib.parse.ParseResult) -> str:
+    host = (parsed.netloc or "").lower().split(":")[0]
+    if host == "youtu.be":
+        return (parsed.path or "").strip("/").split("/")[0]
+
+    params = urllib.parse.parse_qs(parsed.query or "")
+    if params.get("v"):
+        return params["v"][0]
+
+    path_parts = [p for p in (parsed.path or "").split("/") if p]
+    if len(path_parts) >= 2 and path_parts[0] in {"shorts", "live"}:
+        return path_parts[1]
+    return ""
+
+
+def _filename_from_remote_url(url: str, fallback_index: int) -> str:
+    parsed = _validate_remote_url(url)
+    host = (parsed.netloc or "").lower().split(":")[0]
+
+    if _is_youtube_host(host):
+        video_id = re.sub(r"[^A-Za-z0-9_-]", "", _extract_youtube_video_id(parsed))[:32]
+        suffix = video_id or f"url_{fallback_index}"
+        return f"youtube_{suffix}.mp4"
+
+    candidate = Path(urllib.parse.unquote(parsed.path or "")).name
+    if candidate:
+        safe_name = sanitize_filename(candidate, fallback_ext=".mp4")
+        if not Path(safe_name).suffix:
+            safe_name = f"{safe_name}.mp4"
+        return safe_name
+
+    return f"video_{fallback_index}.mp4"
 
 
 def _remove_file_if_exists(path: str) -> None:
@@ -103,25 +166,25 @@ def _has_video_stream(path: str) -> bool:
     return bool(parsed.get("streams"))
 
 
-def _validate_video_upload_metadata(file: UploadFile) -> str:
+def _validate_media_upload_metadata(file: UploadFile) -> tuple[str, str]:
     extension = Path(file.filename or "").suffix.lower()
-    if extension not in ALLOWED_VIDEO_EXTENSIONS:
-        allowed = ", ".join(sorted(ALLOWED_VIDEO_EXTENSIONS))
+    if extension not in ALLOWED_MEDIA_EXTENSIONS:
+        allowed = ", ".join(sorted(ALLOWED_MEDIA_EXTENSIONS))
         raise HTTPException(
             status_code=415,
-            detail=f"Unsupported file extension for video upload. Allowed: {allowed}.",
+            detail=f"Unsupported file extension for upload. Allowed: {allowed}.",
         )
 
     content_type = (file.content_type or "").split(";")[0].strip().lower()
-    if content_type.startswith("image/"):
-        raise HTTPException(status_code=415, detail="Image files are not allowed on video upload endpoint.")
-    if content_type and content_type not in ALLOWED_VIDEO_CONTENT_TYPES:
-        allowed_types = ", ".join(sorted(ALLOWED_VIDEO_CONTENT_TYPES))
+    if content_type and content_type not in ALLOWED_MEDIA_CONTENT_TYPES:
+        allowed_types = ", ".join(sorted(ALLOWED_MEDIA_CONTENT_TYPES))
         raise HTTPException(
             status_code=415,
-            detail=f"Unsupported content type for video upload. Allowed: {allowed_types}.",
+            detail=f"Unsupported content type for upload. Allowed: {allowed_types}.",
         )
-    return extension
+
+    media_type = "image" if extension in ALLOWED_IMAGE_EXTENSIONS else "video"
+    return extension, media_type
 
 
 async def stream_upload_to_disk(
@@ -167,7 +230,7 @@ async def stream_upload_to_disk(
 
 @router.post("")
 async def add_uploads(project_id: str, req: AddUrlsRequest, request: Request, user=Depends(get_current_user)):
-    """Add video URLs to a project. Creates upload records with PENDING status."""
+    """Add media URLs to a project. Creates upload records with PENDING status."""
     await verify_project_ownership(project_id, user)
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
@@ -193,17 +256,20 @@ async def add_uploads(project_id: str, req: AddUrlsRequest, request: Request, us
 
         created = []
         for i, url in enumerate(req.urls):
+            normalized_url = (url or "").strip()
+            inferred_filename = _filename_from_remote_url(normalized_url, start_order + i)
             upload = {
                 "projectId": project_id,
                 "userId": user["_id"],
-                "originalUrl": url,
+                "originalUrl": normalized_url,
                 "localPath": None,
                 "previewPath": None,
                 "thumbnailPath": None,
-                "filename": url.split("/")[-1].split("?")[0] or f"video_{start_order + i}.mp4",
+                "filename": inferred_filename,
                 "fileSize": None,
                 "duration": None,
                 "status": "PENDING",
+                "mediaType": "unknown",
                 "roomType": None,
                 "qualityScore": None,
                 "order": start_order + i,
@@ -230,7 +296,7 @@ async def add_uploads(project_id: str, req: AddUrlsRequest, request: Request, us
 
 @router.post("/file")
 async def upload_local_file(project_id: str, request: Request, file: UploadFile = File(...), user=Depends(get_current_user)):
-    """Handle raw video file uploads directly."""
+    """Handle raw video/photo uploads directly."""
     await verify_project_ownership(project_id, user)
     db = get_db()
     project_oid = parse_object_id(project_id, "project_id")
@@ -251,7 +317,7 @@ async def upload_local_file(project_id: str, request: Request, file: UploadFile 
 
     try:
         # 1. Save File Locally
-        extension = _validate_video_upload_metadata(file)
+        extension, media_type = _validate_media_upload_metadata(file)
         clean_filename = sanitize_filename(file.filename or "", fallback_ext=extension)
         project_dir = f"data/{project_id}/downloads"
         os.makedirs(project_dir, exist_ok=True)
@@ -263,10 +329,11 @@ async def upload_local_file(project_id: str, request: Request, file: UploadFile 
             max_bytes=settings.MAX_VIDEO_UPLOAD_BYTES,
             chunk_size=settings.UPLOAD_STREAM_CHUNK_SIZE,
         )
-        has_video_stream = await asyncio.to_thread(_has_video_stream, local_path)
-        if not has_video_stream:
-            _remove_file_if_exists(local_path)
-            raise HTTPException(status_code=415, detail="Uploaded file is not a valid video stream.")
+        if media_type == "video":
+            has_video_stream = await asyncio.to_thread(_has_video_stream, local_path)
+            if not has_video_stream:
+                _remove_file_if_exists(local_path)
+                raise HTTPException(status_code=415, detail="Uploaded file is not a valid video stream.")
 
         # 2. Get order
         last = await db.uploads.find_one(
@@ -287,6 +354,7 @@ async def upload_local_file(project_id: str, request: Request, file: UploadFile 
             "fileSize": file_size,
             "duration": None,
             "status": "PENDING", # Let the worker handle the preview generation! We just need to modify worker to skip download if localPath exists!
+            "mediaType": media_type,
             "roomType": None,
             "qualityScore": None,
             "order": start_order,

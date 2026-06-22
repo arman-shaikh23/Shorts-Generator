@@ -14,7 +14,7 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **7-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Music -> Generate -> Export).
 - **Interactive Wizard Navigation**: The top progress bar is fully clickable, allowing users to seamlessly navigate backwards to previous steps (e.g., jump back to Upload to add a new clip) and return forward, with strict progression validation that prevents skipping ahead into uncompleted stages.
 - **Custom Music Engine & Mixing**: Integrated an advanced FFmpeg `amix` pipeline that dynamically loops and mixes background music with the original video audio. Includes a dedicated UI step with volume sliders (0-100%) and an auto-scanning `data/library/music` folder for users to drop in downloaded MP3/WAV files for playable previewing and generation.
-- **Premium Canva-style Upload Workflow**: Focused upload screen with animated drag-and-drop zones, explicit URL integrations (Drive, Dropbox, OneDrive), and a dynamic "Upload Complete" success card to keep the workspace clean.
+- **Premium Canva-style Upload Workflow**: Focused upload screen with animated drag-and-drop zones, explicit URL integrations (YouTube, Drive, Dropbox, OneDrive), and a dynamic "Upload Complete" success card to keep the workspace clean.
 - **Luxury Ocean Aurora Dashboard**: A premium, light-themed workspace inspired by Stripe and Linear. Features an 80px floating top navigation bar and a clean responsive 2-column workspace layout.
 - **Authentic Data Visualization**: The UI strictly surfaces real data returned by the backend (e.g. actual extracted clip durations, actual scene types) with zero hardcoded "mock" metrics.
 - **Micro-Interactions**: Built heavily with Framer Motion to provide high-end, smooth animations (hover scaling, layout transitions, animated step indicators).
@@ -39,6 +39,7 @@ The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboar
 - **OpenCV Multi-Threading**: All CPU-intensive CV operations run via `asyncio.to_thread()` behind a `cv_semaphore = asyncio.Semaphore(3)` to prevent CPU saturation and FastAPI event loop blocking.
 - **Computer Vision Pre-Processing**: OpenCV physics layer (`cv_analyzer.py`) mathematically analyzes footage for motion blur (Variance of Laplacian), exposure spikes, and severe camera shake (MSE).
 - **Multi-Segment Extraction**: A single uploaded video can contribute up to 3 distinct scenes. Each segment gets a unique `clip_id` for accurate tracking.
+- **Single-Video Full Tour Support**: Analysis can start with just 1 processed upload. For one long home-tour file, the AI extracts up to 3 strong, non-overlapping segments and builds a reel-ready timeline.
 - **Strict Drone Segregation**: DJI/Drone footage is never incorrectly labeled as interior property rooms.
 - **Fault-Tolerant Render Audit Gate**: 3-tier status matrix: ≥95% → PASS (deliver), 90-94.9% → WARNING (log, deliver), <90% → FAIL (halt delivery for reprocessing). Tracks `selected_clips`, `rendered_clips`, `missing_clips_indices`, `calculated_target_duration`, `final_compiled_duration`, and `render_success_percentage`.
 - **Sequence Validation**: Post-optimization validation enforces 4 hard rules: no backward movement, max 3 same-type consecutive clips, drone only in opening/closing zones, bathroom never before living room.
@@ -241,9 +242,18 @@ MAX_MUSIC_UPLOAD_BYTES=104857600
 
 ### Video Input Validation Rules (`/uploads/file`)
 - File extension must be a supported video type (`.mp4`, `.mov`, `.mkv`, `.avi`, `.webm`, `.m4v`).
-- Image MIME types are rejected (`image/*`), so `.jpg`/`.jpeg`/`.png` uploads are blocked.
+- Supported image uploads are accepted (`.jpg`, `.jpeg`, `.png`, `.webp`, `.bmp`, `.tif`, `.tiff`, `.gif`) and normalized into motion MP4 clips during worker processing.
 - Uploaded file is verified with `ffprobe` to confirm it contains a real video stream.
 - If validation fails, the API returns `415 Unsupported Media Type`.
+
+### Remote URL Ingestion (`/uploads`)
+- `POST /api/v1/projects/{project_id}/uploads` accepts `http(s)` URLs, including YouTube watch/share links and direct media links.
+- YouTube URLs are downloaded with `yt-dlp`, normalized to local media, then processed by the same dedup/preview/analyze pipeline.
+- Playlist URLs are not supported; submit a single YouTube video URL per upload item.
+- Optional environment settings:
+  - `YTDLP_COOKIES_FILE`: path to exported browser cookies for age-restricted/private-access scenarios.
+  - `YOUTUBE_MAX_DURATION_SEC`: hard cap for remote YouTube source duration (`0` disables cap).
+- Ensure you have the legal right to download and process the source media.
 
 ## Pagination (Scalability Layer)
 ReelForge now exposes standardized pagination metadata for list-heavy APIs, while preserving legacy response fields.

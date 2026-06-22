@@ -16,3 +16,4 @@ opencv-python-headless
 numpy
 pytest
 pytest-asyncio
+yt-dlp

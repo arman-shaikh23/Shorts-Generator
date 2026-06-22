@@ -127,10 +127,20 @@ export default function ProjectDetailPage() {
     setUrlInput('');
     setIsUploadingUrl(true);
     try {
-      await apiFetch(`/projects/${id}/uploads`, { method: 'POST', body: JSON.stringify({ urls: [val] }) });
+      const res = await apiFetch(`/projects/${id}/uploads`, { method: 'POST', body: JSON.stringify({ urls: [val] }) });
+      if (!res.ok) {
+        let message = 'Failed to add URL.';
+        try {
+          const payload = await res.json();
+          if (payload?.detail) {
+            message = typeof payload.detail === 'string' ? payload.detail : JSON.stringify(payload.detail);
+          }
+        } catch {}
+        throw new Error(message);
+      }
       await fetchProjectData();
-    } catch {
-      setLocalError('Failed to add URL.');
+    } catch (err) {
+      setLocalError(err?.message || 'Failed to add URL.');
     } finally {
       setIsUploadingUrl(false);
     }
@@ -165,7 +175,7 @@ export default function ProjectDetailPage() {
   const goToAnalyze = () => {
     if (!project?.title?.trim()) { setLocalError('Enter a property name.'); return; }
     const readyClips = uploads.filter(u => u.status === 'PROCESSED');
-    if (readyClips.length < 3) { setLocalError('Add at least 3 processed clips to begin.'); return; }
+    if (readyClips.length < 1) { setLocalError('Add at least 1 processed clip to begin.'); return; }
     setLocalError('');
     goToStep(2);
     
@@ -298,21 +308,21 @@ export default function ProjectDetailPage() {
                       <div className="w-20 h-20 rounded-2xl bg-[#F0F9FF] shadow-sm flex items-center justify-center mb-5 group-hover:scale-110 group-hover:bg-[#0EA5E9] transition-all duration-300">
                         <UploadCloud size={32} className="text-[#0EA5E9] group-hover:text-white transition-colors" />
                       </div>
-                      <p className="text-2xl font-black text-[#0F172A] mb-1">Drag & Drop Videos</p>
-                      <p className="text-sm font-medium text-[#64748B]">MP4 or MOV up to 4K resolution</p>
+                      <p className="text-2xl font-black text-[#0F172A] mb-1">Drag & Drop Media</p>
+                      <p className="text-sm font-medium text-[#64748B]">MP4/MOV or JPG/PNG/WebP</p>
                     </>
                   )}
-                  <input type="file" id="local-file-upload" className="hidden" multiple accept="video/*" onChange={handleLocalUpload} disabled={isUploadingFile} />
+                  <input type="file" id="local-file-upload" className="hidden" multiple accept="video/*,image/*" onChange={handleLocalUpload} disabled={isUploadingFile} />
                 </motion.div>
 
                 {/* URL Import */}
                 <div className="bg-white p-10 rounded-[2rem] border border-[#E2E8F0] shadow-sm flex flex-col justify-center">
                   <h3 className="text-xl font-black text-[#0F172A] flex items-center gap-2 mb-3"><Link2 size={24} className="text-[#0EA5E9]"/> Import via URL</h3>
                   <p className="text-sm text-[#64748B] mb-6 font-medium leading-relaxed">
-                    Paste links directly from <strong className="text-[#0F172A]">Google Drive</strong>, <strong className="text-[#0F172A]">Dropbox</strong>, <strong className="text-[#0F172A]">OneDrive</strong>, or any direct MP4 url. Add as many as you need.
+                    Paste links from <strong className="text-[#0F172A]">YouTube</strong>, <strong className="text-[#0F172A]">Google Drive</strong>, <strong className="text-[#0F172A]">Dropbox</strong>, <strong className="text-[#0F172A]">OneDrive</strong>, or any direct video/photo URL.
                   </p>
                   <div className="flex flex-col xl:flex-row gap-3">
-                    <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Paste video URL here..." className="flex-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-5 py-4 text-[#0F172A] text-sm focus:outline-none focus:border-[#0EA5E9] shadow-inner" disabled={isUploadingUrl} />
+                    <input type="text" value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={handleKeyDown} placeholder="Paste YouTube or direct media URL..." className="flex-1 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-5 py-4 text-[#0F172A] text-sm focus:outline-none focus:border-[#0EA5E9] shadow-inner" disabled={isUploadingUrl} />
                     <button onClick={addUrl} disabled={isUploadingUrl || !urlInput.trim()} className="bg-[#0F172A] text-white px-8 py-4 rounded-xl font-black hover:bg-[#1e293b] shadow-md transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                       {isUploadingUrl ? <Loader2 size={18} className="animate-spin" /> : <Plus size={18}/>} Add Link
                     </button>

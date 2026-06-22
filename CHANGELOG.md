@@ -2,6 +2,58 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.12.0] - YouTube URL Upload Support (`/uploads`)
+### Added
+- **YouTube ingestion path in downloader** (`backend/services/video.py`)
+  - Added YouTube URL detection for `youtube.com` / `youtu.be` hosts.
+  - Added `yt-dlp` based media download path for YouTube sources.
+  - Enforced single-video behavior for YouTube URLs (`noplaylist`).
+  - Added clearer runtime errors for downloader failures and missing output files.
+- **Configuration controls** (`backend/app/core/config.py`)
+  - Added `YTDLP_COOKIES_FILE` for optional cookie-authenticated downloads.
+  - Added `YOUTUBE_MAX_DURATION_SEC` for optional max source duration caps.
+- **Environment templates**
+  - Added YouTube downloader env settings to:
+    - `backend/.env.example`
+    - `backend/.env.small`
+    - `backend/.env.large`
+- **Dependency**
+  - Added `yt-dlp` to `backend/requirements.txt`.
+
+### Changed
+- **Uploads URL intake hardening** (`backend/app/api/uploads.py`)
+  - Added `http(s)` URL validation for URL-based uploads.
+  - Added filename inference for remote URLs.
+  - Added YouTube-specific filename normalization (`youtube_<video_id>.mp4`).
+- **Frontend URL upload UX** (`frontend/src/pages/ProjectDetailPage.jsx`)
+  - URL import messaging now explicitly includes YouTube support.
+  - URL add flow now surfaces backend validation/downloader errors to the user instead of a generic message.
+
+### Documentation
+- **README.md**
+  - Added Remote URL Ingestion section for YouTube and direct-link uploads.
+  - Added env variable documentation for `YTDLP_COOKIES_FILE` and `YOUTUBE_MAX_DURATION_SEC`.
+- **PROMPTS.md**
+  - Added Prompt 0.9 for production-safe YouTube ingestion design.
+
+## [17.11.0] - Single Full-Tour Video Support (1 Processed Upload)
+### Changed
+- **Backend analysis minimum-input gate** (`backend/app/api/generation.py`)
+  - Updated analysis precheck from `>= 3 processed clips` to `>= 1 processed clip`.
+  - Single full home-tour upload can now enter AI analysis without additional filler uploads.
+- **Frontend wizard validation alignment** (`frontend/src/pages/ProjectDetailPage.jsx`)
+  - Updated Analyze-step guard from 3 processed clips to 1 processed clip.
+  - Prevents UI/backend mismatch for single-upload projects.
+- **Gemini analysis instruction update** (`backend/services/gemini.py`)
+  - Added explicit single-video guidance to extract up to 3 distinct, non-overlapping peak segments from one `video_index`.
+
+### Documentation
+- **README.md**
+  - Added "Single-Video Full Tour Support" capability note under AI engine features.
+- **PROMPTS.md**
+  - Added "SINGLE-VIDEO SUPPORT" rule to the multi-segment analysis prompt example.
+  - Added a key-changes row documenting single-upload project support.
+
 ## [17.10.0] - Idempotency for JSON Write Operations
 ### Added
 - **Idempotency core module**: `backend/app/core/idempotency.py`

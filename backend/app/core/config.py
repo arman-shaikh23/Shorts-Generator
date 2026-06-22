@@ -28,6 +28,8 @@ class Settings(BaseSettings):
     UPLOAD_STREAM_CHUNK_SIZE: int = 1048576
     MAX_VIDEO_UPLOAD_BYTES: int = 10737418240
     MAX_MUSIC_UPLOAD_BYTES: int = 104857600
+    YTDLP_COOKIES_FILE: str = ""
+    YOUTUBE_MAX_DURATION_SEC: int = 0
 
     # Shared outbound HTTP connection pool
     HTTP_POOL_MAX_CONNECTIONS: int = 100

@@ -4,13 +4,19 @@ import time
 import subprocess
 import logging
 import math
+import glob
+import urllib.parse
 from typing import Optional, Callable
+from pathlib import Path
 
 import httpx
 
 from app.core.http_client import stream_with_pool_metrics
 
 logger = logging.getLogger(__name__)
+
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".gif"}
+IMAGE_CODECS = {"mjpeg", "jpeg", "png", "webp", "bmp", "gif", "tiff"}
 
 # Check ffmpeg installation
 subprocess.run(["ffmpeg", "-version"], check=True)
@@ -26,6 +32,149 @@ def run_ffmpeg(cmd):
         logger.error(f"FFmpeg failed:\n{result.stderr}")
         raise RuntimeError(f"FFmpeg failed:\n{result.stderr}")
     return result
+
+
+def _probe_media(path: str) -> dict:
+    cmd = [
+        "ffprobe",
+        "-v",
+        "error",
+        "-show_streams",
+        "-show_format",
+        "-of",
+        "json",
+        path,
+    ]
+    try:
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=20)
+    except Exception:
+        return {}
+    if res.returncode != 0:
+        return {}
+    try:
+        import json
+
+        return json.loads(res.stdout or "{}")
+    except Exception:
+        return {}
+
+
+def _has_video_stream_probe(probe_data: dict) -> bool:
+    streams = probe_data.get("streams") or []
+    return any(s.get("codec_type") == "video" for s in streams)
+
+
+def _safe_float(val) -> Optional[float]:
+    try:
+        return float(val)
+    except (TypeError, ValueError):
+        return None
+
+
+def _is_still_image_probe(path: str, probe_data: dict) -> bool:
+    streams = probe_data.get("streams") or []
+    if len(streams) != 1:
+        return False
+
+    stream = streams[0]
+    if stream.get("codec_type") != "video":
+        return False
+
+    format_name = ((probe_data.get("format") or {}).get("format_name") or "").lower()
+    codec_name = (stream.get("codec_name") or "").lower()
+    suffix = Path(path).suffix.lower()
+
+    duration = _safe_float(stream.get("duration"))
+    if duration is None:
+        duration = _safe_float((probe_data.get("format") or {}).get("duration"))
+
+    nb_frames = str(stream.get("nb_frames") or "").strip().lower()
+    frame_unknown = nb_frames in {"", "n/a"}
+    frame_single = nb_frames == "1"
+    short_or_unknown_duration = duration is None or duration <= 0.25
+
+    format_looks_image = any(
+        token in format_name for token in ("image2", "jpeg_pipe", "png_pipe", "webp_pipe", "bmp_pipe", "tiff_pipe")
+    )
+    codec_looks_image = codec_name in IMAGE_CODECS
+    suffix_looks_image = suffix in IMAGE_EXTENSIONS
+
+    if format_looks_image:
+        return True
+    if codec_looks_image and short_or_unknown_duration and (frame_unknown or frame_single):
+        return True
+    if suffix_looks_image and codec_looks_image and short_or_unknown_duration:
+        return True
+    return False
+
+
+def _build_photo_motion_path(image_path: str, project_id: str, upload_id: Optional[str]) -> str:
+    safe_stem = Path(image_path).stem
+    slug = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in safe_stem).strip("._") or "image"
+    stamp = int(time.time() * 1000)
+    suffix = upload_id or "asset"
+    os.makedirs(f"data/{project_id}/processed", exist_ok=True)
+    return os.path.join(f"data/{project_id}/processed", f"photo_motion_{slug}_{suffix}_{stamp}.mp4")
+
+
+def _render_photo_motion_clip(image_path: str, output_path: str, duration_sec: float = 6.0, fps: int = 30) -> None:
+    frame_count = max(1, int(duration_sec * fps))
+    vf = (
+        f"scale=1920:1080:force_original_aspect_ratio=increase,"
+        f"crop=1920:1080,"
+        f"zoompan=z='min(zoom+0.0008,1.12)':d={frame_count}:s=1920x1080:fps={fps},"
+        "format=yuv420p"
+    )
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        image_path,
+        "-vf",
+        vf,
+        "-t",
+        str(duration_sec),
+        "-r",
+        str(fps),
+        "-an",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "medium",
+        "-crf",
+        "20",
+        "-pix_fmt",
+        "yuv420p",
+        output_path,
+    ]
+    run_ffmpeg(cmd)
+
+
+async def normalize_upload_media(media_path: str, project_id: str, upload_id: Optional[str] = None) -> tuple[str, str]:
+    """
+    Normalize uploaded media to a video path consumable by the downstream pipeline.
+    Returns: (normalized_path, media_type) where media_type is "video" or "image".
+    """
+    probe_data = await asyncio.to_thread(_probe_media, media_path)
+    if _is_still_image_probe(media_path, probe_data):
+        motion_path = _build_photo_motion_path(media_path, project_id, upload_id)
+        await asyncio.to_thread(_render_photo_motion_clip, media_path, motion_path)
+        logger.info("Converted still image to motion clip: %s -> %s", media_path, motion_path)
+        return motion_path, "image"
+
+    if _has_video_stream_probe(probe_data):
+        return media_path, "video"
+
+    # Fallback path when ffprobe misses type but extension clearly indicates an image.
+    if Path(media_path).suffix.lower() in IMAGE_EXTENSIONS:
+        motion_path = _build_photo_motion_path(media_path, project_id, upload_id)
+        await asyncio.to_thread(_render_photo_motion_clip, media_path, motion_path)
+        logger.info("Converted image (extension fallback) to motion clip: %s -> %s", media_path, motion_path)
+        return motion_path, "image"
+
+    raise RuntimeError("Unsupported upload: could not detect a video stream or supported image format.")
 
 def get_exact_duration(path: str) -> float:
     cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path]
@@ -61,6 +210,108 @@ def get_direct_url(url: str) -> str:
             return url + "?dl=1"
     return url
 
+
+def is_youtube_url(url: str) -> bool:
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return False
+    host = (parsed.netloc or "").lower().split(":")[0]
+    if host in {"youtu.be", "youtube.com", "www.youtube.com", "m.youtube.com", "music.youtube.com"}:
+        return True
+    return host.endswith(".youtube.com")
+
+
+def _safe_file_stem(name: str, fallback: str = "video") -> str:
+    stem = Path(name or "").stem.strip() or fallback
+    cleaned = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in stem).strip("._")
+    return cleaned or fallback
+
+
+def _resolve_youtube_download_path(info: dict, output_dir: str, unique_prefix: str) -> str:
+    candidates = [
+        p for p in glob.glob(os.path.join(output_dir, f"{unique_prefix}.*"))
+        if os.path.isfile(p) and not p.endswith(".part")
+    ]
+    if candidates:
+        return max(candidates, key=os.path.getmtime)
+
+    requested = info.get("requested_downloads") or []
+    for item in requested:
+        path = item.get("filepath")
+        if path and os.path.exists(path):
+            return path
+
+    filepath = info.get("filepath")
+    if filepath and os.path.exists(filepath):
+        return filepath
+
+    return ""
+
+
+def _download_youtube_video_sync(url: str, filename: str, project_id: str) -> str:
+    try:
+        import yt_dlp
+    except Exception as exc:
+        raise RuntimeError("yt-dlp is not installed on the server.") from exc
+
+    from app.core.config import get_settings
+
+    settings = get_settings()
+    output_dir = f"data/{project_id}/downloads"
+    os.makedirs(output_dir, exist_ok=True)
+
+    safe_stem = _safe_file_stem(filename, fallback="youtube_video")
+    unique_prefix = f"{safe_stem}_{int(time.time() * 1000)}"
+    output_template = os.path.join(output_dir, f"{unique_prefix}.%(ext)s")
+
+    max_duration = max(0, int(getattr(settings, "YOUTUBE_MAX_DURATION_SEC", 0) or 0))
+
+    def _duration_filter(info, *args, **kwargs):
+        if max_duration <= 0:
+            return None
+        duration = info.get("duration")
+        if isinstance(duration, (int, float)) and duration > max_duration:
+            return (
+                f"Video duration {int(duration)}s exceeds allowed limit "
+                f"of {max_duration}s."
+            )
+        return None
+
+    ydl_opts = {
+        "outtmpl": output_template,
+        "format": "bv*[height<=1080]+ba/b[height<=1080]/best",
+        "merge_output_format": "mp4",
+        "noplaylist": True,
+        "quiet": True,
+        "no_warnings": True,
+        "retries": 3,
+        "fragment_retries": 3,
+        "socket_timeout": 30,
+        "match_filter": _duration_filter,
+    }
+
+    cookie_file = (getattr(settings, "YTDLP_COOKIES_FILE", "") or "").strip()
+    if cookie_file:
+        if os.path.exists(cookie_file):
+            ydl_opts["cookiefile"] = cookie_file
+        else:
+            logger.warning("[YTDLP] Cookie file not found: %s", cookie_file)
+
+    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(url, download=True)
+
+    if not info:
+        raise RuntimeError("No media metadata returned by yt-dlp.")
+
+    if info.get("_type") == "playlist":
+        raise RuntimeError("Playlist URLs are not supported. Please paste a single video URL.")
+
+    downloaded_path = _resolve_youtube_download_path(info, output_dir, unique_prefix)
+    if not downloaded_path:
+        raise RuntimeError("yt-dlp completed but no downloaded file was found.")
+    return downloaded_path
+
 async def download_video(url: str, filename: str, project_id: str, on_progress: Optional[Callable] = None) -> str:
     os.makedirs(f"data/{project_id}/downloads", exist_ok=True)
     filepath = os.path.join(f"data/{project_id}/downloads", filename)
@@ -70,6 +321,21 @@ async def download_video(url: str, filename: str, project_id: str, on_progress: 
             if on_progress: await on_progress(100)
             return url
         raise FileNotFoundError(f"Local file not found: {url}")
+
+    if is_youtube_url(url):
+        start = time.perf_counter()
+        try:
+            yt_path = await asyncio.to_thread(_download_youtube_video_sync, url, filename, project_id)
+        except Exception as exc:
+            logger.error("[YTDLP] Failed to download YouTube URL %s: %s", url, exc)
+            raise RuntimeError(f"YouTube download failed: {exc}") from exc
+
+        if not os.path.exists(yt_path) or os.path.getsize(yt_path) == 0:
+            raise RuntimeError("YouTube download returned an empty or missing file")
+        if on_progress:
+            await on_progress(100)
+        logger.info("Downloaded YouTube source in %.1fs", time.perf_counter() - start)
+        return yt_path
 
     direct_url = get_direct_url(url)
     start = time.perf_counter()

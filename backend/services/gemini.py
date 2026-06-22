@@ -299,6 +299,10 @@ A single video may contain MULTIPLE usable scenes at different timestamps.
 Return multiple entries with the same video_index but different start/end if visually distinct segments exist.
 LIMIT: Maximum 3 segments per video. Sibling clips from the same file must be structurally distinct.
 
+═══ SINGLE-VIDEO PROJECT SUPPORT ═══
+If only one uploaded video is available, still produce a complete mini-story.
+Extract up to 3 distinct, non-overlapping peak segments from that same video_index.
+
 ═══ SCENE CLASSIFICATION ═══
 Scene types: drone, aerial, exterior, entrance, lobby, living_room, dining, kitchen, home_office, conference_room, corridor, staircase, walk_in_closet, master_bedroom, bedroom, bathroom, terrace, balcony, pool, gym, garden, amenities, parking, rooftop.
 CRITICAL: Drone/DJI footage must NEVER be classified as interior rooms. It can ONLY be drone, aerial, exterior, pool, garden, or amenities.

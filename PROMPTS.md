@@ -241,6 +241,31 @@ Rules:
 - Protects data consistency for create/update/delete flows.
 - Preserves existing clients by making idempotency opt-in.
 
+## Prompt 0.9: YouTube URL Ingestion for Home-Tour Sources
+
+### The Prompt
+```text
+You are a production backend engineer for ReelForge.
+Add safe support for YouTube URL uploads in the existing `/uploads` flow.
+
+Rules:
+1) Keep `POST /api/v1/projects/{project_id}/uploads` backward compatible for existing direct media URLs.
+2) Detect YouTube hosts (`youtube.com`, `youtu.be`) and download media using `yt-dlp`.
+3) Enforce single-video behavior (`noplaylist=true`) for YouTube URLs.
+4) Keep worker pipeline unchanged after download (dedup -> preview -> analyze).
+5) Add clear errors for invalid URL schemes, unsupported playlist links, or downloader failures.
+6) Add optional env controls:
+   - `YTDLP_COOKIES_FILE` for restricted-content sessions.
+   - `YOUTUBE_MAX_DURATION_SEC` for server-side duration caps.
+7) Update frontend upload-copy text to explicitly mention YouTube URL support.
+8) Update README and CHANGELOG with operational notes and constraints.
+```
+
+### Why This Prompt Exists
+- Users often have one complete home-tour video on YouTube instead of local raw clips.
+- Native YouTube ingestion removes manual download/upload friction.
+- Keeping the downstream pipeline unchanged preserves quality and stability guarantees.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt
@@ -513,6 +538,9 @@ MULTI-SEGMENT EXTRACTION:
 - Return multiple selected_clips entries with the same video_index but different
   start/end timestamps if the video contains visually distinct segments.
 - LIMIT: Maximum 3 segments per video.
+- SINGLE-VIDEO SUPPORT: If only one uploaded video exists, still produce a complete
+  mini-story by extracting up to 3 distinct, non-overlapping segments from that
+  same video_index.
 
 Scene Types: drone, aerial, exterior, lobby, living_room, kitchen, bedroom,
 bathroom, pool, gym, garden, parking, amenities, home_office, conference_room,
@@ -587,6 +615,7 @@ if hero_score >= 90: NEVER REMOVE
 | Room Sequence | Soft scoring preference | **Hard walkthrough order (Luxury/Realtor) or hero-score impact (Instagram/Viral)** |
 | Clip Identification | `video_index` integer | **Unique `clip_id` string (`{video_index}_{start}_{end}`)** |
 | Multi-Segment | 1 segment per video | **Up to 3 segments per video, each with unique clip_id** |
+| Minimum Input | Implicit multi-clip assumption | **Supports single-upload projects by extracting multiple segments from one full-tour video** |
 | Variation Clips | Cherry-picked subset | **ALL clips included, reorder only, no removal allowed** |
 | Render Audit | Count-based | **Full duration coverage audit with skip reasons** |
 | Hero Protection | None | **hero_score >= 90 clips are NEVER removed** |

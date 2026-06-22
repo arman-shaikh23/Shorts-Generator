@@ -2,7 +2,7 @@ import asyncio
 import logging
 from bson import ObjectId
 from app.core.database import get_db
-from services.video import download_video, create_preview
+from services.video import download_video, create_preview, normalize_upload_media
 from services.deduplication import analyze_duplicate
 
 logger = logging.getLogger(__name__)
@@ -37,6 +37,15 @@ async def process_pending_uploads():
             local_path = upload.get("localPath")
             if not local_path or not url.startswith("local://"):
                 local_path = await download_video(url, filename, project_id)
+
+            # 1.1 Normalize media: still images become motion MP4 clips.
+            normalized_path, media_type = await normalize_upload_media(
+                local_path,
+                project_id=project_id,
+                upload_id=upload_id,
+            )
+            source_local_path = local_path if normalized_path != local_path else None
+            local_path = normalized_path
             
             # Check if user cancelled/deleted the clip during download
             check = await db.uploads.find_one({"_id": ObjectId(upload_id)})
@@ -58,15 +67,19 @@ async def process_pending_uploads():
             
             if is_dup:
                 logger.info(f"Duplicate detected for {upload_id}: {reason}")
+                duplicate_update = {
+                    "status": "DUPLICATE",
+                    "duplicateReason": reason,
+                    "localPath": local_path,
+                    "mediaType": media_type,
+                    "fileHash": dup_data.get("fileHash"),
+                    "pHashes": dup_data.get("pHashes"),
+                }
+                if source_local_path:
+                    duplicate_update["sourceLocalPath"] = source_local_path
                 await db.uploads.update_one(
                     {"_id": ObjectId(upload_id)},
-                    {"$set": {
-                        "status": "DUPLICATE",
-                        "duplicateReason": reason,
-                        "localPath": local_path,
-                        "fileHash": dup_data.get("fileHash"),
-                        "pHashes": dup_data.get("pHashes")
-                    }}
+                    {"$set": duplicate_update}
                 )
                 continue # Skip preview generation and stop processing this clip
 
@@ -80,15 +93,20 @@ async def process_pending_uploads():
                 continue
 
             # 3. Update DB
+            processed_update = {
+                "status": "PROCESSED",
+                "localPath": local_path,
+                "previewPath": preview_path,
+                "mediaType": media_type,
+                "fileHash": dup_data.get("fileHash"),
+                "pHashes": dup_data.get("pHashes"),
+            }
+            if source_local_path:
+                processed_update["sourceLocalPath"] = source_local_path
+
             await db.uploads.update_one(
                 {"_id": ObjectId(upload_id)},
-                {"$set": {
-                    "status": "PROCESSED",
-                    "localPath": local_path,
-                    "previewPath": preview_path,
-                    "fileHash": dup_data.get("fileHash"),
-                    "pHashes": dup_data.get("pHashes")
-                }}
+                {"$set": processed_update}
             )
             
             logger.info(f"Successfully processed upload {upload_id}")

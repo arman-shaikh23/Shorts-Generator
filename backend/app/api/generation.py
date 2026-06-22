@@ -181,8 +181,8 @@ async def analyze_project(
             async for doc in dup_cursor:
                 pre_duplicates.append(doc)
 
-            if len(uploads) < 3:
-                await q.put({"status": "error", "message": f"Need at least 3 processed clips. Found {len(uploads)}."})
+            if len(uploads) < 1:
+                await q.put({"status": "error", "message": f"Need at least 1 processed clip. Found {len(uploads)}."})
                 return
 
             await q.put({"status": "progress", "message": f"Found {len(uploads)} processed clips and intercepted {len(pre_duplicates)} exact duplicates. Uploading to AI..."})
