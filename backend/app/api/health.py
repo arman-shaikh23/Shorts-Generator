@@ -2,6 +2,7 @@ from fastapi import APIRouter
 
 from app.core.database import get_db
 from app.core.pool_observability import get_pool_diagnostics
+from app.core.runtime_health import get_runtime_snapshot
 
 router = APIRouter(prefix="/health", tags=["Health"])
 
@@ -27,6 +28,40 @@ EXPECTED_INDEXES = {
         "idemp_status_updated_idx",
     },
 }
+
+
+@router.get("/live")
+async def live_health() -> dict:
+    """
+    Liveness probe: process is up and request handling works.
+    """
+    return {"status": "ok"}
+
+
+@router.get("/ready")
+async def readiness_health() -> dict:
+    """
+    Readiness probe: critical startup dependencies initialized.
+    """
+    runtime = get_runtime_snapshot()
+    components = runtime.get("components", {})
+    required_components = ("mongo", "http_client")
+    missing = [name for name in required_components if not components.get(name, {}).get("ready")]
+    status = "ok" if not missing else "degraded"
+    return {
+        "status": status,
+        "missing_components": missing,
+        "components": components,
+        "uptime_seconds": runtime.get("uptime_seconds", 0),
+    }
+
+
+@router.get("/runtime")
+async def runtime_health() -> dict:
+    """
+    Runtime diagnostics for component and background-task state.
+    """
+    return get_runtime_snapshot()
 
 
 @router.get("/pools")

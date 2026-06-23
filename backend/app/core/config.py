@@ -1,8 +1,14 @@
 import os
 from pydantic_settings import BaseSettings
+from pydantic import field_validator
 from functools import lru_cache
 
 class Settings(BaseSettings):
+    # Service metadata
+    SERVICE_NAME: str = "reelforge-backend"
+    SERVICE_ENV: str = "development"
+    SERVICE_VERSION: str = "17.16.0"
+
     # MongoDB
     MONGODB_URL: str = "mongodb://localhost:27017"
     DB_NAME: str = "realestate_shorts"
@@ -54,6 +60,56 @@ class Settings(BaseSettings):
     CACHE_TTL_MUSIC_LIBRARY_SEC: int = 300
     CACHE_VERSION_TTL_SEC: int = 2592000
 
+    # Structured logging
+    ENABLE_STRUCTLOG: bool = True
+    LOG_LEVEL: str = "INFO"
+    LOG_FORMAT: str = "json"  # "json" or "text"
+    LOG_TO_FILE: bool = True
+    LOG_FILE_PATH: str = "logs/reelforge_debug.log"
+
+    # Better Stack log shipping (optional)
+    ENABLE_BETTER_STACK: bool = False
+    BETTER_STACK_SOURCE_TOKEN: str = ""
+
+    # Rate limiting
+    ENABLE_RATE_LIMITING: bool = True
+    RATE_LIMIT_REQUESTS_PER_MINUTE: int = 180
+    RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE: int = 30
+    RATE_LIMIT_GENERATION_REQUESTS_PER_MINUTE: int = 20
+    RATE_LIMIT_EXCLUDE_PATHS: str = (
+        "/api/v1/health,/favicon.ico,/favicon.svg,/openapi.json,/docs,/redoc,/assets,/outputs,/data"
+    )
+    RATE_LIMIT_TRUST_PROXY: bool = False
+    RATE_LIMIT_MAX_KEYS: int = 10000
+
+    # Startup and worker resilience
+    STARTUP_RETRY_ATTEMPTS: int = 5
+    STARTUP_RETRY_BASE_DELAY_SEC: int = 2
+    STARTUP_RETRY_MAX_DELAY_SEC: int = 15
+
+    # Alerts (webhook, optional)
+    ENABLE_ALERTS: bool = False
+    ALERT_WEBHOOK_URL: str = ""
+    ALERT_COOLDOWN_SEC: int = 300
+    ALERT_HTTP_TIMEOUT_SEC: float = 5.0
+    ALERT_MIN_CONSECUTIVE_BACKGROUND_FAILURES: int = 2
+
+    # OpenTelemetry (optional)
+    ENABLE_OTEL: bool = False
+    OTEL_SERVICE_NAME: str = "reelforge-backend"
+    OTEL_EXPORTER_OTLP_ENDPOINT: str = ""
+    OTEL_EXPORTER_OTLP_HEADERS: str = ""
+    OTEL_EXPORTER_TIMEOUT_SEC: float = 5.0
+    OTEL_ENABLE_CONSOLE_EXPORTER: bool = False
+    OTEL_INSTRUMENT_FASTAPI: bool = True
+    OTEL_INSTRUMENT_HTTPX: bool = True
+    OTEL_INSTRUMENT_PYMONGO: bool = True
+    OTEL_INSTRUMENT_LOGGING: bool = True
+
+    # Prometheus metrics
+    ENABLE_PROMETHEUS_METRICS: bool = True
+    PROMETHEUS_METRICS_PATH: str = "/metrics"
+
     # Reel quality v2 feature flags (safe rollout)
     PIPELINE_SHADOW_MODE: bool = False
     ENABLE_STABILITY_V2: bool = False
@@ -73,6 +129,40 @@ class Settings(BaseSettings):
     V2_STORY_WEIGHT: float = 0.1
     V2_ROOM_UNIQUENESS_WEIGHT: float = 0.05
     V2_TRANSITION_WEIGHT: float = 0.05
+
+    @field_validator(
+        "ENABLE_REDIS_CACHE",
+        "ENABLE_STRUCTLOG",
+        "LOG_TO_FILE",
+        "ENABLE_BETTER_STACK",
+        "ENABLE_RATE_LIMITING",
+        "RATE_LIMIT_TRUST_PROXY",
+        "ENABLE_ALERTS",
+        "ENABLE_OTEL",
+        "OTEL_ENABLE_CONSOLE_EXPORTER",
+        "OTEL_INSTRUMENT_FASTAPI",
+        "OTEL_INSTRUMENT_HTTPX",
+        "OTEL_INSTRUMENT_PYMONGO",
+        "OTEL_INSTRUMENT_LOGGING",
+        "ENABLE_PROMETHEUS_METRICS",
+        "PIPELINE_SHADOW_MODE",
+        "ENABLE_STABILITY_V2",
+        "ENABLE_TRIM_V2",
+        "ENABLE_STORY_V2",
+        "ENABLE_SCORING_V2",
+        "ENABLE_DEDUP_V2",
+        "ENABLE_TRANSITION_V2",
+        mode="before",
+    )
+    @classmethod
+    def _coerce_boolish(cls, value):
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"true", "ture", "1", "yes", "y", "on"}:
+                return True
+            if normalized in {"false", "flase", "0", "no", "n", "off"}:
+                return False
+        return value
 
     class Config:
         env_file = ".env"

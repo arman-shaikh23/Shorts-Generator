@@ -24,15 +24,6 @@ from services.quality_v2 import analyze_stability_v2, recommend_trim_bounds_v2
 from services.timeline_optimizer import parse_time, build_highlight_memory
 
 import os
-os.makedirs("logs", exist_ok=True)
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    handlers=[
-        logging.FileHandler("logs/reelforge_debug.log", encoding="utf-8"),
-        logging.StreamHandler()
-    ]
-)
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/projects/{project_id}/generation", tags=["Generation"])

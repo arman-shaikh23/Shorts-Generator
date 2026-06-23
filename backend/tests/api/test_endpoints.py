@@ -37,3 +37,28 @@ def test_index_health_endpoint(client):
     assert "expected_indexes" in uploads
     assert "actual_indexes" in uploads
     assert "missing_indexes" in uploads
+
+
+def test_live_health_endpoint(client):
+    response = client.get("/api/v1/health/live")
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload.get("status") == "ok"
+
+
+def test_ready_health_endpoint(client):
+    response = client.get("/api/v1/health/ready")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "status" in payload
+    assert "components" in payload
+    assert "uptime_seconds" in payload
+
+
+def test_runtime_health_endpoint(client):
+    response = client.get("/api/v1/health/runtime")
+    assert response.status_code == 200
+    payload = response.json()
+    assert "components" in payload
+    assert "background_tasks" in payload
+    assert "uptime_seconds" in payload

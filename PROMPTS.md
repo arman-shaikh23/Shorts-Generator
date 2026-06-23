@@ -39,6 +39,57 @@ If scene confidence is low (<55), keep conservative ordering and do not force ag
 - Produces confidence data required by feature-flagged V2 ordering logic.
 - Keeps compatibility with existing timeline optimizer and rendering pipeline.
 
+## Prompt 0.12: Production Reliability Stack (Logging + Rate Limit + Tracing + Alerts)
+
+### The Prompt
+```text
+You are a production backend reliability engineer for ReelForge.
+Add missing reliability and observability controls without breaking API contracts.
+
+Rules:
+1) Keep all new features feature-flagged or safe-default so existing flows keep working.
+2) Centralize logging configuration; support structured JSON logs and request correlation IDs.
+3) Add global rate limiting middleware with stricter limits for auth and generation routes.
+4) Add OpenTelemetry tracing as optional instrumentation (FastAPI + HTTPX + Mongo).
+5) Add webhook-based alerting with cooldown to avoid alert storms.
+6) Add liveness/readiness/runtime health endpoints for operational visibility.
+7) Harden startup and background workers with retry/backoff and crash-safe supervision.
+8) Add CI workflow that validates backend tests and frontend build on every PR.
+9) Update README, CHANGELOG, and env templates with rollout and rollback guidance.
+10) Never allow optional observability dependencies/services to crash the application.
+```
+
+### Why This Prompt Exists
+- Production traffic needs controlled failure modes and stronger guardrails.
+- Structured logs + tracing + alerts drastically reduce incident triage time.
+- Rate limiting protects auth and generation surfaces from abuse/spikes.
+- CI automation prevents regressions before deployment.
+
+## Prompt 0.13: Structlog + Grafana Monitoring for Beginners
+
+### The Prompt
+```text
+You are a backend observability engineer for ReelForge.
+Implement a beginner-friendly monitoring stack with no production regressions.
+
+Rules:
+1) Use Structlog for app logs, but keep compatibility with standard Python loggers.
+2) Keep startup safe: missing optional observability packages must not crash the app.
+3) Ensure logs are JSON and include request_id + trace_id + span_id when available.
+4) Expose Prometheus metrics endpoint from FastAPI.
+5) Add a local Docker Compose observability stack (Grafana, Prometheus, Loki, Tempo, Promtail).
+6) Auto-provision Grafana datasources and at least one starter dashboard.
+7) Configure trace-to-logs correlation in Grafana.
+8) Document exact beginner steps: start backend, start stack, login Grafana, run test traffic, view metrics/logs/traces.
+9) Keep all controls behind environment flags with safe defaults.
+10) Update README, CHANGELOG, and prompts documentation.
+```
+
+### Why This Prompt Exists
+- Beginners need a visual, low-friction path to observe system health.
+- Structlog standardizes event logs and improves querying in Loki.
+- Trace-log correlation makes debugging distributed latency and failures much faster.
+
 ## Prompt 0.1: Connection Pooling and Throughput Guardrails
 
 ### The Prompt

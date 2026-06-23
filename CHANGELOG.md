@@ -2,6 +2,110 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.16.0] - Structlog + Grafana Local Monitoring Stack
+### Added
+- **Structlog-first logging pipeline**
+  - Replaced formatter internals with Structlog processor chain in `backend/app/core/logging_config.py`.
+  - Added OTel correlation enrichment (`trace_id`, `span_id`) into structured logs.
+  - Kept safe fallback when Structlog package is unavailable (no startup crash).
+- **Metrics exposure**
+  - Added `backend/app/core/metrics.py` with Prometheus FastAPI instrumentation.
+  - Added env controls:
+    - `ENABLE_PROMETHEUS_METRICS`
+    - `PROMETHEUS_METRICS_PATH`
+- **Observability stack (ready-to-run)**
+  - Added `observability/docker-compose.yml` with:
+    - Grafana
+    - Prometheus
+    - Loki
+    - Tempo
+    - Promtail
+  - Added provisioning and dashboard files under:
+    - `observability/grafana/provisioning/...`
+    - `observability/grafana/dashboards/reelforge-overview.json`
+  - Added component configs:
+    - `observability/prometheus/prometheus.yml`
+    - `observability/loki/loki-config.yml`
+    - `observability/promtail/promtail-config.yml`
+    - `observability/tempo/tempo.yml`
+  - Added `observability/README.md` beginner setup guide.
+
+### Changed
+- **Main app wiring** (`backend/main.py`)
+  - Enabled Prometheus instrumentation setup.
+  - Switched to Structlog logger when available, with stdlib fallback.
+- **Tracing instrumentation**
+  - Added optional logging instrumentation in `backend/app/core/tracing.py` (`OTEL_INSTRUMENT_LOGGING`).
+- **Config/env templates**
+  - Added `ENABLE_STRUCTLOG`, `OTEL_INSTRUMENT_LOGGING`, and Prometheus env keys to:
+    - `backend/.env.example`
+    - `backend/.env.small`
+    - `backend/.env.large`
+- **Dependencies**
+  - Added:
+    - `structlog`
+    - `prometheus-fastapi-instrumentator`
+    - `opentelemetry-instrumentation-logging`
+
+### Documentation
+- Updated `README.md` with Structlog + Grafana quick start guidance.
+- Updated `PROMPTS.md` with Prompt `0.13` for observability stack implementation policy.
+
+## [17.15.0] - Production Reliability Stack (Rate Limit + Structured Logging + OTEL + Alerts + CI)
+### Added
+- **Structured logging and request correlation**
+  - Added `backend/app/core/logging_config.py` for unified JSON/text logging.
+  - Added `backend/app/core/request_context.py` middleware to inject and propagate `X-Request-ID`.
+  - Added optional Better Stack log shipping support (`ENABLE_BETTER_STACK`, `BETTER_STACK_SOURCE_TOKEN`).
+- **Rate limiting middleware**
+  - Added `backend/app/core/rate_limit.py` with path-aware limits and response headers.
+  - Added defaults for global/auth/generation throttles and excluded health/static paths.
+- **Runtime health and crash diagnostics**
+  - Added `backend/app/core/runtime_health.py` for component/task readiness and restart state.
+  - Added new health routes in `backend/app/api/health.py`:
+    - `GET /api/v1/health/live`
+    - `GET /api/v1/health/ready`
+    - `GET /api/v1/health/runtime`
+- **Alert webhooks**
+  - Added `backend/app/core/alerts.py` for optional outbound alerts with cooldown protection.
+  - Integrated alerts for startup dependency failures and repeated background task crashes.
+- **OpenTelemetry tracing support**
+  - Added `backend/app/core/tracing.py` with optional instrumentation for FastAPI, HTTPX, and PyMongo.
+  - Added OTLP exporter controls and optional console exporter mode.
+- **CI/CD workflow**
+  - Added `.github/workflows/ci.yml`:
+    - backend test job with Mongo service container
+    - frontend build job
+
+### Changed
+- **Main app startup/lifecycle hardening** (`backend/main.py`)
+  - Added startup dependency retries with bounded backoff.
+  - Added stronger background-task supervision with adaptive restart delay.
+  - Added middleware wiring for request context and rate limiting.
+  - Added runtime component status updates during startup/shutdown.
+- **Generation API logging wiring**
+  - Removed local `logging.basicConfig(...)` from `backend/app/api/generation.py`.
+  - Logging now flows through centralized app logging configuration.
+- **Configuration and env templates**
+  - Extended `backend/app/core/config.py` with reliability/observability controls.
+  - Updated `backend/.env.example`, `backend/.env.small`, and `backend/.env.large`.
+- **Dependencies**
+  - Added observability dependencies in `backend/requirements.txt`:
+    - `logtail-python`
+    - `opentelemetry-api`
+    - `opentelemetry-sdk`
+    - `opentelemetry-exporter-otlp`
+    - `opentelemetry-instrumentation-fastapi`
+    - `opentelemetry-instrumentation-httpx`
+    - `opentelemetry-instrumentation-pymongo`
+
+### Documentation
+- Updated `README.md` with:
+  - production reliability/observability architecture
+  - new health endpoints
+  - env controls for rate limit, logging, tracing, alerts
+- Updated `PROMPTS.md` with Prompt `0.12` for reliability stack implementation policy.
+
 ## [17.14.0] - Workflow UX Polish (Toasts + Drill-Down + URL-Synced Views)
 ### Added
 - **Global toast system** (`frontend/src/context/ToastContext.jsx`, `frontend/src/main.jsx`)

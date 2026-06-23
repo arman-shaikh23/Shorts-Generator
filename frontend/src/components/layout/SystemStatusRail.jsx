@@ -144,13 +144,7 @@ export function SystemStatusRail() {
           <span className="rounded-full border border-[#BFDBFE] bg-[#EFF6FF] px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#0369A1]">
             System Status
           </span>
-          {error ? (
-            <p className="text-xs font-semibold text-[#b91c1c]">{error}</p>
-          ) : (
-            <p className="text-xs font-semibold text-[#64748B]">
-              Pipeline overview updates every 30 seconds.
-            </p>
-          )}
+          {error ? <p className="text-xs font-semibold text-[#b91c1c]">{error}</p> : null}
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

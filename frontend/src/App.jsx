@@ -15,7 +15,6 @@ import SettingsPage from './pages/SettingsPage';
 import ApiDocsPage from './pages/ApiDocsPage';
 
 import { TopNav } from './components/layout/TopNav';
-import { SystemStatusRail } from './components/layout/SystemStatusRail';
 
 function DashboardLayout() {
   useEffect(() => {
@@ -42,7 +41,6 @@ function DashboardLayout() {
         <TopNav />
         <main className="flex-1 overflow-y-auto w-full">
           <div className="mx-auto px-8 py-8 w-full max-w-[1600px]">
-            <SystemStatusRail />
             <Outlet />
           </div>
         </main>

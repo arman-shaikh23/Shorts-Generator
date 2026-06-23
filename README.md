@@ -10,6 +10,100 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **AI Engine**: Google Gemini Pro (via Files API) + OpenCV Hybrid Scoring
 - **Render Engine**: FFmpeg with Dynamic Crossfade Graph
 
+## Production Reliability and Observability (17.16)
+- **Structured Logging + Request IDs**
+  - Unified root logger with Structlog-first JSON output (`LOG_FORMAT=json`) and request correlation via `X-Request-ID`.
+  - File + console logging are both supported; Better Stack shipping is optional via source token.
+  - Log events include `trace_id` and `span_id` (when tracing context exists) for Grafana correlation.
+- **Rate Limiting**
+  - Global middleware protects backend routes with path-aware limits (auth + generation stricter than default).
+  - Returns `429` with `Retry-After` and `X-RateLimit-*` headers.
+- **OpenTelemetry Tracing**
+  - Optional OTEL tracing pipeline for FastAPI + HTTPX + PyMongo.
+  - OTLP exporter and console exporter modes are both supported behind feature flags.
+- **Alerts**
+  - Optional webhook alerts for repeated background-task crashes and startup dependency failures.
+  - Built-in cooldown prevents alert storms.
+- **Crash-Safe Runtime Guards**
+  - Startup dependency initialization now retries with backoff.
+  - Background workers auto-restart with escalating retry delay and health state tracking.
+- **CI/CD**
+  - Added GitHub Actions workflow (`.github/workflows/ci.yml`) for backend tests (with Mongo service) and frontend build.
+  - Added local Grafana stack under `observability/` (Grafana + Prometheus + Loki + Tempo + Promtail).
+
+### New Health Endpoints
+- `GET /api/v1/health/live`: liveness probe (process is serving requests).
+- `GET /api/v1/health/ready`: readiness probe (critical components ready).
+- `GET /api/v1/health/runtime`: runtime component + background-task state snapshot.
+- Existing diagnostics remain:
+  - `GET /api/v1/health/pools`
+  - `GET /api/v1/health/indexes`
+
+### Reliability and Observability Env Controls
+Add these in `backend/.env` (or use `.env.small` / `.env.large` presets):
+
+```env
+ENABLE_STRUCTLOG=true
+LOG_LEVEL=INFO
+LOG_FORMAT=json
+LOG_TO_FILE=true
+LOG_FILE_PATH=logs/reelforge_debug.log
+
+ENABLE_BETTER_STACK=false
+BETTER_STACK_SOURCE_TOKEN=
+
+ENABLE_RATE_LIMITING=true
+RATE_LIMIT_REQUESTS_PER_MINUTE=180
+RATE_LIMIT_AUTH_REQUESTS_PER_MINUTE=30
+RATE_LIMIT_GENERATION_REQUESTS_PER_MINUTE=20
+RATE_LIMIT_EXCLUDE_PATHS=/api/v1/health,/favicon.ico,/favicon.svg,/openapi.json,/docs,/redoc,/assets,/outputs,/data
+RATE_LIMIT_TRUST_PROXY=false
+RATE_LIMIT_MAX_KEYS=10000
+
+STARTUP_RETRY_ATTEMPTS=5
+STARTUP_RETRY_BASE_DELAY_SEC=2
+STARTUP_RETRY_MAX_DELAY_SEC=15
+
+ENABLE_ALERTS=false
+ALERT_WEBHOOK_URL=
+ALERT_COOLDOWN_SEC=300
+ALERT_HTTP_TIMEOUT_SEC=5.0
+ALERT_MIN_CONSECUTIVE_BACKGROUND_FAILURES=2
+
+ENABLE_OTEL=false
+OTEL_SERVICE_NAME=reelforge-backend
+OTEL_EXPORTER_OTLP_ENDPOINT=
+OTEL_EXPORTER_OTLP_HEADERS=
+OTEL_EXPORTER_TIMEOUT_SEC=5.0
+OTEL_ENABLE_CONSOLE_EXPORTER=false
+OTEL_INSTRUMENT_FASTAPI=true
+OTEL_INSTRUMENT_HTTPX=true
+OTEL_INSTRUMENT_PYMONGO=true
+OTEL_INSTRUMENT_LOGGING=true
+
+ENABLE_PROMETHEUS_METRICS=true
+PROMETHEUS_METRICS_PATH=/metrics
+```
+
+### Grafana Quick Start (Beginner)
+1. Run backend with:
+   - `ENABLE_OTEL=true`
+   - `OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318/v1/traces`
+   - `ENABLE_PROMETHEUS_METRICS=true`
+2. Start monitoring stack:
+   - `cd observability`
+   - `docker compose up -d`
+3. Open Grafana at `http://localhost:3000` with:
+   - user: `admin`
+   - password: `admin`
+4. Open dashboard: `ReelForge Backend Overview`
+5. Use **Explore** tab:
+   - Prometheus for metrics
+   - Loki for logs
+   - Tempo for traces
+
+Detailed steps: `observability/README.md`.
+
 ## Features
 - **7-Step Guided Wizard Workflow**: Completely dismantled the massive single-page dashboard into a focused, modern SaaS wizard (Upload -> Analyze -> Storyboard -> Style -> Music -> Generate -> Export).
 - **Interactive Wizard Navigation**: The top progress bar is fully clickable, allowing users to seamlessly navigate backwards to previous steps (e.g., jump back to Upload to add a new clip) and return forward, with strict progression validation that prevents skipping ahead into uncompleted stages.
