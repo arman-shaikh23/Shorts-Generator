@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   ArrowRight,
@@ -8,72 +8,134 @@ import {
   Clock3,
   FolderKanban,
   Plus,
+  Search,
 } from 'lucide-react';
 import { apiFetch } from '../api/client';
 import { formatRelativeTime } from '../lib/utils';
+import { useToast } from '../context/ToastContext';
 
 const PAGE_SIZE = 12;
 const ease = [0.22, 1, 0.36, 1];
+const STATUS_OPTIONS = ['all', 'queued', 'processing', 'failed', 'done'];
+const SORT_OPTIONS = ['updated_desc', 'updated_asc', 'title_asc', 'title_desc', 'reels_desc', 'uploads_desc'];
+
+function toTimestamp(value) {
+  const ts = new Date(value || 0).getTime();
+  return Number.isNaN(ts) ? 0 : ts;
+}
+
+function classifyProjectBucket(project) {
+  const status = String(project?.status || '').toUpperCase();
+  const uploads = Number(project?.uploadCount || 0);
+  const generated = Number(project?.generatedCount || 0);
+
+  if (status.includes('FAILED') || status.includes('ERROR')) return 'failed';
+  if (generated > 0 || status.includes('DONE') || status.includes('COMPLETE') || status.includes('SUCCESS')) return 'done';
+  if (status.includes('PROCESS') || status.includes('RENDER') || status.includes('ANALY') || uploads > 0) return 'processing';
+  return 'queued';
+}
 
 function getStatusTone(status) {
-  const normalized = String(status || '').toUpperCase();
-  if (normalized.includes('DONE') || normalized.includes('SUCCESS') || normalized.includes('COMPLETED')) {
-    return 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]';
-  }
-  if (normalized.includes('ERROR') || normalized.includes('FAILED')) {
-    return 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]';
-  }
-  if (normalized.includes('PROCESS') || normalized.includes('RUNNING')) {
-    return 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]';
-  }
+  if (status === 'done') return 'border-[#BBF7D0] bg-[#F0FDF4] text-[#166534]';
+  if (status === 'failed') return 'border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]';
+  if (status === 'processing') return 'border-[#BFDBFE] bg-[#EFF6FF] text-[#1D4ED8]';
   return 'border-[#E2E8F0] bg-[#F8FAFC] text-[#475569]';
+}
+
+function sanitizeSort(sortValue) {
+  return SORT_OPTIONS.includes(sortValue) ? sortValue : 'updated_desc';
+}
+
+function sanitizeStatus(statusValue) {
+  return STATUS_OPTIONS.includes(statusValue) ? statusValue : 'all';
+}
+
+function sortProjects(projects, sortBy) {
+  const sorted = [...projects];
+  sorted.sort((a, b) => {
+    if (sortBy === 'updated_asc') return toTimestamp(a.updatedAt) - toTimestamp(b.updatedAt);
+    if (sortBy === 'title_asc') return String(a.title || '').localeCompare(String(b.title || ''));
+    if (sortBy === 'title_desc') return String(b.title || '').localeCompare(String(a.title || ''));
+    if (sortBy === 'reels_desc') return Number(b.generatedCount || 0) - Number(a.generatedCount || 0);
+    if (sortBy === 'uploads_desc') return Number(b.uploadCount || 0) - Number(a.uploadCount || 0);
+    return toTimestamp(b.updatedAt) - toTimestamp(a.updatedAt);
+  });
+  return sorted;
 }
 
 export default function ProjectsPage() {
   const prefersReducedMotion = useReducedMotion();
   const navigate = useNavigate();
+  const toast = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [projects, setProjects] = useState([]);
+  const [allProjects, setAllProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [page, setPage] = useState(1);
-  const [pages, setPages] = useState(0);
-  const [total, setTotal] = useState(0);
-  const [hasNext, setHasNext] = useState(false);
-  const [hasPrev, setHasPrev] = useState(false);
+  const [query, setQuery] = useState(searchParams.get('q') || '');
+  const [statusFilter, setStatusFilter] = useState(sanitizeStatus(searchParams.get('status') || 'all'));
+  const [sortBy, setSortBy] = useState(sanitizeSort(searchParams.get('sort') || 'updated_desc'));
+  const [page, setPage] = useState(Math.max(1, Number(searchParams.get('page') || 1)));
+
+  useEffect(() => {
+    const urlQuery = searchParams.get('q') || '';
+    const urlStatus = sanitizeStatus(searchParams.get('status') || 'all');
+    const urlSort = sanitizeSort(searchParams.get('sort') || 'updated_desc');
+    const pageFromUrl = Math.max(1, Number(searchParams.get('page') || 1));
+
+    if (urlQuery !== query) setQuery(urlQuery);
+    if (urlStatus !== statusFilter) setStatusFilter(urlStatus);
+    if (urlSort !== sortBy) setSortBy(urlSort);
+    if (pageFromUrl !== page) setPage(pageFromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    const trimmed = query.trim();
+    if (trimmed) next.set('q', trimmed);
+    if (statusFilter !== 'all') next.set('status', statusFilter);
+    if (sortBy !== 'updated_desc') next.set('sort', sortBy);
+    if (page > 1) next.set('page', String(page));
+
+    if (next.toString() !== searchParams.toString()) {
+      setSearchParams(next, { replace: true });
+    }
+  }, [page, query, searchParams, setSearchParams, sortBy, statusFilter]);
 
   const fetchProjects = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiFetch(`/projects?page=${page}&limit=${PAGE_SIZE}`);
-      if (res.ok) {
-        const data = await res.json();
-        if ((data.pages || 0) > 0 && page > data.pages) {
-          setPage(data.pages);
-          return;
+      const collected = [];
+      let currentPage = 1;
+      let hasNext = true;
+
+      while (hasNext && currentPage <= 20) {
+        const res = await apiFetch(`/projects?page=${currentPage}&limit=100`);
+        if (!res.ok) {
+          throw new Error('Failed to fetch projects');
         }
-        setProjects(data.projects || []);
-        setTotal(data.total || 0);
-        setPages(data.pages || 0);
-        setHasNext(Boolean(data.has_next));
-        setHasPrev(Boolean(data.has_prev));
-      } else {
-        setError('Failed to fetch projects.');
+        const data = await res.json();
+        collected.push(...(data.projects || []));
+        hasNext = Boolean(data.has_next);
+        currentPage += 1;
       }
-    } catch {
-      setError('Failed to connect to server.');
+
+      setAllProjects(collected);
+    } catch (fetchError) {
+      setError('Failed to fetch projects.');
+      toast.error('Projects unavailable', 'Could not load projects. Please refresh.');
+      console.error(fetchError);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      void fetchProjects();
-    }, 0);
-    return () => clearTimeout(timer);
-  }, [page]);
+    fetchProjects();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const createProject = async () => {
     try {
@@ -83,25 +145,55 @@ export default function ProjectsPage() {
       });
       if (res.ok) {
         const project = await res.json();
+        toast.success('Project created', 'Opening your new project.');
         navigate(`/dashboard/projects/${project._id}`);
+      } else {
+        toast.error('Create project failed', 'Please try again.');
       }
     } catch (err) {
       console.error(err);
+      toast.error('Create project failed', 'Network or server issue.');
     }
   };
 
+  const filteredProjects = useMemo(() => {
+    const trimmed = query.trim().toLowerCase();
+    const filtered = allProjects.filter((project) => {
+      const bucket = classifyProjectBucket(project);
+      if (statusFilter !== 'all' && bucket !== statusFilter) return false;
+      if (!trimmed) return true;
+      const haystack = `${project.title || ''} ${project.status || ''}`.toLowerCase();
+      return haystack.includes(trimmed);
+    });
+    return sortProjects(filtered, sortBy);
+  }, [allProjects, query, sortBy, statusFilter]);
+
+  const pages = Math.max(1, Math.ceil(filteredProjects.length / PAGE_SIZE));
+  const hasPrev = page > 1;
+  const hasNext = page < pages;
+
+  useEffect(() => {
+    if (page > pages) setPage(pages);
+  }, [page, pages]);
+
+  const visibleProjects = useMemo(() => {
+    const start = (page - 1) * PAGE_SIZE;
+    return filteredProjects.slice(start, start + PAGE_SIZE);
+  }, [filteredProjects, page]);
+
   const signals = useMemo(() => {
-    const pageGenerated = projects.reduce((sum, p) => sum + Number(p.generatedCount || 0), 0);
-    const pageUploads = projects.reduce((sum, p) => sum + Number(p.uploadCount || 0), 0);
-    const activeDrafts = projects.filter((p) => String(p.status || '').toUpperCase().includes('DRAFT')).length;
+    const generated = filteredProjects.reduce((sum, p) => sum + Number(p.generatedCount || 0), 0);
+    const uploads = filteredProjects.reduce((sum, p) => sum + Number(p.uploadCount || 0), 0);
+    const drafts = filteredProjects.filter((p) => classifyProjectBucket(p) === 'queued').length;
 
     return [
-      { label: 'Total Projects', value: total },
-      { label: 'Uploads On Page', value: pageUploads },
-      { label: 'Reels On Page', value: pageGenerated },
-      { label: 'Drafts On Page', value: activeDrafts },
+      { label: 'All Projects', value: allProjects.length },
+      { label: 'Current View', value: filteredProjects.length },
+      { label: 'Uploads In View', value: uploads },
+      { label: 'Drafts In View', value: drafts },
+      { label: 'Reels In View', value: generated },
     ];
-  }, [projects, total]);
+  }, [allProjects.length, filteredProjects]);
 
   return (
     <div className="flex flex-col gap-8 pb-20">
@@ -125,7 +217,7 @@ export default function ProjectsPage() {
               Manage every reel pipeline from one clean project grid.
             </h1>
             <p className="mt-4 max-w-2xl text-base font-medium leading-relaxed text-[#475569] md:text-lg">
-              Open drafts, track upload progress, and jump directly into storyboarding or final render in one click.
+              Search quickly, filter by generation state, and sort for review or execution speed.
             </p>
 
             <div className="mt-7 flex flex-wrap items-center gap-3">
@@ -152,7 +244,7 @@ export default function ProjectsPage() {
                 key={signal.label}
                 initial={prefersReducedMotion ? false : { opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4, ease, delay: prefersReducedMotion ? 0 : 0.08 + index * 0.05 }}
+                transition={{ duration: 0.4, ease, delay: prefersReducedMotion ? 0 : 0.08 + index * 0.04 }}
                 className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3.5"
               >
                 <p className="font-['Sora'] text-2xl font-extrabold tracking-tight text-[#0F172A]">{signal.value}</p>
@@ -163,11 +255,11 @@ export default function ProjectsPage() {
         </div>
       </motion.section>
 
-      {error && (
+      {error ? (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm font-semibold text-red-700">
           {error}
         </div>
-      )}
+      ) : null}
 
       <motion.section
         initial={prefersReducedMotion ? false : { opacity: 0, y: 14 }}
@@ -175,11 +267,57 @@ export default function ProjectsPage() {
         transition={{ duration: 0.5, ease, delay: prefersReducedMotion ? 0 : 0.08 }}
         className="rounded-[1.6rem] border border-[#dbe3f1] bg-white p-6 shadow-[0_20px_45px_rgba(15,23,42,0.06)]"
       >
-        <div className="mb-5 flex items-center justify-between gap-3">
+        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
           <h2 className="font-['Sora'] text-xl font-extrabold tracking-tight text-[#0F172A]">Project Grid</h2>
           <span className="rounded-lg border border-[#e2e8f0] bg-[#f8fafc] px-3 py-1.5 text-xs font-extrabold uppercase tracking-[0.08em] text-[#475569]">
-            Page {page} of {Math.max(1, pages)}
+            Page {page} of {pages}
           </span>
+        </div>
+
+        <div className="mb-5 grid gap-3 lg:grid-cols-[1.4fr_0.8fr_0.8fr]">
+          <label className="flex items-center gap-2 rounded-xl border border-[#dbe3f1] bg-[#f8fafc] px-3.5 py-2.5">
+            <Search size={15} className="text-[#64748B]" />
+            <input
+              value={query}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by project title or status"
+              className="w-full bg-transparent text-sm font-medium text-[#0F172A] outline-none placeholder:text-[#94a3b8]"
+            />
+          </label>
+
+          <select
+            value={statusFilter}
+            onChange={(e) => {
+              setStatusFilter(sanitizeStatus(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-xl border border-[#dbe3f1] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-semibold text-[#0F172A] outline-none"
+          >
+            <option value="all">All Statuses</option>
+            <option value="queued">Queued</option>
+            <option value="processing">Processing</option>
+            <option value="failed">Failed</option>
+            <option value="done">Done</option>
+          </select>
+
+          <select
+            value={sortBy}
+            onChange={(e) => {
+              setSortBy(sanitizeSort(e.target.value));
+              setPage(1);
+            }}
+            className="rounded-xl border border-[#dbe3f1] bg-[#f8fafc] px-3.5 py-2.5 text-sm font-semibold text-[#0F172A] outline-none"
+          >
+            <option value="updated_desc">Sort: Recently Updated</option>
+            <option value="updated_asc">Sort: Oldest Updated</option>
+            <option value="title_asc">Sort: Title A-Z</option>
+            <option value="title_desc">Sort: Title Z-A</option>
+            <option value="reels_desc">Sort: Most Reels</option>
+            <option value="uploads_desc">Sort: Most Uploads</option>
+          </select>
         </div>
 
         {loading ? (
@@ -193,13 +331,21 @@ export default function ProjectsPage() {
               </div>
             ))}
           </div>
-        ) : projects.length === 0 ? (
+        ) : allProjects.length === 0 ? (
           <div className="rounded-xl border-2 border-dashed border-[#e2e8f0] bg-[#f8fafc] px-6 py-12 text-center">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-white text-[#0284c7] shadow-sm">
               <FolderKanban size={24} />
             </div>
             <p className="text-xl font-extrabold tracking-tight text-[#0F172A]">No projects yet</p>
             <p className="mt-1 text-sm font-medium text-[#64748B]">Create your first project to start building reels.</p>
+            <div className="mx-auto mt-4 max-w-lg rounded-xl border border-[#e2e8f0] bg-white px-4 py-3 text-left">
+              <p className="text-xs font-extrabold uppercase tracking-[0.08em] text-[#64748B]">Quick Start</p>
+              <div className="mt-2 space-y-1.5 text-xs font-semibold text-[#334155]">
+                <p>1. Create a project and upload one full home-tour video.</p>
+                <p>2. Run AI analysis to generate a clean draft timeline.</p>
+                <p>3. Open style/music and render your first final reel.</p>
+              </div>
+            </div>
             <button
               onClick={createProject}
               className="mt-5 inline-flex items-center gap-2 rounded-xl bg-[#0F172A] px-5 py-3 text-sm font-bold text-white transition hover:bg-[#1e293b]"
@@ -208,63 +354,83 @@ export default function ProjectsPage() {
               Create Project
             </button>
           </div>
+        ) : filteredProjects.length === 0 ? (
+          <div className="rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-6 py-10 text-center">
+            <p className="text-lg font-extrabold tracking-tight text-[#0F172A]">No matching projects</p>
+            <p className="mt-1 text-sm font-medium text-[#64748B]">Try changing search text, status, or sort.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setQuery('');
+                setStatusFilter('all');
+                setSortBy('updated_desc');
+                setPage(1);
+              }}
+              className="mt-4 inline-flex items-center gap-2 rounded-lg border border-[#dbe3f1] bg-white px-4 py-2 text-xs font-bold text-[#0F172A] transition hover:bg-[#eff6ff]"
+            >
+              Clear Filters
+            </button>
+          </div>
         ) : (
           <>
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {projects.map((project, index) => (
-                <motion.div
-                  key={project._id}
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.35, ease, delay: prefersReducedMotion ? 0 : index * 0.03 }}
-                >
-                  <Link
-                    to={`/dashboard/projects/${project._id}`}
-                    className="group block rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-5 transition hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:bg-[#eff6ff]"
+              {visibleProjects.map((project, index) => {
+                const bucket = classifyProjectBucket(project);
+                return (
+                  <motion.div
+                    key={project._id}
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.35, ease, delay: prefersReducedMotion ? 0 : index * 0.03 }}
                   >
-                    <div className="mb-4 flex items-center justify-between">
-                      <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#0284c7] shadow-sm">
-                        <FolderKanban size={20} />
+                    <Link
+                      to={`/dashboard/projects/${project._id}`}
+                      className="group block rounded-2xl border border-[#e2e8f0] bg-[#f8fafc] p-5 transition hover:-translate-y-0.5 hover:border-[#bfdbfe] hover:bg-[#eff6ff]"
+                    >
+                      <div className="mb-4 flex items-center justify-between">
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white text-[#0284c7] shadow-sm">
+                          <FolderKanban size={20} />
+                        </div>
+                        <span
+                          className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] ${getStatusTone(
+                            bucket
+                          )}`}
+                        >
+                          {bucket}
+                        </span>
                       </div>
-                      <span
-                        className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.08em] ${getStatusTone(
-                          project.status
-                        )}`}
-                      >
-                        {project.status || 'Draft'}
-                      </span>
-                    </div>
 
-                    <p className="truncate font-['Sora'] text-xl font-extrabold tracking-tight text-[#0F172A]">
-                      {project.title || 'Untitled Property'}
-                    </p>
+                      <p className="truncate font-['Sora'] text-xl font-extrabold tracking-tight text-[#0F172A]">
+                        {project.title || 'Untitled Property'}
+                      </p>
 
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
-                        <p className="text-base font-extrabold text-[#0F172A]">{project.uploadCount || 0}</p>
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#64748B]">Uploads</p>
+                      <div className="mt-4 grid grid-cols-2 gap-2">
+                        <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
+                          <p className="text-base font-extrabold text-[#0F172A]">{project.uploadCount || 0}</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#64748B]">Uploads</p>
+                        </div>
+                        <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
+                          <p className="text-base font-extrabold text-[#0F172A]">{project.generatedCount || 0}</p>
+                          <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#64748B]">Reels</p>
+                        </div>
                       </div>
-                      <div className="rounded-lg border border-[#e2e8f0] bg-white px-3 py-2">
-                        <p className="text-base font-extrabold text-[#0F172A]">{project.generatedCount || 0}</p>
-                        <p className="text-[10px] font-extrabold uppercase tracking-[0.08em] text-[#64748B]">Reels</p>
-                      </div>
-                    </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-[#e2e8f0] pt-3">
-                      <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#64748B]">
-                        <Clock3 size={13} />
-                        Updated {formatRelativeTime(project.updatedAt)}
-                      </span>
-                      <ArrowRight size={16} className="text-[#94a3b8] transition group-hover:translate-x-0.5 group-hover:text-[#0284c7]" />
-                    </div>
-                  </Link>
-                </motion.div>
-              ))}
+                      <div className="mt-4 flex items-center justify-between border-t border-[#e2e8f0] pt-3">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#64748B]">
+                          <Clock3 size={13} />
+                          Updated {formatRelativeTime(project.updatedAt)}
+                        </span>
+                        <ArrowRight size={16} className="text-[#94a3b8] transition group-hover:translate-x-0.5 group-hover:text-[#0284c7]" />
+                      </div>
+                    </Link>
+                  </motion.div>
+                );
+              })}
             </div>
 
             <div className="mt-6 flex flex-col items-center justify-between gap-3 rounded-xl border border-[#e2e8f0] bg-[#f8fafc] px-4 py-3 sm:flex-row">
               <p className="text-sm font-semibold text-[#64748B]">
-                Showing {projects.length} of {total} projects.
+                Showing {visibleProjects.length} of {filteredProjects.length} filtered projects ({allProjects.length} total).
               </p>
               <div className="flex items-center gap-2">
                 <button
@@ -276,7 +442,7 @@ export default function ProjectsPage() {
                   Prev
                 </button>
                 <button
-                  onClick={() => setPage((prev) => prev + 1)}
+                  onClick={() => setPage((prev) => Math.min(pages, prev + 1))}
                   disabled={!hasNext || loading}
                   className="inline-flex items-center gap-1 rounded-lg border border-[#dbe3f1] bg-white px-3.5 py-2 text-xs font-bold text-[#0F172A] transition hover:bg-[#eff6ff] disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -287,36 +453,6 @@ export default function ProjectsPage() {
             </div>
           </>
         )}
-      </motion.section>
-
-      <motion.section
-        initial={prefersReducedMotion ? false : { opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5, ease, delay: prefersReducedMotion ? 0 : 0.14 }}
-        className="grid gap-4 sm:grid-cols-3"
-      >
-        <Link
-          to="/dashboard/projects"
-          className="rounded-xl border border-[#bfdbfe] bg-[#eff6ff] px-4 py-3 transition hover:bg-[#dbeafe]"
-        >
-          <p className="text-sm font-extrabold text-[#0F172A]">Current Workspace</p>
-          <p className="mt-0.5 text-xs font-semibold text-[#0369a1]">Project planning and upload control</p>
-        </Link>
-        <Link
-          to="/dashboard/history"
-          className="rounded-xl border border-[#d1fae5] bg-[#f0fdf4] px-4 py-3 transition hover:bg-[#dcfce7]"
-        >
-          <p className="text-sm font-extrabold text-[#0F172A]">Render Output</p>
-          <p className="mt-0.5 text-xs font-semibold text-[#166534]">Review completed reels and downloads</p>
-        </Link>
-        <button
-          type="button"
-          onClick={createProject}
-          className="text-left rounded-xl border border-[#fde68a] bg-[#fffbeb] px-4 py-3 transition hover:bg-[#fef3c7]"
-        >
-          <p className="text-sm font-extrabold text-[#0F172A]">Fast Start</p>
-          <p className="mt-0.5 text-xs font-semibold text-[#92400e]">Create a new project instantly</p>
-        </button>
       </motion.section>
     </div>
   );

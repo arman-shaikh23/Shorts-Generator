@@ -137,6 +137,7 @@ export default function HowItWorksModal({
             ref={videoRef}
             className="w-full h-full object-contain"
             src={videoUrl}
+            preload="metadata"
             muted={isMuted}
             loop
             playsInline

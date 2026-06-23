@@ -2,6 +2,72 @@
 
 All notable changes to this project will be documented in this file.
 
+## [17.14.0] - Workflow UX Polish (Toasts + Drill-Down + URL-Synced Views)
+### Added
+- **Global toast system** (`frontend/src/context/ToastContext.jsx`, `frontend/src/main.jsx`)
+  - Added a shared toast provider for success/error/info feedback across authenticated flows.
+  - Added toast helpers for standardized messaging and auto-dismiss behavior.
+- **Action feedback wiring**
+  - `frontend/src/components/layout/TopNav.jsx`: Added create-project success/error toasts.
+  - `frontend/src/pages/DashboardPage.jsx`: Added create-project success/error toasts.
+  - `frontend/src/pages/HistoryPage.jsx`: Added download success/fallback toasts.
+- **Status rail drill-down navigation** (`frontend/src/components/layout/SystemStatusRail.jsx`)
+  - Made status buckets clickable for direct operational routing.
+  - `done` now routes to `/dashboard/history`.
+  - `queued`, `processing`, and `failed` now route to `/dashboard/projects?status=<bucket>&page=1`.
+
+### Changed
+- **Projects management UX rewrite** (`frontend/src/pages/ProjectsPage.jsx`)
+  - Added URL-synced search/filter/sort/pagination state (`q`, `status`, `sort`, `page`).
+  - Added client-safe list filtering/sorting and paged grid navigation.
+  - Added filtered metrics strip and improved no-results reset actions.
+- **History management UX rewrite** (`frontend/src/pages/HistoryPage.jsx`)
+  - Added URL-synced search/filter/sort/pagination state (`q`, `style`, `sort`, `page`).
+  - Added client-safe list filtering/sorting and paged reel grid navigation.
+  - Kept direct reel video thumbnails (removed custom poster dependency); cards use inline video preview with `preload="metadata"`.
+
+### Documentation
+- **README.md**
+  - Added feature notes for global toasts, status drill-down navigation, and URL-synced Projects/History controls.
+- **PROMPTS.md**
+  - Added Prompt 0.11 for frontend workflow polish implementation policy.
+
+### Validation
+- Frontend build: passed (`npm run build`).
+
+## [17.13.0] - UX Reliability Pass (Status Rail + Empty-State Guidance + Video Performance)
+### Added
+- **Persistent system-status rail** (`frontend/src/components/layout/SystemStatusRail.jsx`)
+  - Added shared status rail across authenticated pages (`/dashboard`, `/dashboard/projects`, `/dashboard/history`).
+  - Added live lifecycle buckets: `queued`, `processing`, `failed`, `done`.
+  - Added latest activity timestamps and quick recovery actions (`Retry Failed`, `Resume Processing`, `Continue Setup`, `Open History`).
+  - Added auto-refresh polling (30s) and manual refresh control.
+
+### Changed
+- **Authenticated layout integration** (`frontend/src/App.jsx`)
+  - Mounted status rail in `DashboardLayout` so monitoring remains visible while navigating between pages.
+- **Projects empty-state onboarding UX** (`frontend/src/pages/ProjectsPage.jsx`)
+  - Added startup checklist and guided next-step links to reduce dead-end behavior.
+- **History empty-state onboarding UX** (`frontend/src/pages/HistoryPage.jsx`)
+  - Added first-export checklist and guided CTAs back to the production flow.
+- **Video performance pass**
+  - `frontend/src/components/dashboard/DemoVideoCard.jsx`: Added viewport-triggered lazy loading via `IntersectionObserver`, poster-first behavior, and reduced-motion-aware autoplay gating.
+  - `frontend/src/pages/HistoryPage.jsx`: Reel cards switched to `preload="none"` with poster fallback.
+  - `frontend/src/pages/LandingPage.jsx`: Tutorial video switched to `preload="none"`.
+  - `frontend/src/pages/ProjectDetailPage.jsx`: Preview/storyboard videos switched to `preload="none"` and final result player to `preload="metadata"`.
+  - `frontend/src/components/HowItWorksModal.jsx`: Modal player explicitly set to `preload="metadata"`.
+- **Dashboard quick actions cleanup** (`frontend/src/pages/DashboardPage.jsx`)
+  - Removed `API Docs` quick action as requested.
+
+### Documentation
+- **README.md**
+  - Added UX reliability features: persistent status rail, empty-state onboarding, and video performance pass.
+- **PROMPTS.md**
+  - Added Prompt 0.10 for frontend UX reliability implementation policy.
+
+### Validation
+- Frontend build: passed (`npm run build`).
+
 ## [17.12.0] - YouTube URL Upload Support (`/uploads`)
 ### Added
 - **YouTube ingestion path in downloader** (`backend/services/video.py`)

@@ -18,8 +18,15 @@ An enterprise-grade, Canva-tier AI platform that empowers Real Estate Agents, Bu
 - **Luxury Ocean Aurora Dashboard**: A premium, light-themed workspace inspired by Stripe and Linear. Features an 80px floating top navigation bar and a clean responsive 2-column workspace layout.
 - **Authentic Data Visualization**: The UI strictly surfaces real data returned by the backend (e.g. actual extracted clip durations, actual scene types) with zero hardcoded "mock" metrics.
 - **Micro-Interactions**: Built heavily with Framer Motion to provide high-end, smooth animations (hover scaling, layout transitions, animated step indicators).
+- **Persistent System Status Rail**: Dashboard, Projects, and History now include a shared status rail with `queued`, `processing`, `failed`, and `done` buckets, latest activity timestamps, and quick recovery actions.
+- **Status Drill-Down Navigation**: Status cards in the rail are interactive; `done` opens History while `queued`/`processing`/`failed` open Projects with status-aware filtered views.
+- **Global Toast Feedback Layer**: Create/download actions now show consistent success/error toast notifications across dashboard workflows.
+- **Projects and History Control Panel UX**: Both pages now support URL-synced `search + filter + sort + pagination` so users can share and reopen the exact same view state.
+- **Empty-State Onboarding UX**: Empty pages now include practical startup checklists and direct navigation to the next meaningful action.
+- **Video Performance Pass**: Video-heavy surfaces now use lighter preload behavior (`preload="none"` where appropriate), poster-first rendering, and viewport-triggered loading on dashboard demo media.
 
 ### 1. Premium SaaS Dashboard Experience
+The authenticated workspace also exposes a persistent health/status rail so users can monitor generation state at a glance while moving between Dashboard, Projects, and History.
 The moment you log into ReelForge, a responsive, 2-column glassmorphism dashboard instantly showcases the platform’s capabilities through a looping demo reel. Users immediately understand the "22 Raw Clips → AI Analysis → Cinematic Reel" workflow without ever needing to read a tutorial.
 
 ### 2. Hybrid Cinematic AI Engine V4.0 (OpenCV + Gemini + Story Arc)

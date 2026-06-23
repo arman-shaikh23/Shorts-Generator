@@ -266,6 +266,62 @@ Rules:
 - Native YouTube ingestion removes manual download/upload friction.
 - Keeping the downstream pipeline unchanged preserves quality and stability guarantees.
 
+## Prompt 0.10: Frontend UX Reliability Pass (Status Rail + Empty States + Video Performance)
+
+### The Prompt
+```text
+You are a senior frontend/product engineer for ReelForge.
+Upgrade dashboard UX reliability without changing core backend contracts.
+
+Rules:
+1) Add a persistent system-status rail across authenticated pages.
+2) Surface clear lifecycle buckets: queued, processing, failed, done.
+3) Show latest activity timestamp and quick-recovery actions (retry/resume/open history).
+4) Upgrade empty states in Projects/History with practical onboarding checklists and next-step CTAs.
+5) Improve video-heavy page performance:
+   - Use preload="none" for non-critical previews.
+   - Use poster-first rendering.
+   - Lazy-load demo media when it enters viewport.
+6) Preserve reduced-motion accessibility behavior.
+7) Keep existing API contracts and navigation flows intact.
+8) Update README and CHANGELOG with operational UX notes.
+```
+
+### Why This Prompt Exists
+- Improves visibility of system health across dashboard workflows.
+- Reduces dead-end UX by turning empty states into guided onboarding.
+- Improves responsiveness by reducing unnecessary media loading.
+- Keeps production behavior stable by avoiding backend contract changes.
+
+## Prompt 0.11: Frontend Workflow Polish (Toasts + Drill-Down + URL-Synced Views)
+
+### The Prompt
+```text
+You are a senior frontend/product engineer for ReelForge.
+Polish operational UX across dashboard, projects, and history without backend API changes.
+
+Rules:
+1) Add a global toast context/provider and keep notification patterns consistent.
+2) Trigger success/error toasts for primary actions (project creation and reel download flows).
+3) Make status rail buckets actionable:
+   - done -> history page
+   - queued/processing/failed -> projects page with status query param
+4) Upgrade Projects page with URL-synced controls:
+   - q (search), status (filter), sort, page
+5) Upgrade History page with URL-synced controls:
+   - q (search), style (filter), sort, page
+6) Keep list filtering/sorting client-safe when backend query contracts are limited.
+7) Preserve direct reel thumbnail behavior in history (no extra custom poster overlays).
+8) Keep visual language aligned with premium dashboard styling and reduced-motion behavior.
+9) Update README and CHANGELOG with implementation and validation notes.
+```
+
+### Why This Prompt Exists
+- Gives users immediate action feedback so workflows feel reliable.
+- Reduces navigation friction by turning status signals into one-click drill-downs.
+- Makes Projects/History views shareable and recoverable through URL state.
+- Preserves backend compatibility while improving perceived quality and control.
+
 ## Prompt 1: ReelForge Duration-First Story Engine (v5)
 
 ### The Prompt

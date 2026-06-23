@@ -15,6 +15,7 @@ import {
 import { apiFetch } from '../api/client';
 import { formatRelativeTime } from '../lib/utils';
 import DemoVideoCard from '../components/dashboard/DemoVideoCard';
+import { useToast } from '../context/ToastContext';
 
 const ease = [0.22, 1, 0.36, 1];
 
@@ -85,6 +86,7 @@ function getStatusTone(status) {
 export default function DashboardPage() {
   const prefersReducedMotion = useReducedMotion();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [stats, setStats] = useState({
     projects: 0,
@@ -149,10 +151,14 @@ export default function DashboardPage() {
       });
       if (res.ok) {
         const project = await res.json();
+        toast.success('Project created', 'Opening project workspace.');
         navigate(`/dashboard/projects/${project._id}`);
+      } else {
+        toast.error('Create project failed', 'Please try again.');
       }
     } catch (err) {
       console.error(err);
+      toast.error('Create project failed', 'Network or server issue.');
     }
   };
 

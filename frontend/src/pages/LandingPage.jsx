@@ -390,7 +390,7 @@ export default function LandingPage() {
                 poster={heroPoster}
                 controls
                 playsInline
-                preload="metadata"
+                preload="none"
                 className="aspect-video w-full rounded-[1.2rem] border border-[#d6deeb] bg-[#020617] object-contain"
               >
                 <source src="/tutorials/how-it-works.mp4" type="video/mp4" />

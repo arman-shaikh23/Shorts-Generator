@@ -524,7 +524,7 @@ export default function ProjectDetailPage() {
                     {uploads.map((item, idx) => (
                        <div key={item._id} className="shrink-0 w-36 rounded-xl overflow-hidden border border-[#E2E8F0] relative shadow-sm">
                          <div className="h-24 bg-[#F8FAFC]">
-                           {item.previewPath ? <video src={toApiUrl(`/${item.previewPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover" /> : <Video className="w-full h-full p-6 text-[#cbd5e1]"/>}
+                           {item.previewPath ? <video src={toApiUrl(`/${item.previewPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover" preload="none" /> : <Video className="w-full h-full p-6 text-[#cbd5e1]"/>}
                          </div>
                          <div className="absolute top-2 left-2 bg-white/90 backdrop-blur rounded text-[10px] font-black px-1.5 py-0.5 text-[#0F172A]">#{idx+1}</div>
                        </div>
@@ -539,7 +539,7 @@ export default function ProjectDetailPage() {
                     {project?.draftTimeline?.map((item, idx) => (
                       <div key={idx} className="shrink-0 w-64 rounded-[1.5rem] bg-white shadow-md border border-[#8B5CF6]/20 overflow-hidden relative group">
                         <div className="h-40 bg-[#F8FAFC] relative">
-                          {item.localPath ? <video src={toApiUrl(`/${item.localPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" /> : <Video className="w-full h-full p-10 text-[#cbd5e1]"/>}
+                          {item.localPath ? <video src={toApiUrl(`/${item.localPath.replace(/\\/g, '/')}`)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" preload="none" /> : <Video className="w-full h-full p-10 text-[#cbd5e1]"/>}
                           <div className="absolute top-3 left-3 bg-[#8B5CF6] text-white rounded-lg text-sm font-black px-3 py-1 shadow-sm">{idx+1}</div>
                         </div>
                         <div className="p-5">
@@ -787,7 +787,7 @@ export default function ProjectDetailPage() {
               {/* Left Video Player */}
               <div className={`bg-[#0F172A] rounded-[2rem] overflow-hidden shadow-2xl border-[#E2E8F0] ${previewRatioClass} lg:w-1/2 flex-shrink-0 flex items-center justify-center`}>
                 {resultsData[0]?.video_url || resultsData[0]?.videoUrl ? (
-                  <video src={toApiUrl(resultsData[0].video_url || resultsData[0].videoUrl)} controls className="w-full h-full object-contain" autoPlay loop />
+                  <video src={toApiUrl(resultsData[0].video_url || resultsData[0].videoUrl)} controls className="w-full h-full object-contain" autoPlay loop preload="metadata" />
                 ) : (
                   <p className="text-white font-medium">Video preview unavailable</p>
                 )}

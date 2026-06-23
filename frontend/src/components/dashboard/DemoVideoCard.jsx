@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import {
   ArrowRight,
   Clapperboard,
@@ -9,6 +10,7 @@ import {
   Volume2,
   VolumeX,
 } from 'lucide-react';
+import heroPoster from '../../assets/hero.png';
 
 const workflowChips = ['22 Raw Clips', 'AI Analysis', 'Scene Selection', 'Final Reel'];
 
@@ -21,10 +23,30 @@ const featurePills = [
 ];
 
 export default function DemoVideoCard() {
+  const prefersReducedMotion = useReducedMotion();
+  const cardRef = useRef(null);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
 
+  useEffect(() => {
+    if (!cardRef.current) return undefined;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoadVideo(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '150px' }
+    );
+
+    observer.observe(cardRef.current);
+    return () => observer.disconnect();
+  }, []);
+
   return (
-    <div className="group relative mx-auto w-full max-w-[320px] transition-all duration-300 ease-out hover:-translate-y-1">
+    <div ref={cardRef} className="group relative mx-auto w-full max-w-[320px] transition-all duration-300 ease-out hover:-translate-y-1">
       <div className="absolute -inset-1 rounded-3xl bg-gradient-to-r from-[#0EA5E9]/25 via-[#06B6D4]/25 to-[#14B8A6]/25 blur" />
 
       <div className="relative flex flex-col gap-3 overflow-hidden rounded-3xl border border-[#dbe3f1] bg-white/90 p-3 shadow-[0_24px_55px_rgba(15,23,42,0.1)] backdrop-blur">
@@ -41,11 +63,13 @@ export default function DemoVideoCard() {
         <div className="group/video relative aspect-[9/16] w-full overflow-hidden rounded-2xl border border-[#dbe3f1] bg-[#020617] shadow-inner">
           <video
             className="h-full w-full object-cover transition-transform duration-500 group-hover/video:scale-105"
-            src="/demo/how-it-works.mp4"
-            autoPlay
+            src={shouldLoadVideo ? '/demo/how-it-works.mp4' : undefined}
+            poster={heroPoster}
+            autoPlay={!prefersReducedMotion && shouldLoadVideo}
             muted={isMuted}
             loop
             playsInline
+            preload="none"
             controlsList="nodownload noplaybackrate noremoteplayback"
             disablePictureInPicture
           />

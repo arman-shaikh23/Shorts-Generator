@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Play, LogOut, Plus, PlayCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../context/ToastContext';
 import HowItWorksModal from '../HowItWorksModal';
 import { apiFetch } from '../../api/client';
 
@@ -10,6 +11,7 @@ export function TopNav() {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
+  const toast = useToast();
   const [showHowItWorks, setShowHowItWorks] = useState(false);
 
   const navItems = [
@@ -29,10 +31,14 @@ export function TopNav() {
       });
       if (res.ok) {
         const project = await res.json();
+        toast.success('Project created', 'Opening your new reel workspace.');
         navigate(`/dashboard/projects/${project._id}`);
+      } else {
+        toast.error('Create project failed', 'Please try again.');
       }
     } catch (err) {
       console.error(err);
+      toast.error('Create project failed', 'Network or server issue.');
     }
   };
 
