@@ -8,8 +8,7 @@ import {
   Loader2,
   RefreshCw,
 } from 'lucide-react';
-import { apiFetch } from '../../api/client';
-import { formatRelativeTime } from '../../lib/utils';
+import { apiFetch, formatRelativeTime } from '../../api/client';
 
 const statusMeta = {
   queued: {

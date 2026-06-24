@@ -88,4 +88,21 @@ export function toApiUrl(path = '') {
   return `${API_ORIGIN}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 
+export function formatRelativeTime(dateValue) {
+  const date = new Date(dateValue);
+  if (Number.isNaN(date.getTime())) return 'Just now';
+
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHr / 24);
+
+  if (diffMin < 1) return 'Just now';
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHr < 24) return `${diffHr}h ago`;
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
 export { API_BASE, API_ORIGIN };

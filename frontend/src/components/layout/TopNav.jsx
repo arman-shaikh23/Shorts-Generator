@@ -1,11 +1,14 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Play, LogOut, Plus, PlayCircle } from 'lucide-react';
-import { cn } from '../../lib/utils';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../context/ToastContext';
 import HowItWorksModal from '../HowItWorksModal';
 import { apiFetch } from '../../api/client';
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export function TopNav() {
   const { user, logout } = useAuth();

@@ -12,8 +12,7 @@ import {
   TrendingUp,
   Video,
 } from 'lucide-react';
-import { apiFetch } from '../api/client';
-import { formatRelativeTime } from '../lib/utils';
+import { apiFetch, formatRelativeTime } from '../api/client';
 import DemoVideoCard from '../components/dashboard/DemoVideoCard';
 import { useToast } from '../context/ToastContext';
 

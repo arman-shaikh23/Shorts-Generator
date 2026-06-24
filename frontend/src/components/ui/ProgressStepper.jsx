@@ -1,6 +1,9 @@
 import { motion } from 'framer-motion';
 import { CheckCircle2, Loader2 } from 'lucide-react';
-import { cn } from '../../lib/utils';
+
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
 
 export function ProgressStepper({ steps, currentStep, isProcessing }) {
   if (!steps || steps.length === 0) return null;

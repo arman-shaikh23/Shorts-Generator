@@ -1,4 +1,6 @@
-import { cn } from '../../lib/utils';
+function cn(...classes) {
+  return classes.filter(Boolean).join(' ');
+}
 
 const variants = {
   primary: 'bg-white text-black hover:bg-gray-200 shadow-[0_0_20px_rgba(255,255,255,0.15)]',

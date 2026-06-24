@@ -11,8 +11,7 @@ import {
   Search,
   Sparkles,
 } from 'lucide-react';
-import { apiFetch, toApiUrl } from '../api/client';
-import { formatRelativeTime } from '../lib/utils';
+import { apiFetch, formatRelativeTime, toApiUrl } from '../api/client';
 import { useToast } from '../context/ToastContext';
 
 const PAGE_SIZE = 12;
