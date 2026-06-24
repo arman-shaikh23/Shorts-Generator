@@ -6,6 +6,8 @@ import logging
 import math
 import glob
 import urllib.parse
+import shutil
+from functools import lru_cache
 from typing import Optional, Callable
 from pathlib import Path
 
@@ -18,10 +20,18 @@ logger = logging.getLogger(__name__)
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff", ".gif"}
 IMAGE_CODECS = {"mjpeg", "jpeg", "png", "webp", "bmp", "gif", "tiff"}
 
-# Check ffmpeg installation
-subprocess.run(["ffmpeg", "-version"], check=True)
+@lru_cache(maxsize=1)
+def _ensure_media_binaries() -> None:
+    missing = [binary for binary in ("ffmpeg", "ffprobe") if shutil.which(binary) is None]
+    if missing:
+        missing_binaries = ", ".join(missing)
+        raise RuntimeError(
+            f"Missing required media binaries: {missing_binaries}. "
+            "Install ffmpeg and ensure it is available on PATH."
+        )
 
 def run_ffmpeg(cmd):
+    _ensure_media_binaries()
     logger.info(f"Running FFmpeg: {' '.join(cmd)}")
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
@@ -35,6 +45,7 @@ def run_ffmpeg(cmd):
 
 
 def _probe_media(path: str) -> dict:
+    _ensure_media_binaries()
     cmd = [
         "ffprobe",
         "-v",
@@ -177,6 +188,7 @@ async def normalize_upload_media(media_path: str, project_id: str, upload_id: Op
     raise RuntimeError("Unsupported upload: could not detect a video stream or supported image format.")
 
 def get_exact_duration(path: str) -> float:
+    _ensure_media_binaries()
     cmd = ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "default=noprint_wrappers=1:nokey=1", path]
     res = subprocess.run(cmd, capture_output=True, text=True)
     try:
@@ -196,6 +208,7 @@ def parse_time_to_seconds(time_str: str) -> float:
     return total
 
 def has_audio(path: str) -> bool:
+    _ensure_media_binaries()
     cmd = ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=codec_type", "-of", "csv=p=0", path]
     res = subprocess.run(cmd, capture_output=True, text=True)
     return bool(res.stdout.strip())
