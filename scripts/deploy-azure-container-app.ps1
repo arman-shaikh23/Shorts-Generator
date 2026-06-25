@@ -73,7 +73,10 @@ function Write-Step {
 }
 
 function Write-AzOutput {
-    param([Parameter(Mandatory = $true)][object[]]$Output)
+    param([AllowNull()][object[]]$Output = @())
+    if ($null -eq $Output) {
+        return
+    }
     foreach ($line in $Output) {
         if ($line -is [System.Management.Automation.ErrorRecord]) {
             Write-Host $line.Exception.Message
@@ -84,7 +87,10 @@ function Write-AzOutput {
 }
 
 function Get-AzOutputText {
-    param([Parameter(Mandatory = $true)][object[]]$Output)
+    param([AllowNull()][object[]]$Output = @())
+    if ($null -eq $Output) {
+        return ""
+    }
     $lines = foreach ($line in $Output) {
         if ($line -is [System.Management.Automation.ErrorRecord]) {
             $line.Exception.Message
@@ -96,7 +102,7 @@ function Get-AzOutputText {
 }
 
 function Test-AzTransientFailure {
-    param([Parameter(Mandatory = $true)][object[]]$Output)
+    param([AllowNull()][object[]]$Output = @())
     $outputText = (Get-AzOutputText -Output $Output)
     if ([string]::IsNullOrWhiteSpace($outputText)) {
         return $false
