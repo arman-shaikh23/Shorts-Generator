@@ -72,19 +72,101 @@ function Write-Step {
     Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
-function Run-Az {
-    param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
-    Write-Host "az $($Args -join ' ')" -ForegroundColor DarkCyan
-    $result = Invoke-AzRaw @Args
-    foreach ($line in $result.Output) {
+function Write-AzOutput {
+    param([Parameter(Mandatory = $true)][object[]]$Output)
+    foreach ($line in $Output) {
         if ($line -is [System.Management.Automation.ErrorRecord]) {
             Write-Host $line.Exception.Message
         } else {
             Write-Host $line
         }
     }
-    if ($result.ExitCode -ne 0) {
-        throw "Azure CLI command failed: az $($Args -join ' ')"
+}
+
+function Get-AzOutputText {
+    param([Parameter(Mandatory = $true)][object[]]$Output)
+    $lines = foreach ($line in $Output) {
+        if ($line -is [System.Management.Automation.ErrorRecord]) {
+            $line.Exception.Message
+        } else {
+            "$line"
+        }
+    }
+    return (($lines -join "`n").Trim())
+}
+
+function Test-AzTransientFailure {
+    param([Parameter(Mandatory = $true)][object[]]$Output)
+    $outputText = (Get-AzOutputText -Output $Output)
+    if ([string]::IsNullOrWhiteSpace($outputText)) {
+        return $false
+    }
+
+    $lower = $outputText.ToLowerInvariant()
+    $needles = @(
+        "connection reset by peer",
+        "connectionreseterror",
+        "requests.exceptions.connectionerror",
+        "connection aborted",
+        "remote disconnected",
+        "read timed out",
+        "econnreset",
+        "socket hang up",
+        "temporarily unavailable",
+        "service unavailable",
+        "too many requests",
+        "status code: 429",
+        "http 429",
+        "502 bad gateway",
+        "503 service unavailable",
+        "504 gateway timeout",
+        "gatewaytimeout",
+        "internal server error"
+    )
+    foreach ($needle in $needles) {
+        if ($lower.Contains($needle)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function Run-Az {
+    param(
+        [int]$MaxAttempts = 4,
+        [int]$InitialRetryDelaySec = 5,
+        [Parameter(ValueFromRemainingArguments = $true)][string[]]$Args
+    )
+
+    if ($MaxAttempts -lt 1) {
+        $MaxAttempts = 1
+    }
+    if ($InitialRetryDelaySec -lt 1) {
+        $InitialRetryDelaySec = 1
+    }
+
+    for ($attempt = 1; $attempt -le $MaxAttempts; $attempt++) {
+        if ($attempt -eq 1) {
+            Write-Host "az $($Args -join ' ')" -ForegroundColor DarkCyan
+        } else {
+            Write-Host "az $($Args -join ' ') (attempt $attempt/$MaxAttempts)" -ForegroundColor DarkCyan
+        }
+
+        $result = Invoke-AzRaw @Args
+        Write-AzOutput -Output $result.Output
+
+        if ($result.ExitCode -eq 0) {
+            return
+        }
+
+        $retryable = Test-AzTransientFailure -Output $result.Output
+        if ((-not $retryable) -or ($attempt -eq $MaxAttempts)) {
+            throw "Azure CLI command failed: az $($Args -join ' ')"
+        }
+
+        $delay = [Math]::Min(60, [int]($InitialRetryDelaySec * [Math]::Pow(2, $attempt - 1)))
+        Write-Warning "Transient Azure CLI failure detected. Retrying in $delay seconds..."
+        Start-Sleep -Seconds $delay
     }
 }
 
