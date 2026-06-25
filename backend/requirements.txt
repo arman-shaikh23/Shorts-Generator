@@ -20,6 +20,7 @@ scikit-image
 pytest
 pytest-asyncio
 yt-dlp
+azure-storage-blob
 structlog
 prometheus-fastapi-instrumentator
 logtail-python

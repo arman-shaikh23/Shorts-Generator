@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # File paths
     DOWNLOADS_DIR: str = "downloads"
     OUTPUTS_DIR: str = "outputs"
+    # Optional Azure Blob offload for final rendered reels
+    ENABLE_AZURE_BLOB_OUTPUT: bool = False
+    AZURE_STORAGE_CONNECTION_STRING: str = ""
+    AZURE_BLOB_OUTPUT_CONTAINER: str = "reels"
     # Streaming upload controls
     UPLOAD_STREAM_CHUNK_SIZE: int = 1048576
     MAX_VIDEO_UPLOAD_BYTES: int = 10737418240
@@ -152,6 +156,7 @@ class Settings(BaseSettings):
         "ENABLE_SCORING_V2",
         "ENABLE_DEDUP_V2",
         "ENABLE_TRANSITION_V2",
+        "ENABLE_AZURE_BLOB_OUTPUT",
         mode="before",
     )
     @classmethod

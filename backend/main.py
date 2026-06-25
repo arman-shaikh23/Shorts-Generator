@@ -222,6 +222,10 @@ app.mount("/data", StaticFiles(directory="data"), name="data")
 if os.path.exists("static"):
     if os.path.exists("static/assets"):
         app.mount("/assets", StaticFiles(directory="static/assets"), name="assets")
+    if os.path.exists("static/demo"):
+        app.mount("/demo", StaticFiles(directory="static/demo"), name="demo")
+    if os.path.exists("static/tutorials"):
+        app.mount("/tutorials", StaticFiles(directory="static/tutorials"), name="tutorials")
 
 if os.path.exists("static/index.html"):
     @app.get("/")
@@ -233,3 +237,15 @@ if os.path.exists("static/index.html"):
         if os.path.exists("static/favicon.svg"):
             return FileResponse("static/favicon.svg")
         return JSONResponse({"error": "Favicon not found"}, status_code=404)
+
+    @app.get("/{full_path:path}")
+    async def spa_fallback(full_path: str):
+        # Keep API/static mount 404 behavior; only fallback frontend routes to index.html
+        if full_path.startswith(("api/", "outputs/", "data/", "assets/", "demo/", "tutorials/")):
+            return JSONResponse({"detail": "Not Found"}, status_code=404)
+
+        static_candidate = os.path.join("static", full_path)
+        if full_path and os.path.isfile(static_candidate):
+            return FileResponse(static_candidate)
+
+        return FileResponse("static/index.html")

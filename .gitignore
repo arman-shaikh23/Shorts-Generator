@@ -65,3 +65,5 @@ outputs/
 
 frontend/public/demo/*.mp4
 frontend/public/tutorials/*.mp4
+
+-UseLocalDockerBuild/

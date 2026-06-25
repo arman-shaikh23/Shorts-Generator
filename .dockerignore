@@ -1,0 +1,36 @@
+# VCS and local agent metadata
+.git
+.github
+.agents
+
+# Python virtualenv / caches
+backend/venv
+backend/.pytest_cache
+**/__pycache__
+**/*.pyc
+**/*.pyo
+
+# Local runtime data (very large / generated)
+backend/data
+backend/downloads
+backend/outputs
+backend/logs
+
+# Local secrets (pass these via env vars in deployment)
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Frontend local build/deps
+frontend/node_modules
+frontend/dist
+
+# E2E artifacts/deps (not needed for image build)
+e2e_tests/node_modules
+e2e_tests/playwright-report
+e2e_tests/test-results
+
+# Misc local/generated folders
+scratch
+observability
+

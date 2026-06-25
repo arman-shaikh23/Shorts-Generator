@@ -19,6 +19,7 @@ from ..core.dependencies import get_current_user
 from ..core.mongo_utils import parse_object_id
 from services.gemini import upload_and_wait, analyze_and_generate, generate_variations
 from services.video import build_reel
+from services.blob_storage import upload_output_video_to_blob
 from services.cv_analyzer import analyze_video_segment, detect_camera_adjustments, cv_semaphore
 from services.quality_v2 import analyze_stability_v2, recommend_trim_bounds_v2
 from services.timeline_optimizer import parse_time, build_highlight_memory
@@ -668,6 +669,16 @@ async def generate_project(
                     continue
 
                 web_url = "/" + output_path.replace("\\", "/")
+                blob_url = await asyncio.to_thread(
+                    upload_output_video_to_blob,
+                    output_path,
+                    project_id,
+                    var_style,
+                    i,
+                )
+                if blob_url:
+                    web_url = blob_url
+                    logger.info("[BLOB] Output uploaded for style '%s': %s", var_style, blob_url)
                 
                 # Use rendered_duration from build_reel if available
                 if rendered_duration_sec > 0:
