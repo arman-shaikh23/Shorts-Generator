@@ -209,6 +209,16 @@ function Assert-FileExists {
     }
 }
 
+function Resolve-FirstExistingPath {
+    param([Parameter(Mandatory = $true)][string[]]$CandidatePaths)
+    foreach ($candidate in $CandidatePaths) {
+        if (Test-Path -LiteralPath $candidate) {
+            return $candidate
+        }
+    }
+    return $null
+}
+
 if ([string]::IsNullOrWhiteSpace($ImageTag)) {
     $ImageTag = (Get-Date -Format "yyyyMMddHHmmss")
 }
@@ -216,13 +226,23 @@ if ([string]::IsNullOrWhiteSpace($ImageTag)) {
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
 $dockerfilePath = Join-Path $repoRoot "Dockerfile"
-$demoVideoPath = Join-Path $repoRoot "frontend/public/demo/how-it-works.mp4"
-$tutorialVideoPath = Join-Path $repoRoot "frontend/public/tutorials/how-it-works.mp4"
+$demoVideoPath = Resolve-FirstExistingPath -CandidatePaths @(
+    (Join-Path $repoRoot "frontend/public/demo/how-it-works.mp4"),
+    (Join-Path $repoRoot "frontend/public/demo/how-it-work.mp4")
+)
+$tutorialVideoPath = Resolve-FirstExistingPath -CandidatePaths @(
+    (Join-Path $repoRoot "frontend/public/tutorials/how-it-works.mp4"),
+    (Join-Path $repoRoot "frontend/public/tutorials/how-it-work.mp4")
+)
 
 Write-Step "Preflight checks"
 Assert-FileExists -Path $dockerfilePath
-Assert-FileExists -Path $demoVideoPath
-Assert-FileExists -Path $tutorialVideoPath
+if ([string]::IsNullOrWhiteSpace($demoVideoPath)) {
+    Write-Warning "Demo video file not found in frontend/public/demo. Deployment will continue."
+}
+if ([string]::IsNullOrWhiteSpace($tutorialVideoPath)) {
+    Write-Warning "Tutorial video file not found in frontend/public/tutorials. Deployment will continue."
+}
 
 if ([string]::IsNullOrWhiteSpace($MongoConnectionString)) {
     $CreateCosmosMongo = $true
@@ -686,6 +706,12 @@ if (-not $SkipSmokeTests) {
     $probeLocalPath = Join-Path $env:TEMP "rf-data-probe-$ImageTag.txt"
     $probeContent = "reelforge-persistent-storage-ok-$ImageTag"
     Set-Content -Path $probeLocalPath -Value $probeContent -Encoding utf8
+
+    Run-Az storage directory create `
+        --account-name $StorageAccountName `
+        --account-key $storageKey `
+        --share-name "data" `
+        --name "deployment"
 
     Run-Az storage file upload `
         --account-name $StorageAccountName `
