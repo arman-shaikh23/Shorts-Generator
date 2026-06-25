@@ -210,6 +210,57 @@ function Assert-FileExists {
     }
 }
 
+function Ensure-BlobContainer {
+    param(
+        [Parameter(Mandatory = $true)][string]$StorageAccountName,
+        [Parameter(Mandatory = $true)][string]$StorageAccountKey,
+        [Parameter(Mandatory = $true)][string]$ContainerName
+    )
+
+    # Try to create with public read for simple direct URL access.
+    # If account policy disallows public access, fall back to private container.
+    $createPublic = Invoke-AzRaw storage container create `
+        --account-name $StorageAccountName `
+        --account-key $StorageAccountKey `
+        --name $ContainerName `
+        --public-access blob
+
+    foreach ($line in $createPublic.Output) {
+        if ($line -is [System.Management.Automation.ErrorRecord]) {
+            Write-Host $line.Exception.Message
+        } else {
+            Write-Host $line
+        }
+    }
+
+    if ($createPublic.ExitCode -eq 0) {
+        return
+    }
+
+    $createText = (
+        $createPublic.Output |
+        ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                $_.Exception.Message
+            } else {
+                "$_"
+            }
+        } |
+        Out-String
+    )
+
+    if ($createText -match "PublicAccessNotPermitted|Public access is not permitted") {
+        Write-Warning "Storage account blocks public blob access. Creating private container '$ContainerName' instead."
+        Run-Az storage container create `
+            --account-name $StorageAccountName `
+            --account-key $StorageAccountKey `
+            --name $ContainerName
+        return
+    }
+
+    throw "Azure CLI command failed while ensuring blob container '$ContainerName'."
+}
+
 function Resolve-FirstExistingPath {
     param([Parameter(Mandatory = $true)][string[]]$CandidatePaths)
     foreach ($candidate in $CandidatePaths) {
@@ -361,11 +412,10 @@ if ([string]::IsNullOrWhiteSpace($storageConnectionString)) {
 
 if ($EnableBlobOutput) {
     Write-Step "Create Blob container for rendered reels"
-    Run-Az storage container create `
-        --account-name $StorageAccountName `
-        --account-key $storageKey `
-        --name $BlobContainerName `
-        --public-access blob
+    Ensure-BlobContainer `
+        -StorageAccountName $StorageAccountName `
+        -StorageAccountKey $storageKey `
+        -ContainerName $BlobContainerName
 }
 
 Write-Step "Create Azure Container Registry"
@@ -750,6 +800,11 @@ if (-not $SkipSmokeTests) {
         $blobProbeContent = "reelforge-blob-output-ok-$ImageTag"
         Set-Content -Path $blobProbeLocalPath -Value $blobProbeContent -Encoding utf8
 
+        Ensure-BlobContainer `
+            -StorageAccountName $StorageAccountName `
+            -StorageAccountKey $storageKey `
+            -ContainerName $BlobContainerName
+
         $blobProbeName = "deployment/probe-$ImageTag.txt"
         Run-Az storage blob upload `
             --account-name $StorageAccountName `
@@ -758,12 +813,17 @@ if (-not $SkipSmokeTests) {
             --file $blobProbeLocalPath `
             --name $blobProbeName
 
-        $blobProbeUrl = "https://$StorageAccountName.blob.core.windows.net/$BlobContainerName/$blobProbeName"
         $blobVerified = $false
         for ($blobAttempt = 1; $blobAttempt -le 6; $blobAttempt++) {
             try {
-                $blobProbeResponse = Invoke-WebRequest -Uri $blobProbeUrl -TimeoutSec 20 -UseBasicParsing
-                if ($blobProbeResponse.StatusCode -lt 400 -and $blobProbeResponse.Content.Trim() -like "*$blobProbeContent*") {
+                $blobExists = Get-AzTsv storage blob exists `
+                    --account-name $StorageAccountName `
+                    --account-key $storageKey `
+                    --container-name $BlobContainerName `
+                    --name $blobProbeName `
+                    --query "exists" `
+                    --output tsv
+                if ($blobExists -eq "true") {
                     $blobVerified = $true
                     break
                 }
@@ -772,7 +832,7 @@ if (-not $SkipSmokeTests) {
         }
 
         if (-not $blobVerified) {
-            throw "Blob output validation failed for $blobProbeUrl."
+            throw "Blob output validation failed for container '$BlobContainerName' and blob '$blobProbeName'."
         }
     }
 }
