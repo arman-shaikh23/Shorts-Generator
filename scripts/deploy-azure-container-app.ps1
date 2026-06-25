@@ -180,6 +180,7 @@ function Invoke-AzRaw {
     param([Parameter(ValueFromRemainingArguments = $true)][string[]]$Args)
     $previousErrorActionPreference = $ErrorActionPreference
     $ErrorActionPreference = "Continue"
+    $output = @()
     try {
         if (-not [string]::IsNullOrWhiteSpace($script:AzPythonExe)) {
             $output = & $script:AzPythonExe -IBm azure.cli @Args 2>&1
@@ -189,6 +190,9 @@ function Invoke-AzRaw {
         $exitCode = $LASTEXITCODE
     } finally {
         $ErrorActionPreference = $previousErrorActionPreference
+    }
+    if ($null -eq $output) {
+        $output = @()
     }
     return [pscustomobject]@{
         ExitCode = $exitCode
