@@ -81,5 +81,6 @@ jobs:
             MongoConnectionString   = $env:MONGODB_URL
             DbName                  = $env:DB_NAME
             UseLocalDockerBuild     = $true
+            SkipProviderRegistration = $true
           }
           ./scripts/deploy-azure-container-app.ps1 @params

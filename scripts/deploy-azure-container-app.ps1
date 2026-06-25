@@ -40,7 +40,8 @@ param(
     [string]$RedisUrl = "",
     [switch]$UseLocalDockerBuild,
     [switch]$SkipImageBuild,
-    [switch]$SkipSmokeTests
+    [switch]$SkipSmokeTests,
+    [switch]$SkipProviderRegistration
 )
 
 Set-StrictMode -Version Latest
@@ -274,11 +275,15 @@ if (-not (Test-Az account show)) {
 
 Run-Az account set --subscription $SubscriptionId
 Run-Az extension add --name containerapp --upgrade
-Run-Az provider register --namespace Microsoft.App
-Run-Az provider register --namespace Microsoft.OperationalInsights
-Run-Az provider register --namespace Microsoft.ContainerRegistry
-Run-Az provider register --namespace Microsoft.Storage
-Run-Az provider register --namespace Microsoft.DocumentDB
+if ($SkipProviderRegistration) {
+    Write-Warning "Skipping Azure provider registration as requested (-SkipProviderRegistration)."
+} else {
+    Run-Az provider register --namespace Microsoft.App
+    Run-Az provider register --namespace Microsoft.OperationalInsights
+    Run-Az provider register --namespace Microsoft.ContainerRegistry
+    Run-Az provider register --namespace Microsoft.Storage
+    Run-Az provider register --namespace Microsoft.DocumentDB
+}
 
 Write-Step "Create resource group"
 Run-Az group create --name $ResourceGroup --location $Location
