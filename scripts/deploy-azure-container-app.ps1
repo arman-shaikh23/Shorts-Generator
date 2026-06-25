@@ -302,6 +302,31 @@ function Assert-FileExists {
     }
 }
 
+function Get-TempRoot {
+    $candidates = @($env:TEMP, $env:TMP, $env:TMPDIR)
+    foreach ($candidate in $candidates) {
+        if ([string]::IsNullOrWhiteSpace($candidate)) {
+            continue
+        }
+
+        try {
+            if (-not (Test-Path -LiteralPath $candidate)) {
+                New-Item -ItemType Directory -Path $candidate -Force | Out-Null
+            }
+            return (Resolve-Path -LiteralPath $candidate).Path
+        } catch {}
+    }
+
+    $systemTemp = [System.IO.Path]::GetTempPath()
+    if ([string]::IsNullOrWhiteSpace($systemTemp)) {
+        throw "Failed to resolve a writable temporary directory (TEMP/TMP/TMPDIR/GetTempPath)."
+    }
+    if (-not (Test-Path -LiteralPath $systemTemp)) {
+        New-Item -ItemType Directory -Path $systemTemp -Force | Out-Null
+    }
+    return (Resolve-Path -LiteralPath $systemTemp).Path
+}
+
 function Test-BlobContainerExists {
     param(
         [Parameter(Mandatory = $true)][string]$StorageAccountName,
@@ -440,6 +465,7 @@ if ([string]::IsNullOrWhiteSpace($ImageTag)) {
 
 $scriptRoot = Split-Path -Parent $PSCommandPath
 $repoRoot = (Resolve-Path (Join-Path $scriptRoot "..")).Path
+$tempRoot = Get-TempRoot
 $dockerfilePath = Join-Path $repoRoot "Dockerfile"
 $demoVideoPath = Resolve-FirstExistingPath -CandidatePaths @(
     (Join-Path $repoRoot "frontend/public/demo/how-it-works.mp4"),
@@ -802,11 +828,11 @@ $volumeMountSpec = @(
     @{ mountPath = "/app/backend/logs"; volumeName = "logs-volume" }
 )
 
-$currentYamlPath = Join-Path $env:TEMP "ca-current-$ContainerAppName-$ImageTag.yaml"
-$patchedYamlPath = Join-Path $env:TEMP "ca-patched-$ContainerAppName-$ImageTag.yaml"
-$volumesJsonPath = Join-Path $env:TEMP "ca-volumes-$ContainerAppName-$ImageTag.json"
-$mountsJsonPath = Join-Path $env:TEMP "ca-mounts-$ContainerAppName-$ImageTag.json"
-$yamlPatchScriptPath = Join-Path $env:TEMP "ca-yaml-patch-$ContainerAppName-$ImageTag.py"
+$currentYamlPath = Join-Path $tempRoot "ca-current-$ContainerAppName-$ImageTag.yaml"
+$patchedYamlPath = Join-Path $tempRoot "ca-patched-$ContainerAppName-$ImageTag.yaml"
+$volumesJsonPath = Join-Path $tempRoot "ca-volumes-$ContainerAppName-$ImageTag.json"
+$mountsJsonPath = Join-Path $tempRoot "ca-mounts-$ContainerAppName-$ImageTag.json"
+$yamlPatchScriptPath = Join-Path $tempRoot "ca-yaml-patch-$ContainerAppName-$ImageTag.py"
 
 $currentYaml = Get-AzText containerapp show `
     --name $ContainerAppName `
@@ -921,7 +947,7 @@ if (-not $SkipSmokeTests) {
         Write-Warning "Tutorial video route check failed at $tutorialUrl (status $($tutorialCheck.StatusCode)). Continuing deployment."
     }
 
-    $probeLocalPath = Join-Path $env:TEMP "rf-data-probe-$ImageTag.txt"
+    $probeLocalPath = Join-Path $tempRoot "rf-data-probe-$ImageTag.txt"
     $probeContent = "reelforge-persistent-storage-ok-$ImageTag"
     Set-Content -Path $probeLocalPath -Value $probeContent -Encoding utf8
 
@@ -959,7 +985,7 @@ if (-not $SkipSmokeTests) {
     }
 
     if ($EnableBlobOutput) {
-        $blobProbeLocalPath = Join-Path $env:TEMP "rf-blob-probe-$ImageTag.txt"
+        $blobProbeLocalPath = Join-Path $tempRoot "rf-blob-probe-$ImageTag.txt"
         $blobProbeContent = "reelforge-blob-output-ok-$ImageTag"
         Set-Content -Path $blobProbeLocalPath -Value $blobProbeContent -Encoding utf8
 
