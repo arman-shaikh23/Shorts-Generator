@@ -292,6 +292,25 @@ function Assert-FileExists {
     }
 }
 
+function Test-BlobContainerExists {
+    param(
+        [Parameter(Mandatory = $true)][string]$StorageAccountName,
+        [Parameter(Mandatory = $true)][string]$StorageAccountKey,
+        [Parameter(Mandatory = $true)][string]$ContainerName
+    )
+    try {
+        $exists = Get-AzTsv storage container exists `
+            --account-name $StorageAccountName `
+            --account-key $StorageAccountKey `
+            --name $ContainerName `
+            --query "exists" `
+            --output tsv
+        return ($exists -eq "true")
+    } catch {
+        return $false
+    }
+}
+
 function Ensure-BlobContainer {
     param(
         [Parameter(Mandatory = $true)][string]$StorageAccountName,
@@ -306,41 +325,93 @@ function Ensure-BlobContainer {
         --account-key $StorageAccountKey `
         --name $ContainerName `
         --public-access blob
+    Write-AzOutput -Output $createPublic.Output
 
-    foreach ($line in $createPublic.Output) {
-        if ($line -is [System.Management.Automation.ErrorRecord]) {
-            Write-Host $line.Exception.Message
+    if ($createPublic.ExitCode -ne 0) {
+        $createText = Get-AzOutputText -Output $createPublic.Output
+        if ($createText -match "PublicAccessNotPermitted|Public access is not permitted") {
+            Write-Warning "Storage account blocks public blob access. Creating private container '$ContainerName' instead."
+            Run-Az storage container create `
+                --account-name $StorageAccountName `
+                --account-key $StorageAccountKey `
+                --name $ContainerName
         } else {
-            Write-Host $line
+            throw "Azure CLI command failed while ensuring blob container '$ContainerName'."
         }
     }
 
-    if ($createPublic.ExitCode -eq 0) {
-        return
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        if (Test-BlobContainerExists `
+            -StorageAccountName $StorageAccountName `
+            -StorageAccountKey $StorageAccountKey `
+            -ContainerName $ContainerName) {
+            return
+        }
+        Start-Sleep -Seconds 2
     }
 
-    $createText = (
-        $createPublic.Output |
-        ForEach-Object {
-            if ($_ -is [System.Management.Automation.ErrorRecord]) {
-                $_.Exception.Message
-            } else {
-                "$_"
-            }
-        } |
-        Out-String
+    Write-Warning "Blob container '$ContainerName' not visible yet. Retrying explicit create and verify."
+    Run-Az storage container create `
+        --account-name $StorageAccountName `
+        --account-key $StorageAccountKey `
+        --name $ContainerName
+
+    for ($attempt = 1; $attempt -le 5; $attempt++) {
+        if (Test-BlobContainerExists `
+            -StorageAccountName $StorageAccountName `
+            -StorageAccountKey $StorageAccountKey `
+            -ContainerName $ContainerName) {
+            return
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    throw "Blob container '$ContainerName' still not found after create attempts."
+}
+
+function Upload-BlobWithContainerRetry {
+    param(
+        [Parameter(Mandatory = $true)][string]$StorageAccountName,
+        [Parameter(Mandatory = $true)][string]$StorageAccountKey,
+        [Parameter(Mandatory = $true)][string]$ContainerName,
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        [Parameter(Mandatory = $true)][string]$BlobName
     )
 
-    if ($createText -match "PublicAccessNotPermitted|Public access is not permitted") {
-        Write-Warning "Storage account blocks public blob access. Creating private container '$ContainerName' instead."
-        Run-Az storage container create `
-            --account-name $StorageAccountName `
-            --account-key $StorageAccountKey `
-            --name $ContainerName
+    Ensure-BlobContainer `
+        -StorageAccountName $StorageAccountName `
+        -StorageAccountKey $StorageAccountKey `
+        -ContainerName $ContainerName
+
+    $uploadResult = Invoke-AzRaw storage blob upload `
+        --account-name $StorageAccountName `
+        --account-key $StorageAccountKey `
+        --container-name $ContainerName `
+        --file $FilePath `
+        --name $BlobName
+    Write-AzOutput -Output $uploadResult.Output
+    if ($uploadResult.ExitCode -eq 0) {
         return
     }
 
-    throw "Azure CLI command failed while ensuring blob container '$ContainerName'."
+    $uploadText = Get-AzOutputText -Output $uploadResult.Output
+    if ($uploadText -match "ContainerNotFound|specified container does not exist") {
+        Write-Warning "Blob upload reported container not found. Re-ensuring container and retrying once."
+        Ensure-BlobContainer `
+            -StorageAccountName $StorageAccountName `
+            -StorageAccountKey $StorageAccountKey `
+            -ContainerName $ContainerName
+
+        Run-Az storage blob upload `
+            --account-name $StorageAccountName `
+            --account-key $StorageAccountKey `
+            --container-name $ContainerName `
+            --file $FilePath `
+            --name $BlobName
+        return
+    }
+
+    throw "Azure CLI command failed: az storage blob upload --account-name $StorageAccountName --container-name $ContainerName --file $FilePath --name $BlobName"
 }
 
 function Resolve-FirstExistingPath {
@@ -888,12 +959,12 @@ if (-not $SkipSmokeTests) {
             -ContainerName $BlobContainerName
 
         $blobProbeName = "deployment/probe-$ImageTag.txt"
-        Run-Az storage blob upload `
-            --account-name $StorageAccountName `
-            --account-key $storageKey `
-            --container-name $BlobContainerName `
-            --file $blobProbeLocalPath `
-            --name $blobProbeName
+        Upload-BlobWithContainerRetry `
+            -StorageAccountName $StorageAccountName `
+            -StorageAccountKey $storageKey `
+            -ContainerName $BlobContainerName `
+            -FilePath $blobProbeLocalPath `
+            -BlobName $blobProbeName
 
         $blobVerified = $false
         for ($blobAttempt = 1; $blobAttempt -le 6; $blobAttempt++) {
