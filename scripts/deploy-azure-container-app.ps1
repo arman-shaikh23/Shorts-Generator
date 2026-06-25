@@ -133,9 +133,9 @@ function Test-AzTransientFailure {
 
 function Run-Az {
     param(
+        [Parameter(Position = 0, ValueFromRemainingArguments = $true)][string[]]$Args,
         [int]$MaxAttempts = 4,
-        [int]$InitialRetryDelaySec = 5,
-        [Parameter(ValueFromRemainingArguments = $true)][string[]]$Args
+        [int]$InitialRetryDelaySec = 5
     )
 
     if ($MaxAttempts -lt 1) {
